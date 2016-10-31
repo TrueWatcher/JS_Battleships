@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru" xml:lang="ru">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Testing Harvester Class</title>
+  <link rel="stylesheet" type="text/css" href="../battleships.css" media="all" />
+</head>
+<body>
+<table id="general">
+  <tr>
+    <td>Your ships</td>
+    <td>Enemy ships</td>
+  </tr>
+  <tr>
+    <td id="primary"></td>
+    <td id="tracking"></td>
+  </tr>
+  <tr>
+    <td id="prPanel"></td>
+    <td id="trPanel"></td>
+  </tr>
+  <tr>
+    <td id="playerStat"></td>
+    <td id="enemyStat"></td>
+  </tr>  
+</table>
+
+<script>
+  const DIM=10;
+</script>
+<script src="testUtils.js"></script>
+<script src="../arrayUtils.js"></script>
+<script src="../View.js"></script>
+<script src="../Basin.js"></script>
+<!--<script src="../Model.js"></script>-->
+<script src="../Harvester.js"></script>
+<!--<script src="../controller.js"></script>-->
+</body>
+
+<script>
+"use strict";
+var v=new View;
+var b=new Basin;
+//createArray(10,0)
+var ta1=[ [0,0,0,0,0,0,0,1,1,1], [1,1,1,1,1,0,0,0,0,0], createArray(10,0), [0,1,1,1,0,0,0,0,1,0], [0,0,0,0,0,0,0,0,1,0], [0,0,0,0,1,0,0,0,1,0], [0,0,0,0,1,0,1,0,1,0] ];
+ta1=translateArray(ta1);
+b._arr=ta1;
+v.pb.fromBasin(b);
+
+var h=new Harvester(b);
+//while ( h.step() ) {};
+h.search();
+alert ("found ships:"+h._ships.length );
+
+</script>
+
+</html>

@@ -1,0 +1,14 @@
+* {
+  border-collapse: collapse;
+}
+
+table#general td {
+  padding: 0.5em;
+  text-align: center;
+}
+
+td#primary td,td#tracking td {
+  width: 24px;
+  height: 24px;
+  border: 1px solid;
+}

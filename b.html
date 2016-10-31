@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru" xml:lang="ru">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Battleships, JS standalone</title>
+  <link rel="stylesheet" type="text/css" href="battleships.css" media="all" />
+  <!--
+  by TrueWatcher 2016
+  v.0.9 tests 30.10.2016
+  -->
+</head>
+<body>
+<table id="general">
+  <tr>
+    <td>Your ships</td>
+    <td>Enemy ships</td>
+  </tr>
+  <tr>
+    <td id="primary"></td>
+    <td id="tracking"></td>
+  </tr>
+  <tr>
+    <td id="prPanel"></td>
+    <td id="trPanel"></td>
+  </tr>
+  <tr>
+    <td id="playerStat"></td>
+    <td id="enemyStat"></td>
+  </tr>  
+</table>
+
+<script> const DIM=10; </script>
+<script src="arrayUtils.js"></script>
+<script src="View.js"></script>
+<script src="Basin.js"></script>
+<script src="Model.js"></script>
+<script src="Harvester.js"></script>
+<script src="controller.js"></script>
+</body>
+
+</html>
