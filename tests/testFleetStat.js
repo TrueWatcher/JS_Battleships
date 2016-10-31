@@ -7,14 +7,14 @@ var g=[];
 var plan=[0,4,3,2,1,0,0,0,0,0];
 g._forces=plan;
 
-function testFleetStat(){
+function testFleetStat(t){
 try {
   var res,res1;
   var resArr3=[],resArr2=[],resArr=[];
 
   var i,j;
   
-  document.write("Fleet\n");
+  t.println("\nFleet\n");
   var f=new Fleet();
   f.ships=[];
   var testShip1=[ [1,2],[1,3],[1,4] ];
@@ -22,19 +22,19 @@ try {
   var testShip2=[ [3,0],[3,1],[3,2],[3,3] ];
   f.ships.push(testShip2);
   
-  document.write("checkHit\n");
+  t.println("checkHit");
   res=f.checkHit(2,3);
   assertEqualsPrim(false,res,"not false on a miss","miss");
   res1=f.checkHit(1,3);
   assertTrue(res1,"false on a hit","hit");
   assertEqualsPrim(testShip1,res1,"not the striken ship","hit ship"); // same array -- no need for join()
   
-  document.write("makeHistogram\n");
+  t.println("makeHistogram");
   var his=f.makeHistogram();
   var hisExpected=[0,0,0,1,1,0,0,0,0,0];
   assertEqualsPrim(hisExpected.join(),his.join(),"wrong histogram","histogram");
   
-  document.write("checkMargins\n");
+  t.println("checkMargins");
   res=f.checkMargins();
   assertTrue(res,"false negative check","valid margins");
   f.ships.push([ [0,1] ]);
@@ -47,7 +47,7 @@ try {
   res=f.checkMargins();
   assertTrue( !res,"positive on overlap","overlap");
   
-  document.write("ShipYard production\n");
+  t.println("ShipYard production");
 
   f.clear();
   assertEqualsPrim(0,f.ships.length,"not cleared","clear");  
@@ -59,7 +59,7 @@ try {
   assertEqualsPrim(plan.join(),his.join(),"wrong histogram","histogram");
 
   
-  document.write("Stat\n");
+  t.println("\nStat\n");
   var s=new Stat();
   s.addStrike();
   s.addStrike();
@@ -70,7 +70,7 @@ try {
   assertEqualsPrim(2,s._shipsAlive,"wrong alive count","alive");
   assertEqualsPrim(4,s._biggestShip,"wrong biggest ship","biggest");
   
-  document.write("minusOne\n");
+  t.println("minusOne");
   s.minusOne(testShip2); // only lenght will be used, no coords
   assertEqualsPrim(1,s._shipsAlive,"wrong alive count","minus alive");
   assertEqualsPrim(3,s._biggestShip,"wrong biggest ship","minus biggest");
@@ -79,7 +79,8 @@ try {
   
 }
 catch (err) {
-  document.write("Terminated in/after "+testNum+"th test on: "+err+"\n");
+  t.printErr(testNum,err);
+  //t.println("Terminated in/after "+testNum+"th test on: "+err+"("+err.lineNumber+")");
 }
 }
-testFleetStat();
+testFleetStat(TestHelper());
