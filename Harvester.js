@@ -9,7 +9,6 @@ function Harvester(basin,mode) {
   this._hits=[];
   this._nearHits=[];
   this._ships=[];
-  //this._nearHitsDetected=false;
   this._dir="";
   this._row=-1;
   this._col=-1;
@@ -19,8 +18,6 @@ function Harvester(basin,mode) {
   this._highStop=0;
   this._probe=[];
   this._count=0;
-  
-  //var probe;
 
   this.genSeqn=function() {
     var probe;
@@ -36,7 +33,7 @@ function Harvester(basin,mode) {
 
   this.initGenNear=function() {
     var h0=this._hits[0];
-    this._nearHits=this._b.adjAllStrikable( h0[0],h0[1] );
+    this._nearHits=this._b.adjStrikable( h0[0],h0[1],"cross" );
   } 
   
   this.genNear=function() {
@@ -62,8 +59,8 @@ function Harvester(basin,mode) {
         this._mov=0;
         this._col=h0[1];
       }
-      if( h0[0]==h1[0] && h0[1]==h1[1]) alert("Error! duplicate hits");
-      if( h0[0]!==h1[0] && h0[1]!==h1[1]) alert("Error! unadjacent hits");
+      if( h0[0]==h1[0] && h0[1]==h1[1]) throw("Harvester::initGenStraight: duplicate hits");
+      if( h0[0]!==h1[0] && h0[1]!==h1[1]) alert("Harvester::initGenStraight: unadjacent hits");
       if ( h1[this._mov] < h0[this._mov] ) arraySwap01(this._hits);
       //alert ( "from "+this._hits[0].join()+" to "+this._hits[1].join() );
       this._lowStop=false;
@@ -93,12 +90,12 @@ function Harvester(basin,mode) {
     if ( this._lowStop && this._highStop ) return false;
     
     if ( !this._lowStop ) {
-      probe=nextLow;//[ this._row,(this._hits[0][this._mov]-1) ];
+      probe=nextLow;
       this._dir="low";
     }
     //if ( !this._highStop ) {
     else {
-      probe=nextHigh;//[ this._row,(this._hits[l-1][this._mov]+1) ];
+      probe=nextHigh;
       this._dir="high";
     }
     //alert("Going "+this._dir);
@@ -183,23 +180,39 @@ function Harvester(basin,mode) {
     this._highStop=0;
     //this._stage="search";
   }
+
+  this.reset=function() {
+    this._stage="search";
+    this.source=new Seq2d();// duplicate from constructor
+    //this.source=new Rand2d();
+    this._hits=[];
+    this._nearHits=[];
+    this._ships=[];
+    this._probe=[];
+    this._count=0;    
+  }  
   
   this.search=function() {
     var r,probe;
+    this.reset();
     while ( probe=this.move() ) {
       //alert(">"+probe[0]+probe[1]);
       r=this._b.checkHit( probe[0],probe[1] );
       if (r) { 
         this._b.put( "h",probe[0],probe[1] );
-        v.pb.put( probe[0],probe[1],"h" );
+        v.pb.put( probe[0],probe[1],"h" );// DEBUG
       }
       else {
         this._b.put( "m",probe[0],probe[1] );
-        v.pb.put( probe[0],probe[1],"m" );      
+        v.pb.put( probe[0],probe[1],"m" );// DEBUG      
       }
       this.reflect(r);
     }
     //alert(">"+probe);
+  }
+  
+  this.yield=function() {
+    return(this._ships);
   }
 
 }  

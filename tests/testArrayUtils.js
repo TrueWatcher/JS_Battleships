@@ -1,5 +1,4 @@
 "use strict";
-var testNum=0;
 function testArrayUtils() {
 try {
   
@@ -77,7 +76,7 @@ try {
   assertEqualsPrim("a,b",testArr2[0].join(),"1th pair not found in 0th position","1->0");  
 }
 catch (err) {
-  printErr(testNum,err);
+  printErr(err);
 }
 }
 testArrayUtils();//new TestHelper()

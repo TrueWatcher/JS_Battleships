@@ -69,26 +69,6 @@ function adjAll(row,col,max) {
   return (res);
 }
 
-function around(pointsArray) {
-  if ( !(pointsArray instanceof Array) /*|| !(pointsArray[0] instanceof Array)*/ ) {
-    //alert ("Usage error! Non-array or single-dimension array passed to 'around()' ");
-    return false;
-  }
-  var res=[];
-  var adjacent=[];
-  var rc,rca;
-  for (var i=0;i<pointsArray.length;i++) {
-    rc=pointsArray[i];
-    adjacent=adjAll(rc[0],rc[1]);
-    for (var j=0;j<adjacent.length;j++) {
-      rca=adjacent[j];
-      if ( (pointsArray.indexOfVect(rca) <0) && (res.indexOfVect(rca) <0) ) res.push(rca);
-    }
-  }
-  //alert(res.length);
-  return(res);
-}
-
 function adjCross(row,col,max) {
   if (!max) var max=DIM;
   var try4=[ [row-1,col],[col-1,row],[row+1,col],[row,col+1] ];
@@ -98,6 +78,27 @@ function adjCross(row,col,max) {
     rc=try4[i];
     if( rc[0]>=0 && rc[0]<max && rc[1]>=0 && rc[1]<max ) res.push(rc);
   }
+  return(res);
+}
+
+function around(pointsArray,mode) {
+  if ( !(pointsArray instanceof Array) /*|| !(pointsArray[0] instanceof Array)*/ ) {
+    //alert ("Usage error! Non-array or single-dimension array passed to 'around()' ");
+    return false;
+  }
+  var res=[];
+  var adjacent=[];
+  var rc,rca;
+  for (var i=0;i<pointsArray.length;i++) {
+    rc=pointsArray[i];
+    if (mode=="cross") adjacent=adjCross(rc[0],rc[1]);
+    else adjacent=adjAll(rc[0],rc[1]);
+    for (var j=0;j<adjacent.length;j++) {
+      rca=adjacent[j];
+      if ( (pointsArray.indexOfVect(rca) <0) && (res.indexOfVect(rca) <0) ) res.push(rca);
+    }
+  }
+  //alert(res.length);
   return(res);
 }
 

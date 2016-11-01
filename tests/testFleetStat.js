@@ -1,5 +1,5 @@
 "use strict";
-var testNum=0;
+
 var v=[];
 v.tb=[];
 v.tb.put=function(){}
@@ -80,7 +80,7 @@ try {
   
 }
 catch (err) {
-  printErr(testNum,err);
+  printErr(err);
 }
 }
 testFleetStat();

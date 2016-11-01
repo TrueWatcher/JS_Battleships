@@ -34,6 +34,7 @@
 <script src="../arrayUtils.js"></script>
 <script src="../View.js"></script>
 <script src="../Basin.js"></script>
+<script src="../Model.js"></script>
 <!--<script src="../Model.js"></script>-->
 <script src="../Harvester.js"></script>
 <!--<script src="../controller.js"></script>-->
@@ -41,19 +42,113 @@
 
 <script>
 "use strict";
-var v=new View;
-var b=new Basin;
-//createArray(10,0)
-var ta1=[ [0,0,0,0,0,0,0,1,1,1], [1,1,1,1,1,0,0,0,0,0], createArray(10,0), [0,1,1,1,0,0,0,0,1,0], [0,0,0,0,0,0,0,0,1,0], [0,0,0,0,1,0,0,0,1,0], [0,0,0,0,1,0,1,0,1,0] ];
-ta1=translateArray(ta1);
-b._arr=ta1;
-v.pb.fromBasin(b);
+try{
+  var v=new View;
+  var b=new Basin();
 
-var h=new Harvester(b);
-//while ( h.step() ) {};
-h.search();
-alert ("found ships:"+h._ships.length );
+  var r,rr,rrr;
+  var f=new Fleet();
+  //  f.ships=[];
+  var testShip1=[ [1,2],[1,3],[1,4] ];
+  f.ships.push(testShip1);
+  var testShip2=[ [3,0],[3,1],[3,2],[3,3] ];
+  f.ships.push(testShip2);
+  b.markShip(testShip1);
+  v.pb.fromBasin(b);
+  
+  print(">page");
+  println("\nFleet+Basin\n");
+  r=b.checkStrikable(0,0);
+  assertEqualsPrim(true,r,"not strikable empty","empty");
+  r=b.checkHit(0,0);
+  assertEqualsPrim(false,r,"false hit","miss");
+  b.put("m",0,0);
+  r=b.checkStrikable(0,0);
+  assertEqualsPrim(false,r,"strikable miss","miss");
+  rrr=f.checkHit(0,0);
+  assertTrue(rrr===false,"wrong Fleet checkHit on miss","Fleet-miss");  
+  rr=b.checkStrikable(1,3);
+  assertEqualsPrim(true,rr,"not strikable ship","ship");
+  b.put("h",1,3);
+  rr=b.checkStrikable(1,3);
+  assertEqualsPrim(false,rr,"strikable hit","hit");
+  rrr=f.checkHit(1,3);
+  assertTrue(rrr,"wrong Fleet checkHit on hit","Fleet-hit");
+  assertEqualsPrim(testShip1,rrr,"wrong ship","Fleet-hit-ship");
+  r=b.checkSunk(rrr);
+  assertEqualsPrim(false,r,"wrong Basin::checkSunk on damaged","not sunk");  
+  b.put("h",1,2);
+  b.put("h",1,4);
+  r=b.checkSunk(rrr);
+  assertTrue(r,"wrong Basin::checkSunk on sunk","checkSunk-sunk");
+  b.markSunk(rrr);
+  rr=b.get(1,2);
+  assertEqualsPrim("w",rr,"wrong markSunk on wreck","markSunk-wreck");
+  b.markAround(rrr);  
+  rr=b.get(0,1);
+  assertEqualsPrim("c",rr,"wrong markSunk on clearance","markSunk-clearance");
+  v.pb.fromBasin(b);
+  b.cleanUp();
+  rr=b.get(1,2);
+  assertEqualsPrim("s",rr,"wreck not cleaned","cleanUp-wreck");  
+  rr=b.get(0,1);
+  assertEqualsPrim("e",rr,"clearance not cleaned","cleanUp-clearance");
+  b.clear();
+  rr=b.get(1,2);
+  assertEqualsPrim("e",rr,"ship square not cleared","Basin-clear-ship");
+  f.clear();
+  rrr=f.checkHit(1,3);
+  assertEqualsPrim(false,rrr,"Fleet not cleared","Fleet-clear-ship");
+  
+  print(">page");
+  println("\nFleet+Basin+Harvester\n");
 
+  v.pb.fromBasin(b);
+  var ta1=[ [0,0,0,0,0,0,0,1,1,1], [1,1,1,1,1,0,0,0,0,0], createArray(10,0), [0,1,1,1,0,0,0,0,1,0], [0,0,0,0,0,0,0,0,1,0], [0,0,0,0,1,0,0,0,1,0], [0,0,0,0,1,0,1,0,1,0] ];
+  ta1=translateArray(ta1);
+  b._arr=ta1;
+  v.pb.fromBasin(b);
+
+  var h=new Harvester(b);
+  h.search();
+  //alert ("found ships:"+h.yield().length );
+  assertEqualsPrim(6,h.yield().length,"wrong count","count");
+  f.take(h.yield());
+  var hi=f.makeHistogram();
+  var hiExpect=[0,1,1,2,1,1,0,0,0,0];
+  //assertEqualsPrim(hiExpect.join(),hi.join(),"wrong histogram","histogram");  
+  assertEqualsVect(hiExpect,hi,"wrong histogram","histogram");
+  r=f.checkMargins();
+  assertEqualsPrim(true,r,"false negative checkMargins","margins");
+  
+  b.cleanUp();
+  b.put("s",4,0);
+  v.pb.fromBasin(b);
+  //h.reset();
+  h.search();
+  //v.pb.fromBasin(b);
+  assertEqualsPrim(7,h.yield().length,"wrong count on diagonal contact","diagonal-count");
+  f.take(h.yield());
+  r=f.checkMargins();
+  assertEqualsPrim(false,r,"non-negative checkMargins on diagonal contact","diagonal-margins");
+  b.cleanUp();
+  b.put("s",4,1);
+  b.put("s",4,2);
+  v.pb.fromBasin(b);
+  //h.reset();
+  h.search();
+  var sh=h.yield();
+  alert ("found ships:"+h.yield().length );
+  for(var i=0;i<sh.length;i++) {
+    b.markShip(sh[i]);
+    v.pb.fromBasin(b);
+    alert("number "+i);
+  }
+
+//b.clear();
+  
+}
+catch(err) { printErr(err); }
 </script>
 
 </html>

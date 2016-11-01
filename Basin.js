@@ -54,17 +54,25 @@ function Basin(mode) {
     var val=this._arr[row][col];
     return ( val=="s" );
   } 
-  
-  this.adjAll=function(row,col) {
-    return( adjAll(row,col) );
-  }
-    
-  this.adjAllStrikable=function(row,col) {
-    var myAdjAll=adjAll(row,col);
-    //alert ("got "+myAdjAll.length+" valid neighbours");
+      
+  /* 
+   * Finds all neighbouring points available for a strike
+   * @param Int row
+   * @param Int col
+   * @param String mode "all" for orthogonal and diagonal neighbours, "cross" for only othogonal
+   * @uses arrayUtils::adjAll
+   * @uses arrayUtils::adjCross
+   * @returns Array
+   */
+  this.adjStrikable=function(row,col,mode) {
+    var adjacent=[];
+    if ( mode=="all" ) adjacent=adjAll(row,col);
+    else if ( mode=="cross" ) adjacent=adjCross(row,col);
+    else throw ("adjStrikable:invalid mode");
+    //alert ("got "+myAdjAll.length+" valid neighbours in "+mode+" mode");
     var res=[];
-    for (var i=0;i<myAdjAll.length;i++) {
-      if ( this.checkStrikable(myAdjAll[i]) ) res.push( myAdjAll[i] );
+    for (var i=0;i<adjacent.length;i++) {
+      if ( this.checkStrikable(adjacent[i]) ) res.push( adjacent[i] );
     }
     return(res);
   }
@@ -93,7 +101,7 @@ function Basin(mode) {
     return ( around(ship) );
   }*/
   
-  this.markAround=function(ship,board) {
+  this.markAround=function(ship) {
     var rc,c;
     var ar=around(ship);
     for (var j=0;j<ar.length;j++) {
@@ -101,7 +109,6 @@ function Basin(mode) {
       c=this.get(rc[0],rc[1]);
       if ( c=="u" || c=="e" ) {
         this.put("c",rc[0],rc[1]);
-        //if (board) board.put(rc[0],rc[1],"c");
       }
     }    
   }
@@ -125,6 +132,14 @@ function Basin(mode) {
       else cc="e";
       this.put(cc,rc[0],rc[1]);
     }
+  }
+  
+  this.clear=function() {
+    for (var i=0;i<DIM;i++) {
+      for (var j=0;j<DIM;j++) {
+        this._arr[i][j]=this._fill;
+      }
+    }    
   }
   
 }

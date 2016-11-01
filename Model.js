@@ -128,7 +128,8 @@ function Fleet() {
         break;
       case "byForces": 
         var sy=new ShipYard(g._forces);
-        this.ships=sy.buildAll();
+        //this.ships=sy.buildAll();
+        this.take(sy.buildAll());
         for (var i=0;i<this.ships.length;i++) { // DEBUG
           //m.enemyBasin.markShip(this.ships[i]);
         }
@@ -203,6 +204,10 @@ function Fleet() {
   
   this.clear=function() {
     this.ships=[];
+  }
+  
+  this.take=function(ships) {
+    this.ships=ships;
   }
 }// end Ships
 
