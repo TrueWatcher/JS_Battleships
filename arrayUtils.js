@@ -169,12 +169,19 @@ function arraySwap01(arr) {
 
 
 function putToElement(str,id) {
-  var e=document.getElementById(id);
+  var e;
+  if ( id.nodeName ) e=id;
+  else if ( typeof id =="string" ) e=document.getElementById(id);
+  else throw ("putToElement: invalid argument "+id);  
+  //var e=document.getElementById(id);
   e.innerHTML=str;    
 }
 
 function toggleElement(id) {
-  var e=document.getElementById(id);
+  var e;
+  if ( id.nodeName ) e=id;
+  else if ( typeof id =="string" ) e=document.getElementById(id);
+  else throw ("toggleElement: invalid argument "+id);
   var d=e.style.display;
   if (d=="none") e.style.display="";
   else e.style.display="none";

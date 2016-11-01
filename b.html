@@ -2,11 +2,14 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ru" xml:lang="ru">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <title>Battleships, JS standalone</title>
+  <title>Battleships game (JS standalone) by TrueWatcher</title>
   <link rel="stylesheet" type="text/css" href="battleships.css" media="all" />
   <!--
   by TrueWatcher 2016
   v.0.9 tests 30.10.2016
+  full set of tests, many fixes and improvements
+  v.0.10 rewritten Controller and View 1.11.2016 
+  ToDo: Harvester in strike mode, new Controller
   -->
 </head>
 <body>
@@ -20,8 +23,12 @@
     <td id="tracking"></td>
   </tr>
   <tr>
-    <td id="prPanel"></td>
+    <td><div  id="prPanel"></div></td>
     <td id="trPanel"></td>
+  </tr>
+  <tr>
+    <td id="playerMsg"></td>
+    <td id="enemyMsg"></td>
   </tr>
   <tr>
     <td id="playerStat"></td>

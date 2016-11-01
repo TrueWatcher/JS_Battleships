@@ -7,20 +7,22 @@ function StatPanel(parentElm,prefix,mode) {
   var sh='Ships afloat:<span id="'+prefix+"Float"+'"></span> ';
   sh+='largest:<span id="'+prefix+"Largest"+'"></span> ';
   sh+='dead:<span id="'+prefix+"Dead"+'"></span> ';
-  var hist='Ships all (decks:pieces): <span id="'+prefix+"Hist"+'"></span> ';
-  this._html=str+"<br />"+sh+"<br />"+hist;
+  var hist='Ships all (squares:ships): <span id="'+prefix+"Hist"+'"></span> ';
+  this._html=hist+"<br />"+str+"<br />"+sh+"<br />";
   this._e=parentElm;
   this._e.innerHTML=this._html;
   this._prefix=prefix;
 
-  this.showClearHistogram=function(histogram) { 
+  this.showClearHistogram=function(histogram,id) { 
     var hst="";
     for (var l=0;l<DIM;l++) {
       if (histogram[l]) {
         hst+=""+l+":"+histogram[l]+"  ";
       }
     }
-    putToElement(hst,this._prefix+"Hist");
+    if ( id=="return" ) return(hst);
+    if ( !id ) var id=this._prefix+"Hist";
+    putToElement(hst,id);
     //alert(hst);
     //this.showHistogram(hst);
     //return(hst);
@@ -55,7 +57,7 @@ function Board(parentElm,command,prefix,fill) {
     //alert (event.target.nodeName);
     var tdId=detectTd(event);
     //alert (tdId);
-    go(command,tdId.charAt(1),tdId.charAt(2));
+    go ( command, [ tdId.charAt(1),tdId.charAt(2) ] );
   }
   
   this.put=function(row,column,what) {
@@ -107,7 +109,6 @@ function makeGrid(prefix,fill) {
     table+=tr;
   }
   table="<table>"+table+"</table>";
-  //alert(table);
   return (table);  
 }
 
@@ -125,25 +126,49 @@ function detectTd(event) {
     return (false);
 }
 
+function DrawControls() {
+  
+  var dc="";
+  dc+='<button type="button" id="confirmShips" onclick="go('+"'cs'"+')" >'+"Done, let's play"+'</button>';
+  dc+='<button type="button" id="removeShips" onclick="go('+"'rs'"+')" >'+"Clear"+'</button>';
+  dc+='<button type="button" id="autoShips" onclick="go('+"'as'"+')" >'+"Auto"+'</button>';
+  
+  this._e=document.getElementById("prPanel");
+  this._e.innerHTML=dc;
+  this._e.style.display="none";
+  
+  this.toggle=function() {
+    toggleElement(this._e);
+  } 
+}
+
 function View() {
   this.pb=new Board( document.getElementById("primary"),"set","p","e" );
   this.tb=new Board( document.getElementById("tracking"),"strike","e","u" );
-  this.pp=document.getElementById("prPanel");
+  this.dc=new DrawControls();
   var _this=this;
-  
-  this.showConfirmShips=function(){
-    var cb="";
-    cb+='<button type="button" id="confirmShips" onclick="go('+"'cs'"+')" >'+"My ships are ready"+'</button>';
-    _this.pp.innerHTML=cb;
-  }
-  
-  this.hideConfirmShips=function(){
-    _this.pp.innerHTML="";
-  }
+
   
   this.ps=new StatPanel( document.getElementById("playerStat"),"p","player" );
   this.es=new StatPanel( document.getElementById("enemyStat"),"e","enemy" );
+  
+  this._plMes="";
+  
+  this.playerMessagePut=function(msg) {
+    this._plMes=msg;
+    putToElement(this._plMes,"playerMsg");
+  }
+  
+  this.playerMessageAdd=function(msg) {
+    this._plMes+=msg;
+    putToElement(this._plMes,"playerMsg");
+  }
+  
+  
+  this.enemyMessagePut=function(msg) {
+    putToElement(msg,"enemyMsg");
+  }  
 } 
 
-//var pg=new Board( 10,document.getElementById("primary"),"set","." );
+
 

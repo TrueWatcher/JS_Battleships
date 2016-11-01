@@ -17,11 +17,11 @@ try {
   print(">page");
   println("\nFleet\n");
   var f=new Fleet();
-  f.ships=[];
+  f._ships=[];
   var testShip1=[ [1,2],[1,3],[1,4] ];
-  f.ships.push(testShip1);
+  f._ships.push(testShip1);
   var testShip2=[ [3,0],[3,1],[3,2],[3,3] ];
-  f.ships.push(testShip2);
+  f._ships.push(testShip2);
   
   println("checkHit");
   res=f.checkHit(2,3);
@@ -38,22 +38,22 @@ try {
   println("checkMargins");
   res=f.checkMargins();
   assertTrue(res,"false negative check","valid margins");
-  f.ships.push([ [0,1] ]);
+  f._ships.push([ [0,1] ]);
   res=f.checkMargins();
   assertTrue( !res,"positive on diagonal contact","diagonal contact");
-  f.ships.pop();
+  f._ships.pop();
   res=f.checkMargins();
   assertTrue(res,"false negative check","valid margins");
-  f.ships.push([ [3,1] ]);  
+  f._ships.push([ [3,1] ]);  
   res=f.checkMargins();
   assertTrue( !res,"positive on overlap","overlap");
   
   println("ShipYard production");
 
   f.clear();
-  assertEqualsPrim(0,f.ships.length,"not cleared","clear");  
+  assertEqualsPrim(0,f._ships.length,"not cleared","clear");  
   f.build("byWarrant");
-  assertEqualsPrim(10,f.ships.length,"wrong number of ships","number");
+  assertEqualsPrim(10,f._ships.length,"wrong number of ships","number");
   var resSy=f.checkMargins();
   assertTrue(resSy,"false negative margin check","valid margins");
   his=f.makeHistogram();

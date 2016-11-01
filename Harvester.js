@@ -113,19 +113,22 @@ function Harvester(basin,mode) {
       }
       else return(probe);      
     }
+    // fall-through
     if (this._stage=="near") {
       if ( (probe=this.genNear())===false ) {
         this._stage="kill";
       }
       else return(probe);
     }
+    // fall-through
     if (this._stage=="kill") {
       this.harvest();
       this._stage="search";
     }
+    // fall-through
     if (this._stage=="search") {
       if ( (probe=this.genSeqn())===false ) {
-        alert ("finished");
+        alert ("Lookup complete, found "+this._ships.length+" ships");
         this._stage="finished";
         return(false);
       }

@@ -98,7 +98,7 @@ function ShipYard(hist) {
 
 
 function Fleet() {
-  this.ships=[];
+  this._ships=[];
   
   this.build=function (mode) {
     var ship=[];
@@ -114,7 +114,7 @@ function Fleet() {
           this.allPoints.push(rc);
           //alert(">"+point);
           ship=[ rc ];
-          this.ships.push(ship);
+          this._ships.push(ship);
         }
         break;
       case "fromPrimaryBy1":
@@ -122,29 +122,24 @@ function Fleet() {
           //alert(">>"+rc[0]+rc[1]);
           if ( v.pb.check(rc[0],rc[1],"s") ) {
             ship=[ rc ];
-            this.ships.push(ship);
+            this._ships.push(ship);
           }
         }
         //alert(this.ships.length+"<");
         break;
       case "byWarrant": 
         var sy=new ShipYard(g._forces);
-        //this.ships=sy.buildAll();
         this.take(sy.buildAll());
         if (!this.checkMargins()) throw ("Fleet::build: margins check failed");
-        //for (var i=0;i<this.ships.length;i++) { // DEBUG
-          //m.enemyBasin.markShip(this.ships[i]);
-        //}
-        //this.ships.every( m.enemyBasin.markShip );
-        this.show(v.tb); // DEBUG
+        //this.show(v.tb); // DEBUG
         break;
     }// end switch
   }
   
   this.checkHit=function(row,col) {
     var ship;
-    for (var i=0;i<this.ships.length;i++) {
-      ship=this.ships[i];
+    for (var i=0;i<this._ships.length;i++) {
+      ship=this._ships[i];
       //alert(i+"th ship:count "+ship.length+" coord0:"+ship[0][0]+ship[0][1]);
       if ( ship.indexOfVect([row,col]) >= 0 ) {
         //alert("Hit at "+row+col);
@@ -157,8 +152,8 @@ function Fleet() {
   
   this.show=function(board) {
     var ship,row,col,point;
-    for (var i=0;i<this.ships.length;i++) {
-      ship=this.ships[i];
+    for (var i=0;i<this._ships.length;i++) {
+      ship=this._ships[i];
       //alert(i+"th ship:count "+ship.length);
       for (var j=0;j<ship.length;j++) {
         point=ship[j];
@@ -174,8 +169,8 @@ function Fleet() {
   this.makeHistogram=function() {
     var histogram=createArray(DIM,0);
     var decks=0;
-    for (var k=0;k<this.ships.length;k++) {
-      decks=this.ships[k].length;
+    for (var k=0;k<this._ships.length;k++) {
+      decks=this._ships[k].length;
       histogram[decks]++;
     }
     return (histogram);
@@ -185,13 +180,13 @@ function Fleet() {
     var rc;
     var ship0,ship,around0;
     var i,j,k;
-    var l=this.ships.length;
+    var l=this._ships.length;
     for(i=0;i<l;i++) {
-      ship0=this.ships[i];
+      ship0=this._ships[i];
       around0=around(ship0);
       for(j=0;j<l;j++) {
         if (j==i) continue; // don't check a ship against itself
-        ship=this.ships[j];
+        ship=this._ships[j];
         for (k=0;k<ship.length;k++) {
           rc=ship[k];
           if ( (ship0.indexOfVect(rc)>=0) || (around0.indexOfVect(rc)>=0) ) {
@@ -205,11 +200,11 @@ function Fleet() {
   }
   
   this.clear=function() {
-    this.ships=[];
+    this._ships=[];
   }
   
   this.take=function(ships) {
-    this.ships=ships;
+    this._ships=ships;
   }
 }// end Ships
 

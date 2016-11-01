@@ -142,4 +142,11 @@ function Basin(mode) {
     }    
   }
   
+  this.takeShips=function(ships) {
+    if ( !(ships instanceof Array) || !(ships[0] instanceof Array)) throw ("Basin::takeShips: invalid argument "+ships);
+    for (var i=0;i<ships.length;i++) {
+      this.markShip(ships[i]);
+    }
+  }
+  
 }
