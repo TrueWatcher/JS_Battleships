@@ -57,6 +57,8 @@ try{
   v.pb.fromBasin(b);
   
   print(">page");
+  //print(">console");
+  
   println("\nFleet+Basin\n");
   r=b.checkStrikable(0,0);
   assertEqualsPrim(true,r,"not strikable empty","empty");
@@ -112,6 +114,14 @@ try{
   var h=new Harvester(b);
   h.search();
   //alert ("found ships:"+h.yield().length );
+  /*var sh=h.yield();  
+  alert ("found ships:"+h.yield().length );
+  for(var i=0;i<sh.length;i++) {
+    b.markShip(sh[i]);
+    v.pb.fromBasin(b);
+    alert("number "+i);
+  }*/
+  
   assertEqualsPrim(6,h.yield().length,"wrong count","count");
   f.take(h.yield());
   var hi=f.makeHistogram();
@@ -131,7 +141,7 @@ try{
   f.take(h.yield());
   r=f.checkMargins();
   assertEqualsPrim(false,r,"non-negative checkMargins on diagonal contact","diagonal-margins");
-  b.cleanUp();
+  /*b.cleanUp();
   b.put("s",4,1);
   b.put("s",4,2);
   v.pb.fromBasin(b);
@@ -143,7 +153,7 @@ try{
     b.markShip(sh[i]);
     v.pb.fromBasin(b);
     alert("number "+i);
-  }
+  }*/
 
 //b.clear();
   

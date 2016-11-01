@@ -25,7 +25,7 @@ try {
   println("adjCross");
   resArr=adjCross(3,3);
   assertEqualsPrim(4,resArr.length,"not 4 for a inside point","inside");  
-  resArr=adjCross(0,0);
+  resArr=adjCross(0,9);
   assertEqualsPrim(2,resArr.length,"not 2 for a corner point","corner");  
   resArr=adjCross(0,2);
   assertEqualsPrim(3,resArr.length,"not 3 for a side point","side");

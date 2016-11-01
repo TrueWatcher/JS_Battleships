@@ -118,33 +118,3 @@ function translateArray(arr) {
   }
   return res;
 }
-/*
-function assertTrue(statement,message,messageOK) {
-  testNum++;
-  var out="";
-  if(!statement) {
-    document.write("Failure:"+message+"\n");
-    throw testNum;
-  }
-  else {
-    document.write("Passed "+testNum);
-    if(messageOK) document.write(": "+messageOK);
-    document.write("\n");
-  }
-}
-
-function assertEqualsPrim(expected,found,message,messageOK) {
-  testNum++;
-  var out="";
-
-  if( !(expected==found) ) {
-    document.write("Failure: '"+found+"' does not equal to expected '"+expected+"' \n"+message+"\n");
-    throw testNum;
-  }
-  else {
-    document.write("Passed "+testNum);
-    if(messageOK) document.write(": "+messageOK);
-    document.write("\n");
-  }
-}
-*/

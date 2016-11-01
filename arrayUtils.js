@@ -71,7 +71,7 @@ function adjAll(row,col,max) {
 
 function adjCross(row,col,max) {
   if (!max) var max=DIM;
-  var try4=[ [row-1,col],[col-1,row],[row+1,col],[row,col+1] ];
+  var try4=[ [row-1,col],[row,col-1],[row+1,col],[row,col+1] ];
   var rc;
   var res=[]
   for (var i=0;i<4;i++) {
@@ -102,7 +102,7 @@ function around(pointsArray,mode) {
   return(res);
 }
 
-function Rand2d() {
+function Rand2d(cheatI,cheatVal) {
   this._arr=[];
   for (var i=0;i<DIM;i++) {
     for (var j=0;j<DIM;j++) {
@@ -113,6 +113,7 @@ function Rand2d() {
   this._i=0;
   
   this.go=function() {
+    if(this._i==cheatI) return(cheatVal);// DEBUG    
     var r=this._arr[this._i];
     this._i++;
     if (this._i>=this._arr.length) {

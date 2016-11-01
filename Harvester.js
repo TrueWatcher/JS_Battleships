@@ -34,6 +34,7 @@ function Harvester(basin,mode) {
   this.initGenNear=function() {
     var h0=this._hits[0];
     this._nearHits=this._b.adjStrikable( h0[0],h0[1],"cross" );
+    //alert("nearhits:"+this._nearHits.length);
   } 
   
   this.genNear=function() {
@@ -183,8 +184,8 @@ function Harvester(basin,mode) {
 
   this.reset=function() {
     this._stage="search";
-    this.source=new Seq2d();// duplicate from constructor
-    //this.source=new Rand2d();
+    //this.source=new Seq2d();// duplicate from constructor
+    this.source=new Rand2d();//(1,[0,9]); DEBUGS
     this._hits=[];
     this._nearHits=[];
     this._ships=[];
