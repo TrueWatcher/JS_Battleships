@@ -1,6 +1,6 @@
 "use strict";
 var testNum=0;
-function testArrayUtils(t) {
+function testArrayUtils() {
 try {
   
   var res;
@@ -8,12 +8,12 @@ try {
   
   var i,j;
 
-  t.print("pre");
-  //t.print("console");
+  print(">page");
+  //print(">console");
   
-  t.println("\narrayUtils\n");
+  println("\narrayUtils\n");
   
-  t.println("adjAll");
+  println("adjAll");
   resArr=adjAll(3,3);
   assertEqualsPrim(8,resArr.length,"not 8 for a inside point","inside");
   resArr=adjAll(0,0);
@@ -23,7 +23,7 @@ try {
   resArr=adjAll(3,3,4);
   assertEqualsPrim(3,resArr.length,"not 3 for a corner point","added size");
   
-  t.println("adjCross");
+  println("adjCross");
   resArr=adjCross(3,3);
   assertEqualsPrim(4,resArr.length,"not 4 for a inside point","inside");  
   resArr=adjCross(0,0);
@@ -33,13 +33,13 @@ try {
   resArr=adjCross(3,3,4);
   assertEqualsPrim(2,resArr.length,"not 2 for a corner point","added size");
   
-  t.println("Seq2d");
+  println("Seq2d");
   var range=new Seq2d();
   while ( res=range.go() ) { resArr2.push(res) }
   assertEqualsPrim(100,resArr2.length,"wrong total","total");
   assertTrue(resArr2[10][0]==1 && resArr2[10][1]==0,"wrong 10th pair","10th pair");
   
-  t.println("Rand2d,indexOfVect");  
+  println("Rand2d,indexOfVect");  
   var rnd=new Rand2d();
   var rc=[];
   var resArr4=resArr2.slice();
@@ -54,13 +54,13 @@ try {
   rc=rnd.go();
   assertTrue(resArr4.indexOfVect(rc)>=0,"some pair is missing","new cycle");
   
-  t.println("createArray");
+  println("createArray");
   resArr3=createArray(21,"21");
   assertEqualsPrim(21,resArr3.length,"wrong length","length");
   var e=resArr3.every( function(x){ return x==="21" } );
   assertTrue(e,"wrong filling","fill");
   
-  t.println("around");
+  println("around");
   e=around( [1,2,3] );
   assertEqualsPrim(false,e,"not false for single-dimn array","single-dim");  
   var testArr1=[ [0,0],[0,1],[0,2] ];
@@ -70,14 +70,14 @@ try {
   e=testArr1.every( function(rc) { return resArr5.indexOfVect(rc)<0 } );
   assertTrue(e,"some source pair in result","source");
   
-  t.println("arraySwap01");
+  println("arraySwap01");
   var testArr2=[ [1,2],["a","b"],[3,4] ];
   arraySwap01(testArr2);
   assertEqualsPrim("1,2",testArr2[1].join(),"0th pair not found in 1st position","0->1");  
   assertEqualsPrim("a,b",testArr2[0].join(),"1th pair not found in 0th position","1->0");  
 }
 catch (err) {
-  t.printErr(testNum,err);
+  printErr(testNum,err);
 }
 }
-testArrayUtils(TestHelper());//new TestHelper()
+testArrayUtils();//new TestHelper()

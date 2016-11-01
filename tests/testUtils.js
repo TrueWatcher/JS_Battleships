@@ -5,70 +5,90 @@ function TestHelper() {
   if (typeof TestHelper.instance === 'object') return TestHelper.instance;
   
   //var _this=this;
-  this.out="";
-
-  this.print=function (str) {
-    if (str=="pre") {
-      this.out="pre";
-      this.target=document.createElement("pre");
-      document.body.appendChild(this.target);
-      this.target.style="font-size: 1.4em";
-      return;
-    }
-    if (str=="console") {
-      this.out="console";
-      return;
-    }
-    if (this.out=="pre") {
-      var output=this.target.innerHTML;
-      this.target.innerHTML=output+str;
-    }
-    else console.log(str);
+  this._outTarget="console";
+  this._outElement="";
+  
+  this.toPage=function(){ 
+    this._outTarget="page"; 
+    this._outElement=document.createElement("pre");
+    document.body.appendChild(this._outElement);
+    this._outElement.style="font-size: 1.4em";
   }
   
-  this.println=function (str) { this.print(str+"\n"); }
-  
-  this.printErr=function (numTest,err) {
-    var out="";
-    out+="Terminated in/after "+numTest+"th test on: "+err;
-    if(err.lineNumber) out+=" {"+err.lineNumber+")";
-    this.println(out);
+  this.addToPage=function(str) {
+    var h=this._outElement.innerHTML;
+    this._outElement.innerHTML=h+str;
   }
-
+  
+  this.toConsole=function() { this._outTarget="console"; }
+  
+  this.checkToPage=function() { return (this._outTarget=="page"); }
+  
   TestHelper.instance=this;
 }
+
+function print (str) {
+    var t=new TestHelper();
+    if (str==">page") {
+      t.toPage();
+      return;
+    }
+    if (str==">console") {
+      t.toConsole();
+      return;
+    }
+    if (t.checkToPage()) {
+      t.addToPage(str);
+    }
+    else console.log(str);
+}
   
-var theTestHelper=new TestHelper();// we need one instance! or "new TEstHelper" everywhere
+function println (str) { print(str+"\n"); }
+  
+function printErr (numTest,err) {
+    var out="",f="",i;
+    out+="Terminated in/after "+numTest+"th test on: "+err;
+    if(err.lineNumber) {
+      var fn=err.fileName;
+      if ( i=fn.lastIndexOf("/") ) {
+        f=fn.substr(i+1,fn.length-i-1);
+      }
+      out+=" ("+f+":"+err.lineNumber+")";
+    }
+    println(out);
+}
+
+//var theTestHelper=new TestHelper();// we need one instance! or "new TEstHelper" everywhere
 
 function assertTrue(statement,message,messageOK) {
-  var t=TestHelper();
+  var t=new TestHelper();
   //var tt=new TestHelper(); alert(">"+(t===t));
   testNum++;
   var out="";
   if(!statement) {
-    t.println("Failure:"+message);
+    println("Failure:"+message);
     throw testNum;
   }
   else {
     out+="Passed "+testNum;
     if(messageOK) out+=": "+messageOK;
-    t.println(out);
+    println(out);
   }
 }
 
 function assertEqualsPrim(expected,found,message,messageOK) {
-  var t=TestHelper();
+  var t=new TestHelper();
   testNum++;
   var out="";
 
   if( !(expected==found) ) {
-    t.println("Failure: '"+found+"' does not equal to expected '"+expected+"' \n"+message+"\n");
+    println("Failure: '"+found+"' does not equal to expected '"+expected+"' \n"+message+"\n");
     throw testNum;
   }
   else {
     out+="Passed "+testNum;
     if(messageOK) out+=": "+messageOK;
-    t.println(out);
+    println(out);
   }
 }
 
