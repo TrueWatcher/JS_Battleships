@@ -56,8 +56,8 @@ try{
   b.markShip(testShip1);
   v.pb.fromBasin(b);
   
-  print(">page");
-  //print(">console");
+  //print(">page");
+  print(">console");
   
   println("\nFleet+Basin\n");
   r=b.checkStrikable(0,0);
@@ -102,7 +102,8 @@ try{
   rrr=f.checkHit(1,3);
   assertEqualsPrim(false,rrr,"Fleet not cleared","Fleet-clear-ship");
   
-  print(">page");
+  //print(">page");
+  print(">console");
   println("\nFleet+Basin+Harvester\n");
 
   v.pb.fromBasin(b);
@@ -141,20 +142,64 @@ try{
   f.take(h.yield());
   r=f.checkMargins();
   assertEqualsPrim(false,r,"non-negative checkMargins on diagonal contact","diagonal-margins");
-  /*b.cleanUp();
+  b.cleanUp();
   b.put("s",4,1);
   b.put("s",4,2);
   v.pb.fromBasin(b);
   //h.reset();
   h.search();
   var sh=h.yield();
+  assertTrue(sh.length>=7,"wrong count on block contact","block-count");
+  /*
   alert ("found ships:"+h.yield().length );
   for(var i=0;i<sh.length;i++) {
     b.markShip(sh[i]);
     v.pb.fromBasin(b);
     alert("number "+i);
   }*/
-
+  
+  print(">page");
+  //print(">console");
+  println("\nShipYard+Basin+Harvester\n");
+  
+  var newFleet,sy;
+  for (var k=0;k<10;k++) {
+    b.clear();
+    sy=new ShipYard([0,4,3,2,1,0,0,0,0,0]);
+    /*sy.trySail=function(newShip) { 
+      var rc;
+      var ship;
+      var checkMargin=false; // let there be some disorder
+      var aroundNew=around(newShip);
+      for(var i=0;i<this._ships.length;i++) {
+        ship=this._ships[i];
+        for(var j=0;j<ship.length;j++) {
+          rc=ship[j];
+          if ( (newShip.indexOfVect(rc)>=0) || (checkMargin && aroundNew.indexOfVect(rc)>=0) ) return(false);
+        }
+      }
+      return (true);
+    }
+    // gives harvester-counts usually between 9 and 11 ;)
+    */   
+    newFleet=sy.buildAll();
+    assertEqualsPrim(10,newFleet.length,"wrong count from ShipYard","shipYard count");
+    for (var j=0;j<newFleet.length;j++) {
+      b.markShip(newFleet[j]);
+    }
+    v.pb.fromBasin(b);
+    //alert("look at this");
+    h.search();
+    sh=h.yield();
+    assertTrue(sh.length==10,"wrong count from ShipYard-Harvester","shipYard-harvester count");
+    /*alert ("found ships:"+sh.length );
+    for(var ii=0;ii<sh.length;ii++) {
+      b.markShip(sh[ii]);
+      v.pb.fromBasin(b);
+      alert("number "+ii);
+    }*/
+  }
+    
 //b.clear();
   
 }

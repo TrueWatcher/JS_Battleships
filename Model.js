@@ -17,7 +17,7 @@ function Model() {
 
 
 function ShipYard(hist) {
-  this.ships=[];
+  this._ships=[];
   this.rand=new Rand2d(); 
   this._plan=hist;
 
@@ -56,12 +56,13 @@ function ShipYard(hist) {
   this.trySail=function(newShip) {
     var rc;
     var ship;
+    var checkMargin=true;
     var aroundNew=around(newShip);
-    for(var i=0;i<this.ships.length;i++) {
-      ship=this.ships[i];
+    for(var i=0;i<this._ships.length;i++) {
+      ship=this._ships[i];
       for(var j=0;j<ship.length;j++) {
         rc=ship[j];
-        if ( (newShip.indexOfVect(rc)>=0) || (aroundNew.indexOfVect(rc)>=0) ) return(false);
+        if ( (newShip.indexOfVect(rc)>=0) || (checkMargin && aroundNew.indexOfVect(rc)>=0) ) return(false);
       }
     }
     return (true);
@@ -78,7 +79,7 @@ function ShipYard(hist) {
     //alert ("Meet a new ship of "+decks+" squares");
     //m.enemyBasin.markShip(ship);
     //m.enemyBasin.markAround(ship);
-    this.ships.push(ship);
+    this._ships.push(ship);
   }
   
   this.buildAll=function() {
@@ -91,7 +92,7 @@ function ShipYard(hist) {
       decks--;
       //decks=0;
     }
-    return(this.ships);
+    return(this._ships);
   }
 }
 
@@ -126,13 +127,14 @@ function Fleet() {
         }
         //alert(this.ships.length+"<");
         break;
-      case "byForces": 
+      case "byWarrant": 
         var sy=new ShipYard(g._forces);
         //this.ships=sy.buildAll();
         this.take(sy.buildAll());
-        for (var i=0;i<this.ships.length;i++) { // DEBUG
+        if (!this.checkMargins()) throw ("Fleet::build: margins check failed");
+        //for (var i=0;i<this.ships.length;i++) { // DEBUG
           //m.enemyBasin.markShip(this.ships[i]);
-        }
+        //}
         //this.ships.every( m.enemyBasin.markShip );
         this.show(v.tb); // DEBUG
         break;

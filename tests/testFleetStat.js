@@ -52,7 +52,7 @@ try {
 
   f.clear();
   assertEqualsPrim(0,f.ships.length,"not cleared","clear");  
-  f.build("byForces");
+  f.build("byWarrant");
   assertEqualsPrim(10,f.ships.length,"wrong number of ships","number");
   var resSy=f.checkMargins();
   assertTrue(resSy,"false negative margin check","valid margins");

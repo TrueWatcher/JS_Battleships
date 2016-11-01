@@ -113,7 +113,10 @@ function Rand2d(cheatI,cheatVal) {
   this._i=0;
   
   this.go=function() {
-    if(this._i==cheatI) return(cheatVal);// DEBUG    
+    if(this._i==cheatI) {
+      this._i++;
+      return(cheatVal);// DEBUG
+    }  
     var r=this._arr[this._i];
     this._i++;
     if (this._i>=this._arr.length) {

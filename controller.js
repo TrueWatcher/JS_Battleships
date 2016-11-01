@@ -153,7 +153,7 @@ var pStat=new Stat();
 var eStat=new Stat();
 
 m.enemyShips=new Fleet();
-m.enemyShips.build("byForces");
+m.enemyShips.build("byWarrant");
 var eh=m.enemyShips.makeHistogram();
 v.es.showClearHistogram(eh);
 eStat.setShips(eh);
