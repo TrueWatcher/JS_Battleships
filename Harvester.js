@@ -4,8 +4,8 @@ function Harvester(basin,mode) {
   this._mode=mode;// search fight
   this._b=basin;
   this._stage="search";// search oneHit direction kill finish
-  this.source=new Seq2d();
-  //this.source=new Rand2d();
+  //this.source=new Seq2d();
+  this.source=new Rand2d();
   this._hits=[];
   this._nearHits=[];
   this._ships=[];
@@ -188,7 +188,7 @@ function Harvester(basin,mode) {
   this.reset=function() {
     this._stage="search";
     //this.source=new Seq2d();// duplicate from constructor
-    this.source=new Rand2d();//(1,[0,9]); DEBUGS
+    this.source=new Rand2d();//(1,[0,9]); DEBUG
     this._hits=[];
     this._nearHits=[];
     this._ships=[];

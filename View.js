@@ -23,15 +23,8 @@ function StatPanel(parentElm,prefix,mode) {
     if ( id=="return" ) return(hst);
     if ( !id ) var id=this._prefix+"Hist";
     putToElement(hst,id);
-    //alert(hst);
-    //this.showHistogram(hst);
-    //return(hst);
   }  
   
-  /*this.showHistogram=function(str) {
-    var e=document.getElementById(this._prefix+"Hist");
-    e.innerHTML=str;
-  }*/
   this.showStrikesHits=function(strikes,hits) {
     putToElement(strikes,this._prefix+"Strikes");
     putToElement(hits,this._prefix+"Hits");
@@ -46,21 +39,55 @@ function StatPanel(parentElm,prefix,mode) {
 }
 
 function Board(parentElm,command,prefix,fill) {
-  this._theme={ u:' ',e:'.',s:'#',m:'~',h:'@',w:'&',c:'-' };  
+  this._theme={ "u":' ',"e":'.',"s":'#',"m":'~',"h":'@',"w":'&',"c":'-' };  
   this._fill=fill;
   this._idPrefix=prefix;
-  this._html=makeGrid(prefix,this._theme[fill]);
+  
+  this.makeGrid=function (prefix,fill) {
+    var row,col;
+    var td,tr,table="";
+    for (row=0;row<DIM;row++) {
+      tr="<tr>";
+      for (col=0;col<DIM;col++) {
+        td='<td id="'+prefix+row+col+'">'+fill+'</td>';
+        tr+=td;
+      }
+      tr+="</tr>";
+      table+=tr;
+    }
+    table="<table>"+table+"</table>";
+    return (table);  
+  }
+  
+  this._html=this.makeGrid(prefix,this._theme[fill]);
   this._e=parentElm;
-  this._e.innerHTML=this._html;  
+  this._e.innerHTML=this._html;
+
+  this.detectTd=function(event) {
+    // http://javascript.info/tutorial/event-delegation
+    event = event || window.event;
+    var target = event.target || event.srcElement;
+  
+    while(target.nodeName != 'TABLE') { 
+      if (target.nodeName == 'TD') { 
+        return (target.id);
+      }
+    target = target.parentNode;
+    }
+    return (false);
+  }
+  
+  var _this=this;
   
   this._e.onclick=function(event) {
     //alert (event.target.nodeName);
-    var tdId=detectTd(event);
+    var tdId=_this.detectTd(event);
     //alert (tdId);
     go ( command, [ tdId.charAt(1),tdId.charAt(2) ] );
   }
   
   this.put=function(row,column,what) {
+    if ( !this._theme[what] ) throw ("Board::put: invalid argument "+what);
     var id=""+this._idPrefix+row+column;
     var td=document.getElementById(id);
     td.innerHTML=this._theme[what];
@@ -96,36 +123,6 @@ function Board(parentElm,command,prefix,fill) {
   }
 }
 
-function makeGrid(prefix,fill) {
-  var row,col;
-  var td,tr,table="";
-  for (row=0;row<DIM;row++) {
-    tr="<tr>";
-    for (col=0;col<DIM;col++) {
-      td='<td id="'+prefix+row+col+'">'+fill+'</td>';
-      tr+=td;
-    }
-    tr+="</tr>";
-    table+=tr;
-  }
-  table="<table>"+table+"</table>";
-  return (table);  
-}
-
-function detectTd(event) {
-  // http://javascript.info/tutorial/event-delegation
-  event = event || window.event;
-  var target = event.target || event.srcElement;
-  
-    while(target.nodeName != 'TABLE') { 
-      if (target.nodeName == 'TD') { 
-        return (target.id);
-      }
-    target = target.parentNode;
-    }
-    return (false);
-}
-
 function DrawControls() {
   
   var dc="";
@@ -146,9 +143,9 @@ function View() {
   this.pb=new Board( document.getElementById("primary"),"set","p","e" );
   this.tb=new Board( document.getElementById("tracking"),"strike","e","u" );
   this.dc=new DrawControls();
-  var _this=this;
-
   
+  //var _this=this;
+
   this.ps=new StatPanel( document.getElementById("playerStat"),"p","player" );
   this.es=new StatPanel( document.getElementById("enemyStat"),"e","enemy" );
   
@@ -163,7 +160,6 @@ function View() {
     this._plMes+=msg;
     putToElement(this._plMes,"playerMsg");
   }
-  
   
   this.enemyMessagePut=function(msg) {
     putToElement(msg,"enemyMsg");

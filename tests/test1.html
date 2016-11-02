@@ -35,16 +35,16 @@
 <script src="../View.js"></script>
 <script src="../Basin.js"></script>
 <script src="../Model.js"></script>
-<!--<script src="../Model.js"></script>-->
 <script src="../Harvester.js"></script>
-<!--<script src="../controller.js"></script>-->
+<script src="../controller.js"></script>
 </body>
 
 <script>
 "use strict";
 try{
-  var v=new View;
+  var v=new View();
   var b=new Basin();
+  //var m=new Model();
 
   var r,rr,rrr;
   var f=new Fleet();
@@ -115,13 +115,13 @@ try{
   var h=new Harvester(b);
   h.search();
   //alert ("found ships:"+h.yield().length );
-  /*var sh=h.yield();  
-  alert ("found ships:"+h.yield().length );
-  for(var i=0;i<sh.length;i++) {
-    b.markShip(sh[i]);
-    v.pb.fromBasin(b);
-    alert("number "+i);
-  }*/
+  //var sh=h.yield();  
+  //alert ("found ships:"+h.yield().length );
+  //for(var i=0;i<sh.length;i++) {
+  //  b.markShip(sh[i]);
+  //  v.pb.fromBasin(b);
+  //  alert("number "+i);
+  //}
   
   assertEqualsPrim(6,h.yield().length,"wrong count","count");
   f.take(h.yield());
@@ -150,13 +150,13 @@ try{
   h.search();
   var sh=h.yield();
   assertTrue(sh.length>=7,"wrong count on block contact","block-count");
-  /*
-  alert ("found ships:"+h.yield().length );
-  for(var i=0;i<sh.length;i++) {
-    b.markShip(sh[i]);
-    v.pb.fromBasin(b);
-    alert("number "+i);
-  }*/
+
+  //alert ("found ships:"+h.yield().length );
+  //for(var i=0;i<sh.length;i++) {
+  //  b.markShip(sh[i]);
+  //  v.pb.fromBasin(b);
+  //  alert("number "+i);
+  //}
   
   print(">page");
   //print(">console");
@@ -181,7 +181,8 @@ try{
       return (true);
     }
     // produces a mess that gives harvester-counts usually between 9 and 11 ;)
-    */   
+    */
+    
     newFleet=sy.buildAll();
     assertEqualsPrim(10,newFleet.length,"wrong count from ShipYard","shipYard count");
     for (var j=0;j<newFleet.length;j++) {
@@ -199,9 +200,55 @@ try{
       alert("number "+ii);
     }*/
   }
-    
-//b.clear();
+
+  print(">page");
+  //print(">console");
   
+  println("\nShipYard+Basin+Harvester quirks mode\n");
+  b.clear();
+  v.pb.fromBasin(b);
+  f=new Fleet();
+  var newFleet,sy,f,ar;
+  for (var k=0;k<10;k++) {
+    b.clear();
+    sy=new ShipYard([0,4,3,2,1,0,0,0,0,0]);
+    sy.trySail=function(newShip) { 
+      var rc;
+      var ship;
+      var checkMargin=false; // let there be some disorder
+      var aroundNew=around(newShip);
+      for(var i=0;i<this._ships.length;i++) {
+        ship=this._ships[i];
+        for(var j=0;j<ship.length;j++) {
+          rc=ship[j];
+          if ( (newShip.indexOfVect(rc)>=0) || (checkMargin && aroundNew.indexOfVect(rc)>=0) ) return(false);
+        }
+      }
+      return (true);
+    }
+    // produces a mess that gives harvester-counts usually between 9 and 11 ;)
+    
+    
+    newFleet=sy.buildAll();
+    assertEqualsPrim(10,newFleet.length,"wrong count from ShipYard","shipYard count");
+    for (var j=0;j<newFleet.length;j++) {
+      b.markShip(newFleet[j]);
+    }
+    v.pb.fromBasin(b);
+    //alert("look at this");
+    h.search();
+    f.take(h.yield());
+    ar=f.countArea();
+    assertTrue(ar==20,"wrong area from ShipYard-Harvester","shipYard-harvester area");
+    /*alert ("found ships:"+sh.length );
+    for(var ii=0;ii<sh.length;ii++) {
+      b.markShip(sh[ii]);
+      v.pb.fromBasin(b);
+      alert("number "+ii);
+    }*/
+    f.clear();
+  }
+
 }
 catch(err) { printErr(err); }
 </script>

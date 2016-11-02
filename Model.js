@@ -176,6 +176,14 @@ function Fleet() {
     return (histogram);
   }
   
+  this.countArea=function() {
+    var area=0;
+    for (var k=0;k<this._ships.length;k++) {
+      area+=this._ships[k].length;
+    } 
+    return(area);
+  }
+  
   this.checkMargins=function() {
     var rc;
     var ship0,ship,around0;
@@ -221,7 +229,7 @@ function Stat() {
   
   this.setShips=function(hist){
     this._hst=hist.slice();
-    if (hist.length!=DIM || hist[0]) alert("Usage error! Invalid argument hist for initShips");
+    if (hist.length!=DIM || hist[0]) throw ("Stat::setShips: Invalid argument hist for initShips");
     for(var i=DIM;i--;i>0) {
       if(this._biggestShip==0 && hist[i]>0) this._biggestShip=i;
       this._shipsAlive+=hist[i];
@@ -230,12 +238,12 @@ function Stat() {
   
   this.minusOne=function(ship) {
     var decks=ship.length;
-    if(this._hst[decks]==0) alert("Error! There should be no more ships of "+decks+" squares");
+    if(this._hst[decks]==0) throw ("Stat::minusOne: There should be no more ships of "+decks+" squares");
     this._hst[decks]--;
     
     this._shipsSunk++;
     this._shipsAlive--;
-    if(this._shipsAlive==0) return(true);
+    if (this._shipsAlive==0) return(true);// no more ships, time to finish
 
     for (var i=DIM;i--;i>0) {
       if( this._hst[i]>0 ) {
@@ -246,5 +254,7 @@ function Stat() {
     }
     return;
   }
+  
+  this.hi=function(){ return("Hi! I'm Fleet"); }
   
 }
