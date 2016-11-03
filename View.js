@@ -39,7 +39,7 @@ function StatPanel(parentElm,prefix,mode) {
 }
 
 function Board(parentElm,command,prefix,fill) {
-  this._theme={ "u":' ',"e":'.',"s":'#',"m":'~',"h":'@',"w":'&',"c":'-' };  
+  this._theme={ "u":' ',"e":'.',"s":'#',"m":'~',"h":'@',"w":'%',"c":'-' };  
   this._fill=fill;
   this._idPrefix=prefix;
   

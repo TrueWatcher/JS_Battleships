@@ -126,7 +126,7 @@ try{
   assertEqualsPrim(6,h.yield().length,"wrong count","count");
   f.take(h.yield());
   var hi=f.makeHistogram();
-  var hiExpect=[0,1,1,2,1,1,0,0,0,0];
+  var hiExpect=[0,1,1,2,1,1,0,0,0,0,0];
   //assertEqualsPrim(hiExpect.join(),hi.join(),"wrong histogram","histogram");  
   assertEqualsVect(hiExpect,hi,"wrong histogram","histogram");
   r=f.checkMargins();
@@ -165,7 +165,7 @@ try{
   var newFleet,sy;
   for (var k=0;k<10;k++) {
     b.clear();
-    sy=new ShipYard([0,4,3,2,1,0,0,0,0,0]);
+    sy=new ShipYard([0,4,3,2,1,0,0,0,0,0,0]);
     /*sy.trySail=function(newShip) { 
       var rc;
       var ship;
@@ -211,7 +211,7 @@ try{
   var newFleet,sy,f,ar;
   for (var k=0;k<10;k++) {
     b.clear();
-    sy=new ShipYard([0,4,3,2,1,0,0,0,0,0]);
+    sy=new ShipYard([0,4,3,2,1,0,0,0,0,0,0]);
     sy.trySail=function(newShip) { 
       var rc;
       var ship;

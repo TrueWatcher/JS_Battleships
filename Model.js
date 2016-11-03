@@ -167,7 +167,7 @@ function Fleet() {
   }
   
   this.makeHistogram=function() {
-    var histogram=createArray(DIM,0);
+    var histogram=createArray(DIM+1,0);
     var decks=0;
     for (var k=0;k<this._ships.length;k++) {
       decks=this._ships[k].length;
@@ -229,8 +229,8 @@ function Stat() {
   
   this.setShips=function(hist){
     this._hst=hist.slice();
-    if (hist.length!=DIM || hist[0]) throw ("Stat::setShips: Invalid argument hist for initShips");
-    for(var i=DIM;i--;i>0) {
+    if (hist.length!=DIM+1 || hist[0]) throw ("Stat::setShips: Invalid argument hist for initShips");
+    for(var i=DIM+1;i--;i>0) {
       if(this._biggestShip==0 && hist[i]>0) this._biggestShip=i;
       this._shipsAlive+=hist[i];
     }
@@ -245,7 +245,7 @@ function Stat() {
     this._shipsAlive--;
     if (this._shipsAlive==0) return(true);// no more ships, time to finish
 
-    for (var i=DIM;i--;i>0) {
+    for (var i=DIM+1;i--;i>0) {
       if( this._hst[i]>0 ) {
         //alert("biggest recalculated");
         this._biggestShip=i;

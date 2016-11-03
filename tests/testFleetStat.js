@@ -4,7 +4,7 @@ var v=[];
 v.tb=[];
 v.tb.put=function(){}
 var g=[];
-var plan=[0,4,3,2,1,0,0,0,0,0];
+var plan=[0,4,3,2,1,0,0,0,0,0,0];
 g._forces=plan;
 
 function testFleetStat(){
@@ -32,7 +32,7 @@ try {
   
   println("makeHistogram");
   var his=f.makeHistogram();
-  var hisExpected=[0,0,0,1,1,0,0,0,0,0];
+  var hisExpected=[0,0,0,1,1,0,0,0,0,0,0];
   assertEqualsPrim(hisExpected.join(),his.join(),"wrong histogram","histogram");
   
   println("checkMargins");

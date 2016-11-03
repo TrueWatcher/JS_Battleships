@@ -137,25 +137,25 @@ function Harvester(basin,mode) {
   }// end move
   
   this.reflect=function(res) {
-    if ( res=="k" ) {
+    if ( res=="w" ) {
       this._stage="kill";
       this.harvest();
       this._stage="search";
       return;
     }
-    if (this._stage=="search" && res) {
+    if ( this._stage=="search" && (res===true || res==="h" || res==="w" || res==="f") ) {
       this._hits.push(this._probe);
       this.initGenNear();
       this._stage="near";
       return;
     }
-    if (this._stage=="near" && res) {
+    if (this._stage=="near" && (res===true || res==="h" || res==="w" || res==="f") ) {
       this._hits.push(this._probe);
       this.initGenStraight();
       this._stage="straight";
       return;
     }    
-    if (this._stage=="straight" && (res===true || res=="h") ) {
+    if (this._stage=="straight" && (res===true || res=="h" || res==="w" || res==="f") ) {
       if (this._dir=="high") this._hits.push(this._probe);
       else this._hits.unshift(this._probe);
       //alert ("L:"+this._hits.length);

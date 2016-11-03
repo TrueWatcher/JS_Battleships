@@ -61,7 +61,7 @@ try{
   v.pb.fromBasin(b);  
   var s=new Stat();
   var h=f.makeHistogram();
-  assertEqualsVect([0,0,0,1,1,0,0,0,0,0],h,"Wromg histogram","histogram")
+  assertEqualsVect([0,0,0,1,1,0,0,0,0,0,0],h,"Wromg histogram","histogram")
   s.setShips( h );
   r=strikeResponce(4,4,f,b,s);
   assertEqualsPrim("m",r,"Wrong responce on miss","miss");

@@ -1,5 +1,6 @@
 * {
   border-collapse: collapse;
+  font-family: Arial,sans-serif;
 }
 
 table#general td {
@@ -8,7 +9,7 @@ table#general td {
 }
 
 td#primary td,td#tracking td {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border: 1px solid;
 }

@@ -3,8 +3,12 @@
 function Game() {
   this._stage="init";// init ships fight finish
   this._active="p";// p e
-  this._forces=[0,4,3,2,1,0,0,0,0,0];//[0,0,1,1,1,1,0,0,0,0];
+  this._forces=[0,4,3,2,1,0,0,0,0,0,0];//[0,0,1,1,1,1,0,0,0,0,0];
   this._demandEqualForces=0;
+  this._previewEnemyShips=0;//1;
+  this._enemyStriker="harvester";// "random";
+  this._strikeRule="oe";// one plus extra one for each hit
+  //this._strikeRule="bs";// size of the biggest alive ship
   this._winner=0;
 
 }
@@ -25,7 +29,7 @@ function go(command,data) {
       v.es.showClearHistogram(eh);
       eStat.setShips(eh);
       v.es.showStat(eStat._shipsAlive,eStat._biggestShip,eStat._shipsSunk);
-      m.enemyShips.show(v.tb); // CHEAT !     
+      if (g._previewEnemyShips) m.enemyShips.show(v.tb); // CHEAT !     
 
       v.dc.toggle();// show Draw controls
       v.playerMessagePut("Draw your ships, then press Done");
@@ -97,7 +101,7 @@ function go(command,data) {
         v.playerMessageAdd("<br />Make your move!");
         g._stage="fight";
         
-        e=new Enemy( m.enemyShips,m.enemyBasin,eStat,m.playerBasin );
+        e=new Enemy( m.enemyShips,m.enemyBasin,eStat,m.playerBasin,g._enemyStriker );
         //alert("E_hi="+e.hi());
         p=new PlayerAssistant( m.playerShips,m.playerBasin,pStat );
       } 
@@ -155,7 +159,7 @@ function go(command,data) {
         if( hit=="m" ) {
           v.pb.put(row,col,"m");
           g._active="p";
-          //e.strike();          
+          //p.strike();          
           return;    
         }
         v.pb.put(row,col,"h");
@@ -227,16 +231,27 @@ function strikeCount(responce,stat) {
   if ( responce !="m" && responce!="n" ) stat.addHit();
 }
 
-function Enemy (fleet,ownBasin,stat,targetBasin) {
+function Enemy (fleet,ownBasin,stat,targetBasin,mode) {
+  var _this=this;
   this._fleet=fleet;
   this._ownBasin=ownBasin;
   this._targetBasin=targetBasin;
   this._stat=stat;
-  this._rand=new Rand2d();
+  this._mode=mode;
+  if (mode=="harvester") this._striker=new Harvester(targetBasin);
+  else {
+    this._rand=new Rand2d();
+    this._striker={};
+    _this._striker.move=function(){ return( randomStrike(_this._targetBasin,_this._rand) ); };
+    _this._striker.reflect=function(responce){};
+  }
   
   this.strike=function() {
-    var probe=randomStrike(this._targetBasin,this._rand);
-    var t=window.setTimeout( function(){ alert("Enemy strikes");go("enemyStrike",probe); }, 100 );
+    //var probe=randomStrike(this._targetBasin,this._rand);
+    var t=window.setTimeout( function(){ 
+      alert("Enemy strikes");
+      go("enemyStrike",_this._striker.move());
+    }, 100 );
   }
   
   this.respond=function (row,col) {
@@ -244,6 +259,7 @@ function Enemy (fleet,ownBasin,stat,targetBasin) {
   }
   
   this.reflect=function (responce) {
+    this._striker.reflect(responce);
     strikeCount ( responce, this._stat );
   }
   
