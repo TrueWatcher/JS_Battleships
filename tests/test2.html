@@ -63,29 +63,29 @@ try{
   var h=f.makeHistogram();
   assertEqualsVect([0,0,0,1,1,0,0,0,0,0,0],h,"Wromg histogram","histogram")
   s.setShips( h );
-  r=strikeResponce(4,4,f,b,s);
+  r=strikeResponce([4,4],f,b,s);
   assertEqualsPrim("m",r,"Wrong responce on miss","miss");
-  r=strikeResponce(4,4,f,b,s);
+  r=strikeResponce([4,4],f,b,s);
   assertEqualsPrim("n",r,"Wrong responce on over-miss","over-miss");
-  r=strikeResponce(1,2,f,b,s);  
+  r=strikeResponce([1,2],f,b,s);  
   assertEqualsPrim("h",r,"Wrong responce on hit","hit");
-  r=strikeResponce(1,3,f,b,s);
+  r=strikeResponce([1,3],f,b,s);
   assertEqualsPrim("h",r,"Wrong responce on 2nd hit","2nd hit");  
-  r=strikeResponce(1,3,f,b,s);
+  r=strikeResponce([1,3],f,b,s);
   assertEqualsPrim("n",r,"Wrong responce on over-hit","over-hit");  
-  r=strikeResponce(1,4,f,b,s);
+  r=strikeResponce([1,4],f,b,s);
   assertEqualsPrim("w",r,"Wrong responce on killing hit","killing hit");
-  r=strikeResponce(1,4,f,b,s);  
+  r=strikeResponce([1,4],f,b,s);  
   assertEqualsPrim("n",r,"Wrong responce on over-kill","over-kill");
-  r=strikeResponce(1,5,f,b,s);
+  r=strikeResponce([1,5],f,b,s);
   assertEqualsPrim("n",r,"Wrong responce on clearance","clearance"); 
-  for (var j=0;j<testShip2.length-1;j++) { r=strikeResponce(testShip2[j][0],testShip2[j][1],f,b,s); }
+  for (var j=0;j<testShip2.length-1;j++) { r=strikeResponce( [ testShip2[j][0], testShip2[j][1] ],f,b,s ); }
   assertEqualsPrim("h",r,"Wrong responce on hit","hit");
-  r=strikeResponce(testShip2[j][0],testShip2[j][1],f,b,s);
+  r=strikeResponce( [ testShip2[j][0], testShip2[j][1] ] ,f,b,s );
   assertEqualsPrim("f",r,"Wrong responce on finishing hit","finishing hit");
   v.pb.fromBasin(b);
   
-    
+  throw ("Finished");  
 //b.clear();
   
 }

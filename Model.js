@@ -3,16 +3,19 @@
 function Model() {
   this.playerBasin=new Basin;
   this.enemyBasin=new Basin("public");
-  //this.reserveBasin=new Basin;
-
-  this.checkShips=function() {
-    return true;
-  }
   
   this.enemyMoves=[];
 
   this.playerShips=[];
   this.enemyShips=[];
+  
+  this.playerStat=new Stat();
+  this.enemyStat=new Stat();
+  
+  /*if (g._strikeRule=="bs") {
+    this.playerClip=new Clip(this.playerStat);
+    this.enemyClip=new Clip(this.enemyStat);
+  }*/
 }
 
 
@@ -94,7 +97,7 @@ function ShipYard(hist) {
     }
     return(this._ships);
   }
-}
+}// end ShipYard
 
 
 function Fleet() {
@@ -214,7 +217,7 @@ function Fleet() {
   this.take=function(ships) {
     this._ships=ships;
   }
-}// end Ships
+}// end Fleet
 
 function Stat() {
   this._strikes=0;
@@ -254,7 +257,4 @@ function Stat() {
     }
     return;
   }
-  
-  this.hi=function(){ return("Hi! I'm Fleet"); }
-  
-}
+}// end Stat

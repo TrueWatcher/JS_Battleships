@@ -1,6 +1,6 @@
 "use strict";
 
-function StatPanel(parentElm,prefix,mode) {
+function StatPanel(parentElm,prefix) {
   var str='Strikes:<span id="'+prefix+"Strikes"+'"></span> ';
   str+='Hits:<span id="'+prefix+"Hits"+'"></span> ';
   str+='(<span id="'+prefix+"Percent"+'"></span>%) ';
@@ -121,10 +121,9 @@ function Board(parentElm,command,prefix,fill) {
       this.put( rc[0],rc[1],basin.get( rc[0],rc[1] ) );
     }
   }
-}
+}// end Board
 
 function DrawControls() {
-  
   var dc="";
   dc+='<button type="button" id="confirmShips" onclick="go('+"'cs'"+')" >'+"Done, let's play"+'</button>';
   dc+='<button type="button" id="removeShips" onclick="go('+"'rs'"+')" >'+"Clear"+'</button>';
@@ -139,31 +138,32 @@ function DrawControls() {
   } 
 }
 
+function MessagePanel(elementId) {
+  this._mes="";
+  this._id=elementId;
+  
+  this.put=function(str) {
+    this._mes=str;
+    putToElement(this._mes,this._id);
+  }
+  
+  this.add=function(str) {
+    this._mes+=str;
+    putToElement(this._mes,this._id);    
+  }
+}
+
 function View() {
   this.pb=new Board( document.getElementById("primary"),"set","p","e" );
   this.tb=new Board( document.getElementById("tracking"),"strike","e","u" );
   this.dc=new DrawControls();
-  
   //var _this=this;
 
-  this.ps=new StatPanel( document.getElementById("playerStat"),"p","player" );
-  this.es=new StatPanel( document.getElementById("enemyStat"),"e","enemy" );
+  this.ps=new StatPanel( document.getElementById("playerStat"),"p" );
+  this.es=new StatPanel( document.getElementById("enemyStat"),"e" );
   
-  this._plMes="";
-  
-  this.playerMessagePut=function(msg) {
-    this._plMes=msg;
-    putToElement(this._plMes,"playerMsg");
-  }
-  
-  this.playerMessageAdd=function(msg) {
-    this._plMes+=msg;
-    putToElement(this._plMes,"playerMsg");
-  }
-  
-  this.enemyMessagePut=function(msg) {
-    putToElement(msg,"enemyMsg");
-  }  
+  this.pm=new MessagePanel("playerMsg");
+  this.em=new MessagePanel("enemyMsg"); 
 } 
 
 
