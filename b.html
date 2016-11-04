@@ -17,6 +17,7 @@
 </head>
 <body>
 <table id="general">
+<tbody>
   <tr>
     <td>Your ships</td>
     <td>Enemy ships</td>
@@ -36,7 +37,8 @@
   <tr>
     <td id="playerStat"></td>
     <td id="enemyStat"></td>
-  </tr>  
+  </tr>
+</tbody>
 </table>
 
 <script> const DIM=10; </script>
@@ -46,6 +48,17 @@
 <script src="Model.js"></script>
 <script src="Harvester.js"></script>
 <script src="controller.js"></script>
+<script>
+//const DIM=10;
+var g=new Game();
+var v=new View();
+var m=new Model();
+
+var e={},p={},a={};
+
+//alert("instantiated");
+go();
+</script>
 </body>
 
 </html>

@@ -3,13 +3,27 @@
   font-family: Arial,sans-serif;
 }
 
-table#general td {
-  padding: 0.5em;
+table.board {
+  text-align: center;
+  margin: 0 auto;
+}
+
+table.board td {
+  width: 30px;
+  height: 30px;
+  border: 1px solid;
+  padding: 0;
+}
+
+td {
+  padding: 0.7em 2.5em;
   text-align: center;
 }
 
-td#primary td,td#tracking td {
-  width: 20px;
-  height: 20px;
-  border: 1px solid;
+
+
+table#general {
+  width: 100%;
+  text-align: center;
 }
+

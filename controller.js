@@ -28,8 +28,12 @@ function go(command,data) {
       v.es.showClearHistogram(eh);
       m.enemyStat.setShips(eh);
       v.es.showStat(m.enemyStat._shipsAlive,m.enemyStat._biggestShip,m.enemyStat._shipsSunk);
-      if (g._previewEnemyShips) m.enemyShips.show(v.tb); // CHEAT !     
-
+      if (g._previewEnemyShips) {
+        m.enemyShips.show(v.tb);
+        //m.enemyBasin.takeShips(m.enemyShips._ships);
+        //v.tb.fromBasin(m.enemyBasin);
+      }
+ 
       v.dc.toggle();// show Draw controls
       v.pm.put("Draw your ships, then press Done");
       g._stage="ships";
@@ -100,13 +104,13 @@ function go(command,data) {
         v.pm.add("<br />Make your move!");
         g._stage="fight";
         
-        e=new Enemy( m.enemyShips,m.enemyBasin,m.enemyStat,m.playerBasin,v.em,g._enemyStriker );
+        e=new Enemy( m.enemyShips,m.enemyBasin,m.enemyStat,m.enemyClip,m.playerBasin,v.em,g._enemyStriker );
         //alert("E_hi="+e.hi());
-        p=new PlayerAssistant( m.playerShips,m.playerBasin,m.playerStat,v.pm );
+        p=new PlayerAssistant( m.playerShips,m.playerBasin,m.playerStat,m.playerClip,v.pm );
         a=new Active(p,e,g);
         if (g._strikeRule=="bs") {
-          p.clip.load();
-          e.clip.load();
+          p._clip.load();
+          e._clip.load();
         }
       } 
       return;
@@ -202,7 +206,7 @@ function displayResponce ( responce, probe, targetBoard, targetBasin, targetStat
     return;
   } 
   if ( responce=="w" || responce=="f" ) {
-    targetBoard.fromBasin(targetBasin);
+    targetBoard.fromBasin(targetBasin);   
     targetStatPanel.showStat(targetStat._shipsAlive,targetStat._biggestShip,targetStat._shipsSunk);
     return;
   }   
@@ -243,7 +247,7 @@ function Active (player,enemy,game) {
       return false;
     }
     if (this._game._strikeRule=="bs") { // as many strikes as the size of biggest alive ship
-      var rem=this._self.clip.get();
+      var rem=this._self._clip.get();
       if (rem) {
         //alert (rem+" strikes remain");
         this._self._mesPanel.add ( rem+" strikes remain" );
@@ -254,7 +258,7 @@ function Active (player,enemy,game) {
         //alert ("It was a "+this._letter+"'s move");
         this.swap();
         //alert ("Now it's a "+this._letter+"'s move");
-        rem=this._self.clip.load();
+        rem=this._self._clip.load();
         this._self._mesPanel.add ( "Firepower is "+rem+" strikes" );
         this._self.strike();
         return true;        
@@ -280,25 +284,13 @@ function Active (player,enemy,game) {
   }
 }
 
-function Clip(stat) {
-  this._rounds=0;
-  
-  this.load=function() { 
-    this._rounds=stat._biggestShip;
-    return (this._rounds);
-  }
-  
-  this.dec=function() { this._rounds--; }
-  
-  this.get=function() { return(this._rounds); }
-}
-
-function Enemy (fleet,ownBasin,stat,targetBasin,mesPanel,mode) {
+function Enemy (fleet,ownBasin,stat,clip,targetBasin,mesPanel,mode) {
   var _this=this;
   this._fleet=fleet;
   this._ownBasin=ownBasin;
   this._targetBasin=targetBasin;
   this._stat=stat;
+  this._clip=clip;  
   this._mesPanel=mesPanel;
   this._mode=mode;
   
@@ -312,10 +304,12 @@ function Enemy (fleet,ownBasin,stat,targetBasin,mesPanel,mode) {
   
   this.strike=function() {
     //var probe=randomStrike(this._targetBasin,this._rand);
+    var probe=_this._striker.move();
+    v.pb.put(probe[0],probe[1],"f");
     var t=window.setTimeout( function(){ 
-      alert("Enemy is striking");
-      go("enemyStrike",_this._striker.move());
-    }, 100 );
+      //alert("Enemy is striking");
+      go("enemyStrike",probe);
+    }, 200 );
   }
   
   this.respond=function (probe) {
@@ -325,18 +319,18 @@ function Enemy (fleet,ownBasin,stat,targetBasin,mesPanel,mode) {
   this.reflect=function (responce) {
     this._striker.reflect(responce);
     strikeCount ( responce, this._stat );
-    this.clip.dec();
+    this._clip.dec();
   }
   
   this.hi=function() { return ("Hi, I'm Enemy") }
-  
-  this.clip=new Clip(this._stat);
+
 }
 
-function PlayerAssistant (fleet,ownBasin,stat,mesPanel) {
+function PlayerAssistant (fleet,ownBasin,stat,clip,mesPanel) {
   this._fleet=fleet;
   this._ownBasin=ownBasin;
   this._stat=stat;
+  this._clip=clip;  
   this._mesPanel=mesPanel;  
   //this.rand=new Rand2d();
   
@@ -348,20 +342,7 @@ function PlayerAssistant (fleet,ownBasin,stat,mesPanel) {
   
   this.reflect=function (responce) {
     strikeCount( responce, this._stat );
-    this.clip.dec();
+    this._clip.dec();
   }
-  
-  this.clip=new Clip(this._stat);
 }
-
-//const DIM=10;
-var g=new Game();
-var v=new View();
-var m=new Model();
-
-var e={},p={},a={};
-
-//alert("instantiated");
-go();
-
  

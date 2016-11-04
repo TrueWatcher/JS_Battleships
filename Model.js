@@ -12,10 +12,9 @@ function Model() {
   this.playerStat=new Stat();
   this.enemyStat=new Stat();
   
-  /*if (g._strikeRule=="bs") {
-    this.playerClip=new Clip(this.playerStat);
-    this.enemyClip=new Clip(this.enemyStat);
-  }*/
+  this.playerClip=new Clip(this.playerStat);
+  this.enemyClip=new Clip(this.enemyStat);
+  
 }
 
 
@@ -258,3 +257,16 @@ function Stat() {
     return;
   }
 }// end Stat
+
+function Clip(stat) {
+  this._rounds=0;
+  
+  this.load=function() { 
+    this._rounds=stat._biggestShip;
+    return (this._rounds);
+  }
+  
+  this.dec=function() { this._rounds--; }
+  
+  this.get=function() { return(this._rounds); }
+}

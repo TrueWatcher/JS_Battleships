@@ -1,0 +1,35 @@
+body {
+  background-color: #bbb;
+}
+
+td.u {
+  background-color: #ccc;
+}
+
+td.e {
+  background-color: #007f7f;
+}
+
+td.s {
+  background-color: #7f7f7f;
+}
+
+td.m {
+  background-image: url("splash.png");
+}
+
+td.h {
+  background-image: url("burn.png");
+}
+
+td.w {
+  background-image: url("sunk.png");
+}
+
+td.c {
+  background-image: url("buoy.png");
+}
+
+td.f {
+  background-image: url("expl.png");
+}

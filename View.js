@@ -38,28 +38,82 @@ function StatPanel(parentElm,prefix) {
   }
 }
 
-function Board(parentElm,command,prefix,fill) {
-  this._theme={ "u":' ',"e":'.',"s":'#',"m":'~',"h":'@',"w":'%',"c":'-' };  
+function AsciiTheme() {
+  this._lookup={ "u":' ',"e":'.',"s":'#',"m":'~',"h":'@',"w":'%',"c":'-',"f":'X' };
+  
+  this.put=function(what,row,col,idPrefix) {
+    if ( !this._lookup[what] ) throw ("AsciiTheme::put: invalid argument "+what);
+    var id=""+idPrefix+row+col;
+    var td=document.getElementById(id);
+    td.innerHTML=this._lookup[what];
+  }
+  
+  this.get=function(row,col,idPrefix) {
+    var id=""+idPrefix+row+col;
+    var td=document.getElementById(id);
+    var val=td.innerHTML;
+    var key=this._lookup.getKeyByValue(val);
+    return (key);
+  }   
+}
+
+var asciiTheme=new AsciiTheme();
+
+function ClassTheme(themedir,stylesheet) {
+  this._allowed=[ "u","e","s","m","h","w","c","f" ];
+  
+  this.put=function(what,row,col,idPrefix) {
+    if ( this._allowed.indexOf(what) < 0 ) throw ("ClassTheme::put: invalid argument "+what);
+    var id=""+idPrefix+row+col;
+    var td=document.getElementById(id);
+    td.className=what; 
+  }
+  
+  this.get=function(row,col,idPrefix) {
+    var id=""+idPrefix+row+col;
+    var td=document.getElementById(id);
+    return ( td.className );
+  }
+  
+  this.addStyleSheet=function(themedir,stylesheet) {
+    var l=document.createElement("link");
+    l.type = 'text/css';
+    l.rel = 'stylesheet';
+    l.href = themedir+stylesheet;
+    document.head.appendChild(l);
+    
+    (new Image).src=themedir+"buoy.png";
+    (new Image).src=themedir+"sunk.png";
+    (new Image).src=themedir+"expl.png";
+  }
+  
+  this.addStyleSheet(themedir,stylesheet);
+}
+
+var classTheme1=new ClassTheme("classTheme1/","classTheme1.css");
+
+function Board(parentElm,command,prefix,fill,theme) {
+  this._theme=theme;  
   this._fill=fill;
   this._idPrefix=prefix;
   
-  this.makeGrid=function (prefix,fill) {
+  this.makeGrid=function (prefix) {
     var row,col;
     var td,tr,table="";
     for (row=0;row<DIM;row++) {
       tr="<tr>";
       for (col=0;col<DIM;col++) {
-        td='<td id="'+prefix+row+col+'">'+fill+'</td>';
+        td='<td id="'+prefix+row+col+'">'+'</td>';
         tr+=td;
       }
       tr+="</tr>";
       table+=tr;
     }
-    table="<table>"+table+"</table>";
+    table='<table class="'+"board"+'">'+table+"</table>";
     return (table);  
   }
   
-  this._html=this.makeGrid(prefix,this._theme[fill]);
+  this._html=this.makeGrid(prefix);
   this._e=parentElm;
   this._e.innerHTML=this._html;
 
@@ -86,32 +140,28 @@ function Board(parentElm,command,prefix,fill) {
     go ( command, [ tdId.charAt(1),tdId.charAt(2) ] );
   }
   
-  this.put=function(row,column,what) {
-    if ( !this._theme[what] ) throw ("Board::put: invalid argument "+what);
-    var id=""+this._idPrefix+row+column;
-    var td=document.getElementById(id);
-    td.innerHTML=this._theme[what];
+  this.put=function(row,col,what) {
+    this._theme.put(what,row,col,this._idPrefix);
+  }
+
+  this.get=function(row,col) {
+    return( this._theme.get(row,col,this._idPrefix) );
   }
   
-  this.check=function(row,column,what) {
-    var id=""+this._idPrefix+row+column;
-    var td=document.getElementById(id);
-    if( td.innerHTML === this._theme[what] ) return(true);
-    return(false);    
+  this.fill=function() {
+    for (var row=0;row<DIM;row++) {
+      for (var col=0;col<DIM;col++) {
+        this.put(row,col,this._fill);
+      }
+    }
   }
   
-  this.get=function(row,column) {
-    var id=""+this._idPrefix+row+column;
-    var td=document.getElementById(id);
-    var val=td.innerHTML;
-    var key=this._theme.getKeyByValue(val);
-    return (key);
-  } 
+  this.fill();
   
   this.toBasin=function(basin) {
     var rc,range=new Seq2d();
     while ( rc=range.go() ) {
-      basin.put( this.get(rc[0],rc[1]),rc[0],rc[1] );
+      basin.put( this.get(rc[0],rc[1]), rc[0], rc[1] );
     }
   }
   
@@ -148,14 +198,14 @@ function MessagePanel(elementId) {
   }
   
   this.add=function(str) {
-    this._mes+=str;
+    this._mes+=" "+str;
     putToElement(this._mes,this._id);    
   }
 }
 
 function View() {
-  this.pb=new Board( document.getElementById("primary"),"set","p","e" );
-  this.tb=new Board( document.getElementById("tracking"),"strike","e","u" );
+  this.pb=new Board( document.getElementById("primary"),"set","p","e",classTheme1 );//asciiTheme
+  this.tb=new Board( document.getElementById("tracking"),"strike","e","u",classTheme1 );//classTheme1
   this.dc=new DrawControls();
   //var _this=this;
 
