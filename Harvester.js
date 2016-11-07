@@ -128,7 +128,7 @@ function Harvester(basin,mode) {
     // fall-through
     if (this._stage=="search") {
       if ( (probe=this.genSeqn())===false ) {
-        alert ("Lookup complete, found "+this._ships.length+" ships");
+        //alert ("Lookup complete, found "+this._ships.length+" ships");
         this._stage="finished";
         return(false);
       }
@@ -204,11 +204,11 @@ function Harvester(basin,mode) {
       r=this._b.checkHit( probe[0],probe[1] );
       if (r) { 
         this._b.put( "h",probe[0],probe[1] );
-        v.pb.put( probe[0],probe[1],"h" );// DEBUG
+        //v.pb.put( probe[0],probe[1],"h" );// DEBUG
       }
       else {
         this._b.put( "m",probe[0],probe[1] );
-        v.pb.put( probe[0],probe[1],"m" );// DEBUG      
+        //v.pb.put( probe[0],probe[1],"m" );// DEBUG      
       }
       this.reflect(r);
     }

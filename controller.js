@@ -5,7 +5,7 @@ function Game() {
   this._active="p";// p e
   this._forces=[0,4,3,2,1,0,0,0,0,0,0];//[0,0,1,1,1,1,0,0,0,0,0];
   this._demandEqualForces=0;
-  this._previewEnemyShips=1;//0;//1;
+  this._previewEnemyShips=0;//0;//1;
   this._enemyStriker="harvester";// "random";
   //this._strikeRule="oe";// one plus extra one for each hit
   this._strikeRule="bs";// size of the biggest alive ship

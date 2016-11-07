@@ -232,6 +232,8 @@ function Stat() {
   this.setShips=function(hist){
     this._hst=hist.slice();
     if (hist.length!=DIM+1 || hist[0]) throw ("Stat::setShips: Invalid argument hist for initShips");
+    this._shipsSunk=0;    
+    this._shipsAlive=0;
     for(var i=DIM+1;i--;i>0) {
       if(this._biggestShip==0 && hist[i]>0) this._biggestShip=i;
       this._shipsAlive+=hist[i];

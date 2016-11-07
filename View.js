@@ -85,6 +85,8 @@ function ClassTheme(themedir,stylesheet) {
     (new Image).src=themedir+"buoy.png";
     (new Image).src=themedir+"sunk.png";
     (new Image).src=themedir+"expl.png";
+    (new Image).src=themedir+"splash.png";
+    (new Image).src=themedir+"burn.png";
   }
   
   this.addStyleSheet(themedir,stylesheet);

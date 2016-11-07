@@ -148,6 +148,24 @@ function Seq2d() {
   }
 }
 
+function TapePlayer(tape) {
+  if ( !(tape instanceof Array) ) throw ("ArrayUtils::TapePlayer: argument is not an array");
+  if ( !(tape[0] instanceof Array) ) throw ("ArrayUtils::TapePlayer: argument is not an 2d-array");  this._tape=tape;
+  this._i=0;
+  
+  this.go=function() {
+    if ( this._i>=this._tape.length ) return(false);
+    else {
+      var ret=this._tape[this._i];
+      //alert( "Naxt : "+ret.join() );
+      this._i++;
+      return ( ret );
+    }
+  }
+  
+  this.getIndex=function() { return(this._i) }
+}
+
 /*function rand2d() {
   rc=[ Math.floor(Math.random()*DIM), Math.floor(Math.random()*DIM) ];
   return(rc);
@@ -171,7 +189,10 @@ function arraySwap01(arr) {
 function putToElement(str,id) {
   var e;
   if ( id.nodeName ) e=id;
-  else if ( typeof id =="string" ) e=document.getElementById(id);
+  else if ( typeof id =="string" ) {
+    e=document.getElementById(id);
+    if (!e) throw ("putToElement: invalid node id "+id);
+  }
   else throw ("putToElement: invalid argument "+id);  
   //var e=document.getElementById(id);
   e.innerHTML=str;    
