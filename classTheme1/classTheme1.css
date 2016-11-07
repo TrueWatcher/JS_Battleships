@@ -33,3 +33,8 @@ td.c {
 td.f {
   background-image: url("expl.png");
 }
+
+.win,.lose {
+  font-weight: bold;
+  color: rgb(240,32,32);
+}

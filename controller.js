@@ -151,11 +151,11 @@ function go(command,data) {
       
       if(g._active=="p") {
         g._winner="p";
-        v.pm.put("YOU HAVE WON !");  
+        v.pm.put('<span class="'+"win"+'">YOU HAVE WON !');  
       }
       else {
         g._winner="p";
-        v.em.put("ENEMY HAS WON !");    
+        v.em.put('<span class="'+"lose"+'">ENEMY HAS WON !');    
       }
       return;
       
