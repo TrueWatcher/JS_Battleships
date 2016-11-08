@@ -12,18 +12,6 @@ function StatPanel(parentElm,prefix) {
   this._e=parentElm;
   this._e.innerHTML=this._html;
   this._prefix=prefix;
-
-  this.showClearHistogram=function(histogram,id) { 
-    var hst="";
-    for (var l=0;l<DIM;l++) {
-      if (histogram[l]) {
-        hst+=""+l+":"+histogram[l]+"  ";
-      }
-    }
-    if ( id=="return" ) return(hst);
-    if ( !id ) var id=this._prefix+"Hist";
-    putToElement(hst,id);
-  }  
   
   this.showStrikesHits=function(strikes,hits) {
     putToElement(strikes,this._prefix+"Strikes");
@@ -37,6 +25,18 @@ function StatPanel(parentElm,prefix) {
     putToElement(sunk,this._prefix+"Dead");    
   }
 }
+
+StatPanel.prototype.showClearHistogram=function(histogram,id) { 
+    var hst="";
+    for (var l=0;l<DIM;l++) {
+      if (histogram[l]) {
+        hst+=""+l+":"+histogram[l]+"  ";
+      }
+    }
+    if ( id=="return" ) return(hst);
+    if ( !id ) var id=this._prefix+"Hist";
+    putToElement(hst,id);
+} 
 
 function AsciiTheme() {
   this._lookup={ "u":' ',"e":'.',"s":'#',"m":'~',"h":'@',"w":'%',"c":'-',"f":'X' };
@@ -56,8 +56,6 @@ function AsciiTheme() {
     return (key);
   }   
 }
-
-var asciiTheme=new AsciiTheme();
 
 function ClassTheme(themedir,stylesheet) {
   this._allowed=[ "u","e","s","m","h","w","c","f" ];
@@ -92,7 +90,7 @@ function ClassTheme(themedir,stylesheet) {
   this.addStyleSheet(themedir,stylesheet);
 }
 
-var classTheme1=new ClassTheme("classTheme1/","classTheme1.css");
+//var classTheme1=new ClassTheme("classTheme1/","classTheme1.css");
 
 function Board(parentElm,command,prefix,fill,theme) {
   this._theme=theme;  
@@ -205,9 +203,53 @@ function MessagePanel(elementId) {
   }
 }
 
-function View() {
-  this.pb=new Board( document.getElementById("primary"),"set","p","e",classTheme1 );//asciiTheme
-  this.tb=new Board( document.getElementById("tracking"),"strike","e","u",classTheme1 );//classTheme1
+function RulesForm(g) {
+  if (!g) return; // View() is used in unit tests, they don't need this form
+  var rf="";
+  rf+='<label for="playerName">Your name :</label>';
+  rf+='<input type="text" name="playerName" id="playerName" value="You" />';
+  rf+="&nbsp; &nbsp;";
+  rf+='<label for="enemyName">Your opponent'+"'"+'s name :</label>';
+  rf+='<input type="text" name="enemyName" id="enemyName" value="Local Script" />';  
+  rf+='<br />';
+  rf+='Ships (squares:quantity) : ';
+  var his1=StatPanel.prototype.showClearHistogram(g._forces1,"return");
+  rf+=his1+'<input type="radio" name="forces" id="forces1" value="'+1+'" checked="checked" />';
+  rf+="&nbsp; &nbsp;";
+  var his2=StatPanel.prototype.showClearHistogram(g._forces2,"return");
+  rf+=his2+'<input type="radio" name="forces" id="forces2" value="'+2+'" />';
+  rf+='<br />';
+  rf+='Strikes per move : ';
+  rf+="one plus extra one for each hit"+'<input type="radio" name="strikes" id="strikes1" value="'+"oe"+'" checked="checked" />';
+  rf+="&nbsp; &nbsp;";
+  rf+="as many as is the size of the biggest alive ship"+'<input type="radio" name="strikes" id="strikes2" value="'+"bs"+'" />';
+  rf+='<br />';
+  rf+='Difficulty : ';
+  rf+="cheat"+'<input type="radio" name="level" id="level1" value="'+"cheat"+'" />';
+  rf+="&nbsp; &nbsp;";
+  rf+="easy"+'<input type="radio" name="level" id="level2" value="'+"easy"+'" />';
+  rf+="&nbsp; &nbsp;";
+  rf+="full"+'<input type="radio" name="level" id="level3" value="'+"full"+'" checked="checked" />';  
+  rf+='<br />';  
+  rf+='Theme : ';
+  rf+="icons"+'<input type="radio" name="theme" id="theme1" value="'+"icons"+'" checked="checked" />';
+  rf+="&nbsp; &nbsp;";
+  rf+="ascii chars"+'<input type="radio" name="theme" id="theme2" value="'+"ascii"+'" />';  
+  rf+='<br />';  
+  rf+='<p style="text-align: center;"><input type="submit" value="Done" /></p>';
+  rf='<form action="javascript:;" onsubmit="go();return (false);"><div>'+rf+'</div></form>';
+  
+  this._e=document.getElementById("rulesForm");
+  this._e.innerHTML=rf;
+  
+  this.toggle=function() {
+    toggleElement(this._e);
+  }
+}
+
+function View(game) {
+  if (game) this.rf=new RulesForm(game);// View() is used in unit tests that don't need rulesForm
+  
   this.dc=new DrawControls();
   //var _this=this;
 
@@ -215,7 +257,17 @@ function View() {
   this.es=new StatPanel( document.getElementById("enemyStat"),"e" );
   
   this.pm=new MessagePanel("playerMsg");
-  this.em=new MessagePanel("enemyMsg"); 
+  this.em=new MessagePanel("enemyMsg");
+  
+  this.setBoards=function(theme) {
+    var myTheme=new AsciiTheme;
+    if (theme && theme=="icons1") myTheme=new ClassTheme("classTheme1/","classTheme1.css");;
+  
+    this.pb=new Board( document.getElementById("primary"),"set","p","e",myTheme );
+    this.tb=new Board( document.getElementById("tracking"),"strike","e","u",myTheme );
+  }
+  
+  if (!game) this.setBoards("ascii");// View() is used in unit tests
 } 
 
 

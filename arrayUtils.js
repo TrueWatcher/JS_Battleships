@@ -198,6 +198,20 @@ function putToElement(str,id) {
   e.innerHTML=str;    
 }
 
+function getElementValue(id,attr) {
+  var e;
+  if ( id.nodeName ) e=id;
+  else if ( typeof id =="string" ) {
+    e=document.getElementById(id);
+    if (!e) throw ("getElementValue: invalid node id "+id);
+  }
+  else throw ("putToElement: invalid argument "+id);  
+
+  if (!attr) return (e.value);
+  else  if (attr=="checked") return (e.checked);// important!
+  else  return ( e.getAttribute(attr) );
+}
+
 function toggleElement(id) {
   var e;
   if ( id.nodeName ) e=id;

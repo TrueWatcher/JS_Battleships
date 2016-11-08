@@ -1,15 +1,55 @@
 "use strict";
 
 function Game() {
-  this._stage="init";// init ships fight finish
+  this._stage="zero";// zero rules init ships fight finish
   this._active="p";// p e
-  this._forces=[0,4,3,2,1,0,0,0,0,0,0];//[0,0,1,1,1,1,0,0,0,0,0];
-  this._demandEqualForces=0;
+  this._winner;    
+
+  this._forces1=[0,4,3,2,1,0,0,0,0,0,0];
+  this._forces2=[0,0,1,1,1,1,0,0,0,0,0];
+  this._forces;
+  var strikes1="oe";
+  var strikes2="bs";
+  this._strikeRule;
+  this._level;
+  this._demandEqualForces=1;
   this._previewEnemyShips=0;//0;//1;
   this._enemyStriker="harvester";// "random";
-  //this._strikeRule="oe";// one plus extra one for each hit
-  this._strikeRule="bs";// size of the biggest alive ship
-  this._winner=0;
+  this._theme="ascii";  
+  
+  this.setRules=function(form) {
+    var inp;
+    this._playerName=getElementValue("playerName");
+    this._enemyName=getElementValue("enemyName");
+    putToElement(this._playerName,"playerLabel");
+    putToElement(this._enemyName,"enemyLabel");
+    
+    if ( getElementValue("forces1","checked") ) this._forces=this._forces1;
+    else if ( getElementValue("forces2","checked") ) this._forces=this._forces2;
+    else throw ("Rules::set: invalid forces");
+
+    if ( getElementValue("strikes1","checked") ) this._strikeRule=strikes1;
+    else if ( getElementValue("strikes2","checked") ) this._strikeRule=strikes2;
+    else throw ("Rules::set: invalid strikes");
+
+    if ( getElementValue("level1","checked") ) this._level=1;
+    else if ( getElementValue("level2","checked") ) this._level=2;
+    else if ( getElementValue("level3","checked") ) this._level=3;
+    else throw ("Rules::set: invalid level");
+    switch (this._level) {
+      case 1:
+        this._demandEqualForces=0;
+        this._previewEnemyShips=1;
+        this._enemyStriker="harvester";
+        break;
+      case 2:
+        this._enemyStriker="random";
+        break;
+      case 3:        
+    }
+    
+    if ( getElementValue("theme1","checked") ) this._theme="icons1";
+  }
 }
 
 var hit;// after DEBUG can be moved inside the go()
@@ -20,8 +60,23 @@ function go(command,data) {
   
   switch (g._stage) {
     
+    case "zero":
+      toggleElement("general");
+      g._stage="rules";
+      return;
+
+    case "rules":
+      v.rf.toggle();
+      g.setRules();
+      g._stage="init";
+      //return;
+      // fall-through
+      
     case "init":
       //alert("init");
+      v.setBoards(g._theme);
+      toggleElement("general");      
+      
       m.enemyShips=new Fleet();
       m.enemyShips.build("byWarrant");
       var eh=m.enemyShips.makeHistogram();
@@ -37,7 +92,8 @@ function go(command,data) {
       v.dc.toggle();// show Draw controls
       v.pm.put("Draw your ships, then press Done");
       g._stage="ships";
-      return;
+      //return;
+      // fall-through
       
     case "ships":
       
