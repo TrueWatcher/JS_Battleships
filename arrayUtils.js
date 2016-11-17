@@ -1,35 +1,57 @@
-// http://stackoverflow.com/questions/143847/best-way-to-find-if-an-item-is-in-a-javascript-array
+"use strict";
+
+/**
+ * Searches the array for the given value (primitive types)
+ * @link http://stackoverflow.com/questions/143847/best-way-to-find-if-an-item-is-in-a-javascript-array
+ * @param primitive obj needle
+ * @param integer fromIndex initial offset
+ * @return integer key | -1 if not found
+ */
 if (!Array.prototype.indexOf) {
   Array.prototype.indexOf = function (obj, fromIndex) {
+    var i;
     if (fromIndex == null) {
       fromIndex = 0;
-      } else if (fromIndex < 0) {
-         fromIndex = Math.max(0, this.length + fromIndex);
-      }
-      for (var i = fromIndex, j = this.length; i < j; i++) {
-        if (this[i] === obj) return i;
-      }
-      return -1;
+    }
+    else if (fromIndex < 0) {
+        fromIndex = Math.max(0, this.length + fromIndex);
+    }
+    for (i = fromIndex; i < this.length; i++) {
+      if (this[i] === obj) return i;
+    }
+    return -1;
   };
 }
 
+/**
+ * Searches the array for the given value (pairs and other arrays)
+ * @param array obj needle
+ * @param integer fromIndex initial offset
+ * @return integer key | -1 if not found
+ */
 Array.prototype.indexOfVect = function (obj, fromIndex) {
+  var i;
   if ( !(obj instanceof Array) ) {
     alert("Usage error, non-array argument for indexOfVect");
     return -1;
-  }    
+  }
   if (fromIndex == null) {
     fromIndex = 0;
   } else if (fromIndex < 0) {
     fromIndex = Math.max(0, this.length + fromIndex);
   }
-  for (var i = fromIndex, j = this.length; i < j; i++) {
+  for (i = fromIndex; i < this.length; i++) {
     if (this[i].join() === obj.join()) return i;
   }
   return -1;
 };
 
-// http://stackoverflow.com/questions/9907419/javascript-object-get-key-by-value
+/**
+ * Searches the assocArray for the given value
+ * @link http://stackoverflow.com/questions/9907419/javascript-object-get-key-by-value
+ * @param mixed value
+ * @return mixed key
+ */
 Object.prototype.getKeyByValue = function( value ) {
   for( var prop in this ) {
     if( this.hasOwnProperty( prop ) ) {
@@ -38,7 +60,12 @@ Object.prototype.getKeyByValue = function( value ) {
   }
 }
 
-// http://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array-in-javascript
+/**
+ * Shuffles the given array randomly in-place
+ * @link http://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array-in-javascript
+ * @param array a
+ * @return nothing
+ */
 function arrayShuffle(a) {
   var j, x, i;
   for (i = a.length; i; i--) {
@@ -49,12 +76,20 @@ function arrayShuffle(a) {
   }
 }
 
+/**
+ * Gives a list of all points neigbouring the given point [row,col] (and not outside the 0..max * 0..max square plane)
+ * @param integer row
+ * @param integer col
+ * @param integer max
+ * @return array of pairs [row,col]
+ */
 function adjAll(row,col,max) {
-  if (!max) var max=DIM;
+  if (!max) max=DIM;
   var res=[];
+  var i,j;
   var r,c;
-  for (var i=0;i<=2;i++) {
-    for (var j=0;j<=2;j++) {
+  for (i=0; i<=2; i++) {
+    for (j=0; j<=2; j++) {
       if ( !(i==1 && j==1) ) {
         r=row+i-1;
         c=col+j-1;
@@ -62,15 +97,22 @@ function adjAll(row,col,max) {
         if( r>=0 && r<max && c>=0 && c<max ) {
           //alert ("got "+r+c);
           res.push( [r,c] );
-        }       
+        }
       }
     }
   }
   return (res);
 }
 
+/**
+ * Gives a list of points, neigbouring the given point [row,col] except for diagonal neighbours (and not outside the 0..max * 0..max square plane)
+ * @param integer row
+ * @param integer col
+ * @param integer max
+ * @return array of pairs [row,col]
+ */
 function adjCross(row,col,max) {
-  if (!max) var max=DIM;
+  if (!max) max=DIM;
   var try4=[ [row-1,col],[row,col-1],[row+1,col],[row,col+1] ];
   var rc;
   var res=[]
@@ -81,6 +123,14 @@ function adjCross(row,col,max) {
   return(res);
 }
 
+/**
+ * Takes an array of points [row,col] and gives list of neigbouring points
+ * @uses adjAll()
+ * @uses adjCross()
+ * @param array pointsArray array of pairs [row,col]
+ * @param string mode "all" for all neighbours, "cross" for orthogonal only
+ * @return array of pairs [row,col]
+ */
 function around(pointsArray,mode) {
   if ( !(pointsArray instanceof Array) /*|| !(pointsArray[0] instanceof Array)*/ ) {
     //alert ("Usage error! Non-array or single-dimension array passed to 'around()' ");
@@ -98,94 +148,125 @@ function around(pointsArray,mode) {
       if ( (pointsArray.indexOfVect(rca) <0) && (res.indexOfVect(rca) <0) ) res.push(rca);
     }
   }
-  //alert(res.length);
   return(res);
 }
 
+/**
+ * Generates random pairs [row,column], covering all plane 0..DIM * 0..DIM
+ * Allows to insert one non-random pair into the output stream for debugging
+ * @param integer cheatI position to insert
+ * @param array cheatVal [row,column] additional pair
+ *
+ * @method go()
+ * @return array [row,column]
+ */
 function Rand2d(cheatI,cheatVal) {
-  this._arr=[];
+  var _arr=[];// private property by closure
   for (var i=0;i<DIM;i++) {
     for (var j=0;j<DIM;j++) {
-      this._arr.push( [i,j] );
+      _arr.push( [i,j] );
     }
   }
-  arrayShuffle(this._arr);
-  this._i=0;
-  
+  arrayShuffle(_arr);
+  var _i=0;// private property by closure
+
   this.go=function() {
-    if(this._i==cheatI) {
-      this._i++;
+    if(_i==cheatI) {
+      _i++;
       return(cheatVal);// DEBUG
-    }  
-    var r=this._arr[this._i];
-    this._i++;
-    if (this._i>=this._arr.length) {
-      arrayShuffle(this._arr);
-      this._i=0;
+    }
+    var r=_arr[_i];
+    _i++;
+    if ( _i >= _arr.length ) {
+      arrayShuffle(_arr);
+      _i=0;
     }
     return (r);
-  }
+  };
 }
 
-
+/**
+ * @method go()
+ * Generates pairs [row,column] : 0,0 0,1 .. 0,9 .. 1,0 1,1 .. 1,9 .. 9,9 .. false
+ * @return array [row,column] | false on end
+ */
 function Seq2d() {
-  this.r=0;
-  this.c=0;
-  
+  var _r=0, _c=0; // private property by closure
+
   this.go=function(){
-    if (this.r>=DIM) {
-      this.r=0;
-      this.c=0;
+    if ( _r>=DIM ) {
+      _r=0;
+      _c=0;
       return(false);
     }
-    var rc=[ this.r,this.c ];
-    this.c++;
-    if(this.c>=DIM) {
-      this.c=0;
-      this.r++;
+    var rc=[ _r,_c ];
+    _c++;
+    if( _c>=DIM ) {
+      _c=0;
+      _r++;
     }
     return(rc);
-  }
+  };
 }
 
+/**
+ * Returns pairs [row,column] from the given array, one pair by each call
+ * @param array tape array of pairs [row,column]
+ * @method go()
+ * @return array [row,column] | false on end
+ * @method getIndex()
+ * @return integer current offset
+ */
 function TapePlayer(tape) {
   if ( !(tape instanceof Array) ) throw ("ArrayUtils::TapePlayer: argument is not an array");
-  if ( !(tape[0] instanceof Array) ) throw ("ArrayUtils::TapePlayer: argument is not an 2d-array");  this._tape=tape;
-  this._i=0;
-  
+  if ( !(tape[0] instanceof Array) ) throw ("ArrayUtils::TapePlayer: argument is not an 2d-array");
+  var _tape=tape, _i=0; // private property by closure
+
   this.go=function() {
-    if ( this._i>=this._tape.length ) return(false);
+    if ( _i>=_tape.length ) return(false);
     else {
-      var ret=this._tape[this._i];
+      var ret=_tape[_i];
       //alert( "Naxt : "+ret.join() );
-      this._i++;
+      _i++;
       return ( ret );
     }
-  }
-  
-  this.getIndex=function() { return(this._i) }
+  };
+
+  this.getIndex=function() { return(_i); };
 }
 
-/*function rand2d() {
-  rc=[ Math.floor(Math.random()*DIM), Math.floor(Math.random()*DIM) ];
-  return(rc);
-}*/
-
+/**
+ * Creates an array of the given length and fills it with the given value
+ * createArray(3,0) will give [ 0, 0, 0 ]
+ * @param integer size
+ * @param mixed value
+ * @return array
+ */
 function createArray(size,value) {
   var s=size;
   var arr=[];
   while (s--) arr.push(value);
   //alert ("l "+arr.length);
-  return(arr);
+  return (arr);
 }
-    
+
+/**
+ * Swaps 0th and 1st elements of the given array in place
+ * @param array arr
+ * @return nothing
+ */
 function arraySwap01(arr) {
   var a=arr[0];
   arr[0]=arr[1];
   arr[1]=a;
 }
 
-
+/**
+ * Puts content to given HTML element
+ * @param string str content
+ * @param string|DOMElement id target element's Id or that element itself
+ * @return nothing
+ */
 function putToElement(str,id) {
   var e;
   if ( id.nodeName ) e=id;
@@ -193,11 +274,17 @@ function putToElement(str,id) {
     e=document.getElementById(id);
     if (!e) throw ("putToElement: invalid node id "+id);
   }
-  else throw ("putToElement: invalid argument "+id);  
+  else throw ("putToElement: invalid argument "+id);
   //var e=document.getElementById(id);
-  e.innerHTML=str;    
+  e.innerHTML=str;
 }
 
+/**
+ * Gets content from given HTML element (value or any attribute)
+ * @param string|DOMElement id target element's Id or that element itself
+ * @param string attr attribute name
+ * @return string element.value or element.attribute.value
+ */
 function getElementValue(id,attr) {
   var e;
   if ( id.nodeName ) e=id;
@@ -205,13 +292,18 @@ function getElementValue(id,attr) {
     e=document.getElementById(id);
     if (!e) throw ("getElementValue: invalid node id "+id);
   }
-  else throw ("putToElement: invalid argument "+id);  
+  else throw ("putToElement: invalid argument "+id);
 
   if (!attr) return (e.value);
   else  if (attr=="checked") return (e.checked);// important!
   else  return ( e.getAttribute(attr) );
 }
 
+/**
+ * Toggles the display property of the given HTML element
+ * @param string|DOMElement id target element's Id or that element itself
+ * @return nothing
+ */
 function toggleElement(id) {
   var e;
   if ( id.nodeName ) e=id;

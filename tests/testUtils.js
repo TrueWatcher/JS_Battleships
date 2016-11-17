@@ -3,35 +3,35 @@
 function TestHelper() {
   // It's a SINGLETON
   if (typeof TestHelper.instance === 'object') return TestHelper.instance;
-  
+
   //var _this=this;
   this._outTarget="console";
   this._outElement="";
   this._numOfTests=0;
-  
-  this.toPage=function(){ 
-    this._outTarget="page"; 
+
+  this.toPage=function(){
+    this._outTarget="page";
     this._outElement=document.createElement("pre");
     document.body.appendChild(this._outElement);
     this._outElement.style="font-size: 1.4em";
     this._numOfTests=0;
   }
-  
+
   this.addToPage=function(str) {
     var h=this._outElement.innerHTML;
     this._outElement.innerHTML=h+str;
   }
-  
+
   this.toConsole=function() {
     this._outTarget="console";
     this._numOfTests=0;
   }
-  
+
   this.checkToPage=function() { return (this._outTarget=="page"); }
-  
+
   this.incCount=function() { this._numOfTests++ }
   this.getCount=function() { return(this._numOfTests) }
-  
+
   TestHelper.instance=this;
 }
 
@@ -50,9 +50,9 @@ function print (str) {
     }
     else console.log(str);
 }
-  
+
 function println (str) { print(str+"\n"); }
-  
+
 function printErr (err) {
     var t=new TestHelper();
     var out="",f="",i;

@@ -28,15 +28,15 @@ function Harvester(basin,mode) {
     this._probe=probe;
     return (probe);
   }
-  
-  
+
+
 
   this.initGenNear=function() {
     var h0=this._hits[0];
     this._nearHits=this._b.adjStrikable( h0[0],h0[1],"cross" );
     //alert("nearhits:"+this._nearHits.length);
-  } 
-  
+  }
+
   this.genNear=function() {
     var probe;
     if (this._nearHits.length==0) return (false);
@@ -44,7 +44,7 @@ function Harvester(basin,mode) {
     this._probe=probe;
     return(probe);
   }
-  
+
   this.initGenStraight=function() {
       var h0=this._hits[0];
       var h1=this._hits[1];
@@ -67,29 +67,29 @@ function Harvester(basin,mode) {
       this._lowStop=false;
       this._highStop=false;
   }
-  
+
   this.genStraight=function() {
     var probe;
     var nextLow,nextHigh;
- 
+
     var l=this._hits.length;
     //alert("L:"+l+" 1 lowstop:"+this._lowStop+" highstop:"+this._highStop);
-    
+
     if(this._mov){ // mov=1=col fix=0=row
       nextLow=[ this._row,(this._hits[0][this._mov]-1) ];
       nextHigh=[ this._row,(this._hits[l-1][this._mov]+1) ];
     }
     else { // mov=0=row fix=1=col
       nextLow=[ (this._hits[0][this._mov]-1),this._col ];
-      nextHigh=[ (this._hits[l-1][this._mov]+1),this._col ];      
+      nextHigh=[ (this._hits[l-1][this._mov]+1),this._col ];
     }
-    
+
     if ( this._hits[0][this._mov]===0 || !this._b.checkStrikable(nextLow) ) this._lowStop=1;
-    
+
     if ( this._hits[l-1][this._mov] == (DIM-1) || !this._b.checkStrikable(nextHigh) ) this._highStop=1;
     //alert("2 lowstop:"+this._lowStop+" highstop:"+this._highStop);
     if ( this._lowStop && this._highStop ) return false;
-    
+
     if ( !this._lowStop ) {
       probe=nextLow;
       this._dir="low";
@@ -103,7 +103,7 @@ function Harvester(basin,mode) {
     this._probe=probe;
     return probe;
   }
-  
+
   this.move=function() {
     var probe;
     //alert("move");
@@ -111,7 +111,7 @@ function Harvester(basin,mode) {
       if ( (probe=this.genStraight())===false ) {
         this._stage="kill";
       }
-      else return(probe);      
+      else return(probe);
     }
     // fall-through
     if (this._stage=="near") {
@@ -132,10 +132,10 @@ function Harvester(basin,mode) {
         this._stage="finished";
         return(false);
       }
-      return (probe);      
+      return (probe);
     }
   }// end move
-  
+
   this.reflect=function(res) {
     if ( res=="w" ) {
       this._stage="kill";
@@ -154,7 +154,7 @@ function Harvester(basin,mode) {
       this.initGenStraight();
       this._stage="straight";
       return;
-    }    
+    }
     if (this._stage=="straight" && (res===true || res=="h" || res==="w" || res==="f") ) {
       if (this._dir=="high") this._hits.push(this._probe);
       else this._hits.unshift(this._probe);
@@ -168,12 +168,12 @@ function Harvester(basin,mode) {
       if ( this._lowStop && this._highStop ) {
         this._stage="kill";
         this.harvest();
-        this._stage="search";   
-      }      
+        this._stage="search";
+      }
       return;
-    }    
+    }
   }// end reflect
-  
+
   this.harvest=function(){
     //alert ("kill at "+this._probe[0]+this._probe[1]+", "+this._hits.length+"squares");
     this._ships.push(this._hits);
@@ -193,30 +193,30 @@ function Harvester(basin,mode) {
     this._nearHits=[];
     this._ships=[];
     this._probe=[];
-    this._count=0;    
-  }  
-  
+    this._count=0;
+  }
+
   this.search=function() {
     var r,probe;
     this.reset();
     while ( probe=this.move() ) {
       //alert(">"+probe[0]+probe[1]);
       r=this._b.checkHit( probe[0],probe[1] );
-      if (r) { 
+      if (r) {
         this._b.put( "h",probe[0],probe[1] );
         //v.pb.put( probe[0],probe[1],"h" );// DEBUG
       }
       else {
         this._b.put( "m",probe[0],probe[1] );
-        //v.pb.put( probe[0],probe[1],"m" );// DEBUG      
+        //v.pb.put( probe[0],probe[1],"m" );// DEBUG
       }
       this.reflect(r);
     }
     //alert(">"+probe);
   }
-  
+
   this.yield=function() {
     return(this._ships);
   }
 
-}  
+}
