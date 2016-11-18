@@ -209,23 +209,14 @@ try{
   v.pb.fromBasin(b);
   f=new Fleet();
   var newFleet,sy,f,ar;
+  var syTrySailOrig;
   for (var k=0;k<10;k++) {
     b.clear();
     sy=new ShipYard([0,4,3,2,1,0,0,0,0,0,0]);
+    syTrySailOrig=sy.trySail;
     sy.trySail=function(newShip) { 
-      var rc;
-      var ship;
-      var checkMargin=false; // let there be some disorder
-      var aroundNew=around(newShip);
-      for(var i=0;i<this._ships.length;i++) {
-        ship=this._ships[i];
-        for(var j=0;j<ship.length;j++) {
-          rc=ship[j];
-          if ( (newShip.indexOfVect(rc)>=0) || (checkMargin && aroundNew.indexOfVect(rc)>=0) ) return(false);
-        }
-      }
-      return (true);
-    }
+      return(syTrySailOrig(newShip,true));
+    };
     // produces a mess that gives harvester-counts usually between 9 and 11 ;)
     
     

@@ -1,208 +1,9 @@
 "use strict";
-
-function StatPanel(parentElm,prefix) {
-  var str='Strikes:<span id="'+prefix+"Strikes"+'"></span> ';
-  str+='Hits:<span id="'+prefix+"Hits"+'"></span> ';
-  str+='(<span id="'+prefix+"Percent"+'"></span>%) ';
-  var sh='Ships afloat:<span id="'+prefix+"Float"+'"></span> ';
-  sh+='largest:<span id="'+prefix+"Largest"+'"></span> ';
-  sh+='dead:<span id="'+prefix+"Dead"+'"></span> ';
-  var hist='Ships all (squares:ships): <span id="'+prefix+"Hist"+'"></span> ';
-  this._html=hist+"<br />"+str+"<br />"+sh+"<br />";
-  this._e=parentElm;
-  this._e.innerHTML=this._html;
-  this._prefix=prefix;
-  
-  this.showStrikesHits=function(strikes,hits) {
-    putToElement(strikes,this._prefix+"Strikes");
-    putToElement(hits,this._prefix+"Hits");
-    if (strikes) putToElement(Math.round(100*hits/strikes),this._prefix+"Percent");    
-  }
-  
-  this.showStat=function(afloat,biggest,sunk) {
-    putToElement(afloat,this._prefix+"Float");    
-    putToElement(biggest,this._prefix+"Largest");
-    putToElement(sunk,this._prefix+"Dead");    
-  }
-}
-
-StatPanel.prototype.showClearHistogram=function(histogram,id) { 
-    var hst="";
-    for (var l=0;l<DIM;l++) {
-      if (histogram[l]) {
-        hst+=""+l+":"+histogram[l]+"  ";
-      }
-    }
-    if ( id=="return" ) return(hst);
-    if ( !id ) var id=this._prefix+"Hist";
-    putToElement(hst,id);
-} 
-
-function AsciiTheme() {
-  this._lookup={ "u":' ',"e":'.',"s":'#',"m":'~',"h":'@',"w":'%',"c":'-',"f":'X' };
-  
-  this.put=function(what,row,col,idPrefix) {
-    if ( !this._lookup[what] ) throw ("AsciiTheme::put: invalid argument "+what);
-    var id=""+idPrefix+row+col;
-    var td=document.getElementById(id);
-    td.innerHTML=this._lookup[what];
-  }
-  
-  this.get=function(row,col,idPrefix) {
-    var id=""+idPrefix+row+col;
-    var td=document.getElementById(id);
-    var val=td.innerHTML;
-    var key=this._lookup.getKeyByValue(val);
-    return (key);
-  }   
-}
-
-function ClassTheme(themedir,stylesheet) {
-  this._allowed=[ "u","e","s","m","h","w","c","f" ];
-  
-  this.put=function(what,row,col,idPrefix) {
-    if ( this._allowed.indexOf(what) < 0 ) throw ("ClassTheme::put: invalid argument "+what);
-    var id=""+idPrefix+row+col;
-    var td=document.getElementById(id);
-    td.className=what; 
-  }
-  
-  this.get=function(row,col,idPrefix) {
-    var id=""+idPrefix+row+col;
-    var td=document.getElementById(id);
-    return ( td.className );
-  }
-  
-  this.addStyleSheet=function(themedir,stylesheet) {
-    var l=document.createElement("link");
-    l.type = 'text/css';
-    l.rel = 'stylesheet';
-    l.href = themedir+stylesheet;
-    document.head.appendChild(l);
-    
-    (new Image).src=themedir+"buoy.png";
-    (new Image).src=themedir+"sunk.png";
-    (new Image).src=themedir+"expl.png";
-    (new Image).src=themedir+"splash.png";
-    (new Image).src=themedir+"burn.png";
-  }
-  
-  this.addStyleSheet(themedir,stylesheet);
-}
-
-//var classTheme1=new ClassTheme("classTheme1/","classTheme1.css");
-
-function Board(parentElm,command,prefix,fill,theme) {
-  this._theme=theme;  
-  this._fill=fill;
-  this._idPrefix=prefix;
-  
-  this.makeGrid=function (prefix) {
-    var row,col;
-    var td,tr,table="";
-    for (row=0;row<DIM;row++) {
-      tr="<tr>";
-      for (col=0;col<DIM;col++) {
-        td='<td id="'+prefix+row+col+'">'+'</td>';
-        tr+=td;
-      }
-      tr+="</tr>";
-      table+=tr;
-    }
-    table='<table class="'+"board"+'">'+table+"</table>";
-    return (table);  
-  }
-  
-  this._html=this.makeGrid(prefix);
-  this._e=parentElm;
-  this._e.innerHTML=this._html;
-
-  this.detectTd=function(event) {
-    // http://javascript.info/tutorial/event-delegation
-    event = event || window.event;
-    var target = event.target || event.srcElement;
-  
-    while(target.nodeName != 'TABLE') { 
-      if (target.nodeName == 'TD') { 
-        return (target.id);
-      }
-    target = target.parentNode;
-    }
-    return (false);
-  }
-  
-  var _this=this;
-  
-  this._e.onclick=function(event) {
-    //alert (event.target.nodeName);
-    var tdId=_this.detectTd(event);
-    //alert (tdId);
-    go ( command, [ tdId.charAt(1),tdId.charAt(2) ] );
-  }
-  
-  this.put=function(row,col,what) {
-    this._theme.put(what,row,col,this._idPrefix);
-  }
-
-  this.get=function(row,col) {
-    return( this._theme.get(row,col,this._idPrefix) );
-  }
-  
-  this.fill=function() {
-    for (var row=0;row<DIM;row++) {
-      for (var col=0;col<DIM;col++) {
-        this.put(row,col,this._fill);
-      }
-    }
-  }
-  
-  this.fill();
-  
-  this.toBasin=function(basin) {
-    var rc,range=new Seq2d();
-    while ( rc=range.go() ) {
-      basin.put( this.get(rc[0],rc[1]), rc[0], rc[1] );
-    }
-  }
-  
-  this.fromBasin=function(basin) {
-    var rc,range=new Seq2d();
-    while ( rc=range.go() ) {
-      this.put( rc[0],rc[1],basin.get( rc[0],rc[1] ) );
-    }
-  }
-}// end Board
-
-function DrawControls() {
-  var dc="";
-  dc+='<button type="button" id="confirmShips" onclick="go('+"'cs'"+')" >'+"Done, let's play"+'</button>';
-  dc+='<button type="button" id="removeShips" onclick="go('+"'rs'"+')" >'+"Clear"+'</button>';
-  dc+='<button type="button" id="autoShips" onclick="go('+"'as'"+')" >'+"Auto"+'</button>';
-  
-  this._e=document.getElementById("prPanel");
-  this._e.innerHTML=dc;
-  this._e.style.display="none";
-  
-  this.toggle=function() {
-    toggleElement(this._e);
-  } 
-}
-
-function MessagePanel(elementId) {
-  this._mes="";
-  this._id=elementId;
-  
-  this.put=function(str) {
-    this._mes=str;
-    putToElement(this._mes,this._id);
-  }
-  
-  this.add=function(str) {
-    this._mes+=" "+str;
-    putToElement(this._mes,this._id);    
-  }
-}
-
+/**
+ * Form to set up some game settings.
+ * @constructor
+ * @param {object Game|nothing} g
+ */
 function RulesForm(g) {
   if (!g) return; // View() is used in unit tests, they don't need this form
   var rf="";
@@ -210,13 +11,13 @@ function RulesForm(g) {
   rf+='<input type="text" name="playerName" id="playerName" value="You" />';
   rf+="&nbsp; &nbsp;";
   rf+='<label for="enemyName">Your opponent'+"'"+'s name :</label>';
-  rf+='<input type="text" name="enemyName" id="enemyName" value="Local Script" />';  
+  rf+='<input type="text" name="enemyName" id="enemyName" value="Local Script" />';
   rf+='<br />';
   rf+='Ships (squares:quantity) : ';
-  var his1=StatPanel.prototype.showClearHistogram(g._forces1,"return");
+  var his1=StatPanel.prototype.showClearHistogram(g.forces1,"return");
   rf+=his1+'<input type="radio" name="forces" id="forces1" value="'+1+'" checked="checked" />';
   rf+="&nbsp; &nbsp;";
-  var his2=StatPanel.prototype.showClearHistogram(g._forces2,"return");
+  var his2=StatPanel.prototype.showClearHistogram(g.forces2,"return");
   rf+=his2+'<input type="radio" name="forces" id="forces2" value="'+2+'" />';
   rf+='<br />';
   rf+='Strikes per move : ';
@@ -229,46 +30,322 @@ function RulesForm(g) {
   rf+="&nbsp; &nbsp;";
   rf+="easy"+'<input type="radio" name="level" id="level2" value="'+"easy"+'" />';
   rf+="&nbsp; &nbsp;";
-  rf+="full"+'<input type="radio" name="level" id="level3" value="'+"full"+'" checked="checked" />';  
-  rf+='<br />';  
+  rf+="full"+'<input type="radio" name="level" id="level3" value="'+"full"+'" checked="checked" />';
+  rf+='<br />';
   rf+='Theme : ';
   rf+="icons"+'<input type="radio" name="theme" id="theme1" value="'+"icons"+'" checked="checked" />';
   rf+="&nbsp; &nbsp;";
-  rf+="ascii chars"+'<input type="radio" name="theme" id="theme2" value="'+"ascii"+'" />';  
-  rf+='<br />';  
+  rf+="ascii chars"+'<input type="radio" name="theme" id="theme2" value="'+"ascii"+'" />';
+  rf+='<br />';
   rf+='<p style="text-align: center;"><input type="submit" value="Done" /></p>';
   rf='<form action="javascript:;" onsubmit="go();return (false);"><div>'+rf+'</div></form>';
-  
+
   this._e=document.getElementById("rulesForm");
   this._e.innerHTML=rf;
-  
+
   this.toggle=function() {
     toggleElement(this._e);
+  };
+}
+
+/**
+ * Defines the strategy to display board cells. This one uses simple ASCII chars.
+ * @constructor
+ * @method put
+ * @method get
+ */
+function AsciiTheme() {
+  var _lookup={ "u":' ',"e":'.',"s":'#',"m":'~',"h":'@',"w":'%',"c":'-',"f":'X' };// closure for private property
+
+  this.put=function(what,row,col,idPrefix) {
+    var id="";
+    if ( !_lookup[what] ) throw new Error("AsciiTheme::put: invalid argument "+what);
+    id=""+idPrefix+row+col;
+    putToElement(_lookup[what],id);
+  };
+
+  this.get=function(row,col,idPrefix) {
+    var id=""+idPrefix+row+col;
+    var td=document.getElementById(id);
+    var val=td.innerHTML;
+    var key=_lookup.getKeyByValue(val);
+    return (key);
+  };
+}
+
+/**
+ * Defines the strategy to display board cells. This one uses classes and CSS table.
+ * @constructor
+ * @param string themedir folder for CSS table and pictures
+ * @param string stylesheet name of CSS table
+ * @method put
+ * @method get
+ */
+function ClassTheme(themedir,stylesheet) {
+  var _allowed=[ "u","e","s","m","h","w","c","f" ];// private via closure
+
+  this.put=function(what,row,col,idPrefix) {
+    if ( _allowed.indexOf(what) < 0 ) throw new Error("ClassTheme::put: invalid argument "+what);
+    var id=""+idPrefix+row+col;
+    var td=document.getElementById(id);
+    td.className=what;
+  };
+
+  this.get=function(row,col,idPrefix) {
+    var id=""+idPrefix+row+col;
+    var td=document.getElementById(id);
+    return ( td.className );
+  };
+
+  function addStyleSheet(themedir,stylesheet) { // private method
+    var l=document.createElement("link");
+    l.type = 'text/css';
+    l.rel = 'stylesheet';
+    l.href = themedir+stylesheet;
+    document.head.appendChild(l);
   }
+
+  function images2cache() { // private method
+    (new Image).src=themedir+"buoy.png";
+    (new Image).src=themedir+"sunk.png";
+    (new Image).src=themedir+"expl.png";
+    (new Image).src=themedir+"splash.png";
+    (new Image).src=themedir+"burn.png";
+  }
+
+  addStyleSheet(themedir,stylesheet);
+  images2cache();
+}
+
+/**
+ * Game field 10*10, fully clickable.
+ * @constructor
+ * @param {DOMElement|string} parentElm a container element
+ * @param string command a Controller command to attach to cells clicks
+ * @param string prefix prefix for cells's ids
+ * @param string fill character to fill a new board (see Basin)
+ * @param object theme strategy to display cells
+ * @see putToElement()
+ */
+function Board(parentElm,command,prefix,fill,theme) {
+  if ( typeof theme.put != "function" || typeof theme.get != "function" ) throw new Error ("Board: invalid theme");
+  /*var e;// private
+  if(typeof parentElm == "string") e=document.getElementById(parentElm);
+  else if (parentElm.nodeName) e=parentElm;
+  else throw new Error("Board: invalid argument parentElm");*/
+  if(typeof parentElm == "string") parentElm=document.getElementById(parentElm);
+
+  /**
+   * Makes a HTML TABLE with DIM*DIM cells.
+   * @param string prefix a letter to use as prefix for TDs' ids like id="p04"
+   * @return string HTML code
+   * @private
+   * @see putToElement
+   */
+  function makeGrid(prefix) { // private method
+    var row,col;
+    var td,tr,table="";
+    for (row=0;row<DIM;row++) {
+      tr="<tr>";
+      for (col=0;col<DIM;col++) {
+        td='<td id="'+prefix+row+col+'">'+'</td>';
+        tr+=td;
+      }
+      tr+="</tr>";
+      table+=tr;
+    }
+    table='<table class="'+"board"+'">'+table+"</table>";
+    return (table);
+  }
+
+  var html=makeGrid(prefix);
+  putToElement(html,parentElm);
+
+  /**
+   * Utilizes the Event Delegation pattern: detects the id of clicked square
+   * @see http://javascript.info/tutorial/event-delegation
+   * @return {string|false} the id of clicked TD element or false if border is clicked
+   * @private
+   */
+  function detectTd(event) { // private method
+    event = event || window.event;
+    var target = event.target || event.srcElement;
+
+    while(target.nodeName != 'TABLE') {
+      if (target.nodeName == 'TD') {
+        return (target.id);
+      }
+    target = target.parentNode;
+    }
+    return (false);
+  }
+
+  //var _this=this;
+
+  parentElm.onclick=function(event) {
+    //alert (event.target.nodeName);
+    var tdId=detectTd(event);// closure
+    //alert (tdId);
+    go ( command, [ tdId.charAt(1),tdId.charAt(2) ] );
+  };
+
+  this.put=function(what,row,col) {
+    if (row instanceof Array) {
+      col=row[1];
+      row=row[0];
+    }
+    theme.put(what,row,col,prefix);
+  };
+
+  this.get=function(row,col) {
+    if (row instanceof Array) {
+      col=row[1];
+      row=row[0];
+    }
+    return( theme.get(row,col,prefix) );
+  };
+
+  this.fill=function() {
+    var rc,range=new Seq2d();
+    while ( rc=range.go() ) {
+      this.put(fill,rc);
+    }
+  };
+
+  this.fill();
+
+  this.toBasin=function(basin) {
+    var rc,range=new Seq2d();
+    while ( rc=range.go() ) {
+      basin.put( this.get(rc), rc );
+    }
+  };
+
+  this.fromBasin=function(basin) {
+    var rc,range=new Seq2d();
+    while ( rc=range.go() ) {
+      this.put( basin.get(rc),rc );
+    }
+  };
+}// end Board
+
+/**
+ * Buttons to manage drawing of player's ships. Can be turned off when not needed.
+ * @constructor
+ * @see toggleElement
+ */
+function DrawControls() {
+  var dc="";
+  dc+='<button type="button" id="confirmShips" onclick="go('+"'cs'"+')" >'+"Done, let's play"+'</button>';
+  dc+='<button type="button" id="removeShips" onclick="go('+"'rs'"+')" >'+"Clear"+'</button>';
+  dc+='<button type="button" id="autoShips" onclick="go('+"'as'"+')" >'+"Auto"+'</button>';
+
+  this._e=document.getElementById("prPanel");
+  this._e.innerHTML=dc;
+  this._e.style.display="none";
+
+  this.toggle=function() {
+    toggleElement(this._e);
+  };
+}
+
+/**
+ * A panel to show messages
+ * @constructor
+ * @param string elementId a container element
+ * @see putToElement
+ */
+function MessagePanel(elementId) {
+  var _mes="";// private via closure
+  //var _id=elementId;
+
+  this.put=function(str) {
+    _mes=str;
+    putToElement(_mes,elementId);
+  };
+
+  this.add=function(str) {
+    _mes+=" "+str;
+    putToElement(_mes,elementId);
+  };
+}
+
+/**
+ * A panel to show statistics
+ * @constructor
+ * @param string elementId a container element
+ * @param string prefix prefix for ids
+ * @see putToElement
+ */
+function StatPanel(parentElm,prefix) {
+  this._prefix=prefix;
+  if(typeof parentElm == "string") parentElm=document.getElementById(parentElm);
+
+  var str='Strikes:<span id="'+prefix+"Strikes"+'"></span> ';
+  str+='Hits:<span id="'+prefix+"Hits"+'"></span> ';
+  str+='(<span id="'+prefix+"Percent"+'"></span>%) ';
+  var sh='Ships afloat:<span id="'+prefix+"Float"+'"></span> ';
+  sh+='largest:<span id="'+prefix+"Largest"+'"></span> ';
+  sh+='dead:<span id="'+prefix+"Dead"+'"></span> ';
+  var hist='Ships all (squares:ships): <span id="'+prefix+"Hist"+'"></span> ';
+  var html=hist+"<br />"+str+"<br />"+sh+"<br />";
+  putToElement(html,parentElm);
+
+  this.showStrikesHits=function(strikes,hits) {
+    putToElement(strikes,this._prefix+"Strikes");
+    putToElement(hits,this._prefix+"Hits");
+    if (strikes) putToElement(Math.round(100*hits/strikes),this._prefix+"Percent");
+  };
+
+  this.showStat=function(afloat,biggest,sunk) {
+    putToElement(afloat,this._prefix+"Float");
+    putToElement(biggest,this._prefix+"Largest");
+    putToElement(sunk,this._prefix+"Dead");
+  };
+}
+
+/**
+ * Presents histogram as pairs size:quantity
+ * @param array histogram (see Model::Fleet)
+ * @param string id container element or "return" to just return the result
+ * @return nothing|string
+ * @see putToElement
+ * @see Fleet::makeHistogram
+ */
+StatPanel.prototype.showClearHistogram=function(histogram,id) {
+    var l, hst="", id ;
+    for (l=0;l<DIM;l++) {
+      if (histogram[l]) {
+        hst+=""+l+":"+histogram[l]+"  ";
+      }
+    }
+    if ( id=="return" ) return(hst);
+    if ( !id ) id=this._prefix+"Hist";
+    putToElement(hst,id);
 }
 
 function View(game) {
   if (game) this.rf=new RulesForm(game);// View() is used in unit tests that don't need rulesForm
-  
-  this.dc=new DrawControls();
-  //var _this=this;
 
-  this.ps=new StatPanel( document.getElementById("playerStat"),"p" );
-  this.es=new StatPanel( document.getElementById("enemyStat"),"e" );
-  
+  this.dc=new DrawControls();
+
+  this.ps=new StatPanel( "playerStat","p" );
+  this.es=new StatPanel( "enemyStat","e" );
+
   this.pm=new MessagePanel("playerMsg");
   this.em=new MessagePanel("enemyMsg");
-  
+
   this.setBoards=function(theme) {
-    var myTheme=new AsciiTheme;
-    if (theme && theme=="icons1") myTheme=new ClassTheme("classTheme1/","classTheme1.css");;
-  
-    this.pb=new Board( document.getElementById("primary"),"set","p","e",myTheme );
-    this.tb=new Board( document.getElementById("tracking"),"strike","e","u",myTheme );
-  }
-  
+    var myTheme={};
+    if (theme && theme=="icons1") myTheme=new ClassTheme("classTheme1/","classTheme1.css");
+    else myTheme=new AsciiTheme();
+
+    this.pb=new Board( "primary","set","p","e",myTheme );
+    this.tb=new Board( "tracking","strike","e","u",myTheme );
+  };
+
   if (!game) this.setBoards("ascii");// View() is used in unit tests
-} 
+}
 
 
 

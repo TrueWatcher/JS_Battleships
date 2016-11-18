@@ -101,7 +101,7 @@ try{
   b.cleanUp();
   s.setShips( h );
   var g=new Game();
-  g._stage="fight";
+  g.setStage("fight");
   g._active="e";
   g._strikeRule="oe";
   var striker=new TapePlayer( [ [4,4], [1,2], [5,5], [1,3], [1,4], [6,6], [3,0], [3,1], [3,2],  [3,3] ] );
@@ -169,33 +169,33 @@ try{
   while ( probe=striker.go() ) {
     hit=e.respond(probe);
     e.reflect(hit);
-    v.ps.showStrikesHits(e._stat._strikes,e._stat._hits);
+    v.ps.showStrikesHits(e._stat.strikes,e._stat.hits);
     displayResponce( hit, probe, v.pb, b, v.es, s, v.pm );
     v.pb.fromBasin(b);
     checkout=a.checkout(hit);
     
     step=striker.getIndex()-1;
     assertEqualsPrim( expectedHits_oe[step],hit,"Wrong responce","responce "+step );
-    assertEqualsPrim( step+1,s._strikes,"Wrong stat::strikes","stat::strikes "+step );
+    assertEqualsPrim( step+1,s.strikes,"Wrong stat::strikes","stat::strikes "+step );
     //assertEqualsPrim( expectedActive_oe[step],g._active,"Wrong active side","active "+step );
     assertEqualsPrim( expectedPStrikeCalled_oe[step],p._strikeCalled,"Wrong number of p.strike calls -- wrong active side","active "+step );
-    if ( g._stage!="fight" ) {
-      //alert ("Stage="+g._stage);
+    if ( g.getStage()!="fight" ) {
+      //alert ("Stage="+g.getStage());
       assertEqualsPrim( expectedFinish_oe, step, "Wrong finish step", "finish "+step );
     }
     //alert("Step "+step);
   }
 
   println("\nstrike rule: length of the biggest ship");
-  g._stage="fight";
+  g.setStage("fight");
   g._active="e";
   g._strikeRule="bs";
   b.cleanUp();
   v.pb.fromBasin(b);
   var aa=new Active(p,e,g);
   s.setShips(h);
-  e._stat._strikes=0;
-  e._stat._hits=0;
+  e._stat.strikes=0;
+  e._stat.hits=0;
   e._clip.load();
   assertEqualsPrim( 4,e._clip.get(),"Wrong init value of the clip","clip "+"init" );
   p._strikeCalled=0;
@@ -207,18 +207,18 @@ try{
   while ( probe=striker.go() ) {
     hit=e.respond(probe);
     e.reflect(hit);
-    v.ps.showStrikesHits(e._stat._strikes,e._stat._hits);
+    v.ps.showStrikesHits(e._stat.strikes,e._stat.hits);
     displayResponce( hit, probe, v.pb, b, v.es, s, v.pm );
     v.pb.fromBasin(b);
     checkout=a.checkout(hit);
     
     step=striker.getIndex()-1;
     assertEqualsPrim( expectedHits_bs[step],hit,"Wrong responce","responce "+step );
-    assertEqualsPrim( step+1,s._strikes,"Wrong stat::strikes","stat::strikes "+step );
+    assertEqualsPrim( step+1,s.strikes,"Wrong stat::strikes","stat::strikes "+step );
     assertEqualsPrim( expectedClip[step],e._clip.get(),"Wrong number of rounds in the clip","clip "+step );
     assertEqualsPrim( expectedPStrikeCalled_bs[step],p._strikeCalled,"Wrong number of p.strike calls -- wrong active side","active "+step );
-    if ( g._stage!="fight" ) {
-      //alert ("Stage="+g._stage);
+    if ( g.getStage()!="fight" ) {
+      //alert ("Stage="+g.getStage());
       assertEqualsPrim( expectedFinish_bs, step, "Wrong finish step", "finish "+step );
     }
     //alert("Step "+step);

@@ -3,35 +3,35 @@
 function TestHelper() {
   // It's a SINGLETON
   if (typeof TestHelper.instance === 'object') return TestHelper.instance;
-  
+
   //var _this=this;
-  this._outTarget="console";
-  this._outElement="";
-  this._numOfTests=0;
-  
-  this.toPage=function(){ 
-    this._outTarget="page"; 
-    this._outElement=document.createElement("pre");
-    document.body.appendChild(this._outElement);
-    this._outElement.style="font-size: 1.4em";
-    this._numOfTests=0;
+  var _outTarget="console";
+  var _outElement="";
+  var _numOfTests=0;
+
+  this.toPage=function(){
+    _outTarget="page";
+    _outElement=document.createElement("pre");
+    document.body.appendChild(_outElement);
+    _outElement.style="font-size: 1.4em";
+    _numOfTests=0;
   }
-  
+
   this.addToPage=function(str) {
-    var h=this._outElement.innerHTML;
-    this._outElement.innerHTML=h+str;
+    var h=_outElement.innerHTML;
+    _outElement.innerHTML=h+str;
   }
-  
+
   this.toConsole=function() {
-    this._outTarget="console";
-    this._numOfTests=0;
+    _outTarget="console";
+    _numOfTests=0;
   }
-  
-  this.checkToPage=function() { return (this._outTarget=="page"); }
-  
-  this.incCount=function() { this._numOfTests++ }
-  this.getCount=function() { return(this._numOfTests) }
-  
+
+  this.checkToPage=function() { return (_outTarget=="page"); }
+
+  this.incCount=function() { _numOfTests++ }
+  this.getCount=function() { return(_numOfTests) }
+
   TestHelper.instance=this;
 }
 
@@ -50,9 +50,9 @@ function print (str) {
     }
     else console.log(str);
 }
-  
+
 function println (str) { print(str+"\n"); }
-  
+
 function printErr (err) {
     var t=new TestHelper();
     var out="",f="",i;
@@ -73,7 +73,7 @@ function assertTrue(statement,message,messageOK) {
   var out="";
   if(!statement) {
     println("Failure:"+message);
-    throw t.getCount();
+    throw new Error (""+t.getCount());
   }
   else {
     out+="Passed "+t.getCount();
@@ -89,7 +89,7 @@ function assertEqualsPrim(expected,found,message,messageOK) {
 
   if( !(expected==found) ) {
     println("Failure: '"+found+"' does not equal to expected '"+expected+"' \n"+message+"\n");
-    throw t.getCount();
+    throw new Error (""+t.getCount());
   }
   else {
     out+="Passed "+t.getCount();
@@ -99,8 +99,8 @@ function assertEqualsPrim(expected,found,message,messageOK) {
 }
 
 function assertEqualsVect(expected,found,message,messageOK) {
-  if ( !(expected instanceof Array) ) throw ("assertEqualsVect:1st argument is not Array");
-  if ( !(found instanceof Array) ) throw ("assertEqualsVect:2nd argument is not Array");
+  if ( !(expected instanceof Array) ) throw new Error ("assertEqualsVect:1st argument is not Array");
+  if ( !(found instanceof Array) ) throw new Error ("assertEqualsVect:2nd argument is not Array");
   assertEqualsPrim(expected.join(),found.join(),message,messageOK);
 }
 
