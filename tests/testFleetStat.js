@@ -3,9 +3,9 @@
 var v=[];
 v.tb=[];
 v.tb.put=function(){}
-var g={};
+//var g={};
 var plan=[0,4,3,2,1,0,0,0,0,0,0];
-g.getForces=function() { return plan; };
+//g.getForces=function() { return plan; };
 
 function testFleetStat(){
 try {
@@ -52,7 +52,7 @@ try {
 
   f.clear();
   assertEqualsPrim(0,f._ships.length,"not cleared","clear");
-  f.build("byWarrant");
+  f.build("byWarrant",plan);
   assertEqualsPrim(10,f._ships.length,"wrong number of ships","number");
   var resSy=f.checkMargins();
   assertTrue(resSy,"false negative margin check","valid margins");
@@ -65,17 +65,17 @@ try {
   s.addStrike();
   s.addStrike();
   s.addHit();
-  assertEqualsPrim(2,s._strikes,"wrong strikes","strikes");
-  assertEqualsPrim(1,s._hits,"wrong hits","hits");
+  assertEqualsPrim(2,s.strikes,"wrong strikes","strikes");
+  assertEqualsPrim(1,s.hits,"wrong hits","hits");
   s.setShips(hisExpected);
-  assertEqualsPrim(2,s._shipsAlive,"wrong alive count","alive");
-  assertEqualsPrim(4,s._biggestShip,"wrong biggest ship","biggest");
+  assertEqualsPrim(2,s.shipsAlive,"wrong alive count","alive");
+  assertEqualsPrim(4,s.biggestShip,"wrong biggest ship","biggest");
 
   println("minusOne");
   s.minusOne(testShip2); // only lenght will be used, no coords
-  assertEqualsPrim(1,s._shipsAlive,"wrong alive count","minus alive");
-  assertEqualsPrim(3,s._biggestShip,"wrong biggest ship","minus biggest");
-  assertEqualsPrim(1,s._shipsSunk,"wrong sunk count","plus sunk");
+  assertEqualsPrim(1,s.shipsAlive,"wrong alive count","minus alive");
+  assertEqualsPrim(3,s.biggestShip,"wrong biggest ship","minus biggest");
+  assertEqualsPrim(1,s.shipsSunk,"wrong sunk count","plus sunk");
 
 
 }

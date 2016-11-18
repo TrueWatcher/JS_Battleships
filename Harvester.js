@@ -1,222 +1,277 @@
 "use strict";
-
+/**
+ * A strategy to play Battleship game.
+ * Has 3 sub-strategies: 1) random strikes until an enemy ship is engaged 2) strikes around the first hit until second hit 3) following the line of two hits
+ * Can be used also to generate ships array from user's drawing on his board, for this purpose it can detect "kill" outcome and collect ships data
+ * @constructor
+ * @param {object Basin} basin A game field
+ * @param string mode "search" to gather ships, "fight" to actually play game. Seems to be futile in current version.
+ * Searching:
+ * @method search
+ * @method yield
+ * Fighting:
+ * @method move
+ * @method reflect
+ */
 function Harvester(basin,mode) {
-  this._mode=mode;// search fight
-  this._b=basin;
-  this._stage="search";// search oneHit direction kill finish
+  //this._mode=mode;// search fight
+  //this._b=basin;
+  var _stage="search";// search oneHit direction kill finish
   //this.source=new Seq2d();
-  this.source=new Rand2d();
-  this._hits=[];
-  this._nearHits=[];
-  this._ships=[];
-  this._dir="";
-  this._row=-1;
-  this._col=-1;
-  this._fix;
-  this._mov;
-  this._lowStop=0;
-  this._highStop=0;
-  this._probe=[];
-  this._count=0;
+  var _source=new Rand2d();
+  var _hits=[];
+  var _nearHits=[];
+  var _ships=[];
+  var _dir="";
+  var _row=-1;
+  var _col=-1;
+  var _fix;
+  var _mov;
+  var _lowStop=0;
+  var _highStop=0;
+  var _probe=[];
+  var _count=0;
 
-  this.genSeqn=function() {
+  /**
+   * Generates a probe in a "random" mode.
+   * @return {array|boolean} false if generator fails or if there was too many cycles
+   * @private
+   */
+  function genSeqn() {
     var probe;
-    while( !this._b.checkStrikable( probe=this.source.go() ) ) {
-      this._count++;
-      if (probe===false || this._count==(DIM*DIM+1) ) return(false);
+    while( !basin.checkStrikable( probe=_source.go() ) ) {
+      _count++;
+      if ( probe===false || _count>=(DIM*DIM+1) ) return(false);
     }
-    this._probe=probe;
+    _probe=probe;
     return (probe);
   }
 
-
-
-  this.initGenNear=function() {
-    var h0=this._hits[0];
-    this._nearHits=this._b.adjStrikable( h0[0],h0[1],"cross" );
-    //alert("nearhits:"+this._nearHits.length);
+  /**
+   * Initializes "near" mode by filling a list of potential second-hits.
+   * @see Basin::adjStrikable
+   * @return void
+   * @private
+   */
+  function initGenNear() {
+    var h0=_hits[0];
+    _nearHits=basin.adjStrikable( h0[0],h0[1],"cross" );
   }
 
-  this.genNear=function() {
+  /**
+   * Generates a probe in a "near" mode by iterating near-hit list
+   * @return array.
+   * @private
+   */
+  function genNear() {
     var probe;
-    if (this._nearHits.length==0) return (false);
-    probe=this._nearHits.pop();
-    this._probe=probe;
+    if (_nearHits.length==0) return (false);
+    probe=_nearHits.pop();
+    _probe=probe;
     return(probe);
   }
 
-  this.initGenStraight=function() {
-      var h0=this._hits[0];
-      var h1=this._hits[1];
+  /**
+   * Inits 'straight' mode by processing two adjacent hits.
+   * @return void
+   * @private
+   */
+  function initGenStraight() {
+      var h0=_hits[0];
+      var h1=_hits[1];
       if( h0[0]===h1[0] ) {
-        //this._dir="row";
-        this._fix=0;
-        this._mov=1;
-        this._row=h0[0];
+        _fix=0;
+        _mov=1;
+        _row=h0[0];
       }
       if( h0[1]===h1[1] ) {
-        //this._dir="col";
-        this._fix=1;
-        this._mov=0;
-        this._col=h0[1];
+        _fix=1;
+        _mov=0;
+        _col=h0[1];
       }
-      if( h0[0]==h1[0] && h0[1]==h1[1]) throw("Harvester::initGenStraight: duplicate hits");
-      if( h0[0]!==h1[0] && h0[1]!==h1[1]) alert("Harvester::initGenStraight: unadjacent hits");
-      if ( h1[this._mov] < h0[this._mov] ) arraySwap01(this._hits);
-      //alert ( "from "+this._hits[0].join()+" to "+this._hits[1].join() );
-      this._lowStop=false;
-      this._highStop=false;
+      if( h0[0]==h1[0] && h0[1]==h1[1]) throw new Error("Harvester::initGenStraight: duplicate hits");
+      if( h0[0]!==h1[0] && h0[1]!==h1[1]) throw new Error("Harvester::initGenStraight: unadjacent hits");
+      if ( h1[_mov] < h0[_mov] ) arraySwap01(_hits); // hits are packed in ascending order
+      //alert ( "from "+_hits[0].join()+" to "+_hits[1].join() );
+      _lowStop=false;
+      _highStop=false;
   }
 
-  this.genStraight=function() {
+  /**
+   * Generates probe in "straight" mode. Tries both directions ("low" and "high").
+   * @return {array|boolean} false if met empty square or border on both ends
+   * @private
+   */
+  function genStraight() {
     var probe;
     var nextLow,nextHigh;
 
-    var l=this._hits.length;
-    //alert("L:"+l+" 1 lowstop:"+this._lowStop+" highstop:"+this._highStop);
+    var l=_hits.length;
+    //alert("L:"+l+" 1 lowstop:"+_lowStop+" highstop:"+_highStop);
 
-    if(this._mov){ // mov=1=col fix=0=row
-      nextLow=[ this._row,(this._hits[0][this._mov]-1) ];
-      nextHigh=[ this._row,(this._hits[l-1][this._mov]+1) ];
+    if(_mov){ // mov=1=col fix=0=row
+      nextLow=[ _row,(_hits[0][_mov]-1) ];
+      nextHigh=[ _row,(_hits[l-1][_mov]+1) ];
     }
     else { // mov=0=row fix=1=col
-      nextLow=[ (this._hits[0][this._mov]-1),this._col ];
-      nextHigh=[ (this._hits[l-1][this._mov]+1),this._col ];
+      nextLow=[ (_hits[0][_mov]-1),_col ];
+      nextHigh=[ (_hits[l-1][_mov]+1),_col ];
     }
 
-    if ( this._hits[0][this._mov]===0 || !this._b.checkStrikable(nextLow) ) this._lowStop=1;
+    if ( _hits[0][_mov]<=0 || !basin.checkStrikable(nextLow) ) _lowStop=1;
 
-    if ( this._hits[l-1][this._mov] == (DIM-1) || !this._b.checkStrikable(nextHigh) ) this._highStop=1;
-    //alert("2 lowstop:"+this._lowStop+" highstop:"+this._highStop);
-    if ( this._lowStop && this._highStop ) return false;
+    if ( _hits[l-1][_mov] >= (DIM-1) || !basin.checkStrikable(nextHigh) ) _highStop=1;
+    //alert("2 lowstop:"+_lowStop+" highstop:"+_highStop);
+    if ( _lowStop && _highStop ) return false;
 
-    if ( !this._lowStop ) {
+    if ( !_lowStop ) {
       probe=nextLow;
-      this._dir="low";
+      _dir="low";
     }
-    //if ( !this._highStop ) {
     else {
       probe=nextHigh;
-      this._dir="high";
+      _dir="high";
     }
-    //alert("Going "+this._dir);
-    this._probe=probe;
+    //alert("Going "+_dir);
+    _probe=probe;
     return probe;
   }
 
+  /**
+   * Generates next move and manages possible state changes.
+   * @return {array|boolean} false if work is finished
+   */
   this.move=function() {
     var probe;
     //alert("move");
-    if (this._stage=="straight") {
-      if ( (probe=this.genStraight())===false ) {
-        this._stage="kill";
+    if (_stage=="straight") {
+      if ( (probe=genStraight())===false ) {
+        _stage="kill";
       }
       else return(probe);
     }
     // fall-through
-    if (this._stage=="near") {
-      if ( (probe=this.genNear())===false ) {
-        this._stage="kill";
+    if (_stage=="near") {
+      if ( (probe=genNear())===false ) {
+        _stage="kill";
       }
       else return(probe);
     }
     // fall-through
-    if (this._stage=="kill") {
-      this.harvest();
-      this._stage="search";
+    if (_stage=="kill") {
+      harvest();
+      _stage="search";
     }
     // fall-through
-    if (this._stage=="search") {
-      if ( (probe=this.genSeqn())===false ) {
-        //alert ("Lookup complete, found "+this._ships.length+" ships");
-        this._stage="finished";
+    if (_stage=="search") {
+      if ( (probe=genSeqn())===false ) {
+        //alert ("Lookup complete, found "+_ships.length+" ships");
+        _stage="finished";
         return(false);
       }
       return (probe);
     }
   }// end move
 
+  /**
+   * Accounts for reply accordingly to the current stage, manages state changes.
+   * @param char res A reply (w,h,m,f,true=h,false=m)
+   * @return void
+   */
   this.reflect=function(res) {
+    if ( res=="n" ) throw new Error("Harvester::reflect: Am I crazy and repeating myself?");
     if ( res=="w" ) {
-      this._stage="kill";
-      this.harvest();
-      this._stage="search";
+      _stage="kill";
+      harvest();
+      _stage="search";
       return;
     }
-    if ( this._stage=="search" && (res===true || res==="h" || res==="w" || res==="f") ) {
-      this._hits.push(this._probe);
-      this.initGenNear();
-      this._stage="near";
+    if ( _stage=="search" && (res===true || res==="h" || res==="w" || res==="f") ) {
+      _hits.push(_probe);
+      initGenNear();
+      _stage="near";
       return;
     }
-    if (this._stage=="near" && (res===true || res==="h" || res==="w" || res==="f") ) {
-      this._hits.push(this._probe);
-      this.initGenStraight();
-      this._stage="straight";
+    if ( _stage=="near" && (res===true || res==="h" || res==="w" || res==="f") ) {
+      _hits.push(_probe);
+      initGenStraight();
+      _stage="straight";
       return;
     }
-    if (this._stage=="straight" && (res===true || res=="h" || res==="w" || res==="f") ) {
-      if (this._dir=="high") this._hits.push(this._probe);
-      else this._hits.unshift(this._probe);
-      //alert ("L:"+this._hits.length);
+    if ( _stage=="straight" && (res===true || res=="h" || res==="w" || res==="f") ) {
+      if (_dir=="high") _hits.push(_probe);
+      else _hits.unshift(_probe);// hits are packed in ascending order
+      //alert ("L:"+_hits.length);
       return;
     }
-    if (this._stage=="straight" && (res===false || res=="m") ) {
-      if (this._dir=="high") this._highStop=1;
-      else this._lowStop=1;
-      //alert("3 lowstop:"+this._lowStop+" highstop:"+this._highStop);
-      if ( this._lowStop && this._highStop ) {
-        this._stage="kill";
-        this.harvest();
-        this._stage="search";
+    if ( _stage=="straight" && (res===false || res=="m") ) {
+      if (_dir=="high") _highStop=1;
+      else _lowStop=1;
+      //alert("3 lowstop:"+_lowStop+" highstop:"+_highStop);
+      if ( _lowStop && _highStop ) {
+        _stage="kill";
+        harvest();
+        _stage="search";
       }
       return;
     }
-  }// end reflect
+  };// end reflect
 
-  this.harvest=function(){
-    //alert ("kill at "+this._probe[0]+this._probe[1]+", "+this._hits.length+"squares");
-    this._ships.push(this._hits);
-    this._hits=[];
-    this._nearHits=[];
-    this._dir="";
-    this._lowStop=0;
-    this._highStop=0;
-    //this._stage="search";
+  /**
+   * Accounts for a kill.
+   * @return void
+   * @private
+   */
+  function harvest() {
+    //alert ("kill at "+_probe[0]+_probe[1]+", "+_hits.length+"squares");
+    _ships.push(_hits);
+    _hits=[];
+    _nearHits=[];
+    _dir="";
+    _lowStop=0;
+    _highStop=0;
   }
 
   this.reset=function() {
-    this._stage="search";
-    //this.source=new Seq2d();// duplicate from constructor
-    this.source=new Rand2d();//(1,[0,9]); DEBUG
-    this._hits=[];
-    this._nearHits=[];
-    this._ships=[];
-    this._probe=[];
-    this._count=0;
-  }
+    _stage="search";
+    //_source=new Seq2d();// duplicate from constructor
+    _source=new Rand2d();//(1,[0,9]); DEBUG
+    _hits=[];
+    _nearHits=[];
+    _ships=[];
+    _probe=[];
+    _count=0;
+  };
 
+  /**
+   * Performs full working cycle of searching for ships across the game field.
+   * @return void
+   */
   this.search=function() {
     var r,probe;
     this.reset();
     while ( probe=this.move() ) {
       //alert(">"+probe[0]+probe[1]);
-      r=this._b.checkHit( probe[0],probe[1] );
+      r=basin.checkHit( probe );
       if (r) {
-        this._b.put( "h",probe[0],probe[1] );
-        //v.pb.put( probe[0],probe[1],"h" );// DEBUG
+        basin.put( "h",probe );
+        //v.pb.put( "h",probe );// DEBUG
       }
       else {
-        this._b.put( "m",probe[0],probe[1] );
-        //v.pb.put( probe[0],probe[1],"m" );// DEBUG
+        basin.put( "m",probe );
+        //v.pb.put( "m",probe );// DEBUG
       }
       this.reflect(r);
     }
     //alert(">"+probe);
-  }
+  };
 
+  /**
+   * Exports the catch.
+   * @return array
+   */
   this.yield=function() {
-    return(this._ships);
-  }
+    return(_ships);
+  };
 
 }

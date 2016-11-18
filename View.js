@@ -1,8 +1,8 @@
 "use strict";
 /**
- * Form to set up some game settings
+ * Form to set up some game settings.
  * @constructor
- * @param object Game|nothing g
+ * @param {object Game|nothing} g
  */
 function RulesForm(g) {
   if (!g) return; // View() is used in unit tests, they don't need this form
@@ -49,15 +49,17 @@ function RulesForm(g) {
 }
 
 /**
- * Defines the way to display board cells. This one uses simple ASCII chars
+ * Defines the strategy to display board cells. This one uses simple ASCII chars.
  * @constructor
+ * @method put
+ * @method get
  */
 function AsciiTheme() {
   var _lookup={ "u":' ',"e":'.',"s":'#',"m":'~',"h":'@',"w":'%',"c":'-',"f":'X' };// closure for private property
 
   this.put=function(what,row,col,idPrefix) {
     var id="";
-    if ( !_lookup[what] ) throw ("AsciiTheme::put: invalid argument "+what);
+    if ( !_lookup[what] ) throw new Error("AsciiTheme::put: invalid argument "+what);
     id=""+idPrefix+row+col;
     putToElement(_lookup[what],id);
   };
@@ -72,16 +74,18 @@ function AsciiTheme() {
 }
 
 /**
- * Defines the way to display board cells. This one uses classes and CSS table
+ * Defines the strategy to display board cells. This one uses classes and CSS table.
  * @constructor
  * @param string themedir folder for CSS table and pictures
  * @param string stylesheet name of CSS table
+ * @method put
+ * @method get
  */
 function ClassTheme(themedir,stylesheet) {
   var _allowed=[ "u","e","s","m","h","w","c","f" ];// private via closure
 
   this.put=function(what,row,col,idPrefix) {
-    if ( _allowed.indexOf(what) < 0 ) throw ("ClassTheme::put: invalid argument "+what);
+    if ( _allowed.indexOf(what) < 0 ) throw new Error("ClassTheme::put: invalid argument "+what);
     var id=""+idPrefix+row+col;
     var td=document.getElementById(id);
     td.className=what;
@@ -93,42 +97,52 @@ function ClassTheme(themedir,stylesheet) {
     return ( td.className );
   };
 
-  this.addStyleSheet=function(themedir,stylesheet) {
+  function addStyleSheet(themedir,stylesheet) { // private method
     var l=document.createElement("link");
     l.type = 'text/css';
     l.rel = 'stylesheet';
     l.href = themedir+stylesheet;
     document.head.appendChild(l);
-  };
+  }
 
-  this.images2cache=function() {
+  function images2cache() { // private method
     (new Image).src=themedir+"buoy.png";
     (new Image).src=themedir+"sunk.png";
     (new Image).src=themedir+"expl.png";
     (new Image).src=themedir+"splash.png";
     (new Image).src=themedir+"burn.png";
-  };
+  }
 
-  this.addStyleSheet(themedir,stylesheet);
-  this.images2cache();
+  addStyleSheet(themedir,stylesheet);
+  images2cache();
 }
 
 /**
- * Game field 10*10, fully clickable
+ * Game field 10*10, fully clickable.
  * @constructor
- * @param DOMElement|string parentElm a container element
+ * @param {DOMElement|string} parentElm a container element
  * @param string command a Controller command to attach to cells clicks
  * @param string prefix prefix for cells's ids
  * @param string fill character to fill a new board (see Basin)
  * @param object theme strategy to display cells
+ * @see putToElement()
  */
 function Board(parentElm,command,prefix,fill,theme) {
+  if ( typeof theme.put != "function" || typeof theme.get != "function" ) throw new Error ("Board: invalid theme");
+  /*var e;// private
+  if(typeof parentElm == "string") e=document.getElementById(parentElm);
+  else if (parentElm.nodeName) e=parentElm;
+  else throw new Error("Board: invalid argument parentElm");*/
   if(typeof parentElm == "string") parentElm=document.getElementById(parentElm);
-  this._theme=theme;
-  this._fill=fill;
-  this._idPrefix=prefix;
 
-  this.makeGrid=function (prefix) {
+  /**
+   * Makes a HTML TABLE with DIM*DIM cells.
+   * @param string prefix a letter to use as prefix for TDs' ids like id="p04"
+   * @return string HTML code
+   * @private
+   * @see putToElement
+   */
+  function makeGrid(prefix) { // private method
     var row,col;
     var td,tr,table="";
     for (row=0;row<DIM;row++) {
@@ -142,14 +156,18 @@ function Board(parentElm,command,prefix,fill,theme) {
     }
     table='<table class="'+"board"+'">'+table+"</table>";
     return (table);
-  };
+  }
 
-  var html=this.makeGrid(prefix);
+  var html=makeGrid(prefix);
   putToElement(html,parentElm);
-  this._e=parentElm;
 
-  this.detectTd=function(event) {
-    // http://javascript.info/tutorial/event-delegation
+  /**
+   * Utilizes the Event Delegation pattern: detects the id of clicked square
+   * @see http://javascript.info/tutorial/event-delegation
+   * @return {string|false} the id of clicked TD element or false if border is clicked
+   * @private
+   */
+  function detectTd(event) { // private method
     event = event || window.event;
     var target = event.target || event.srcElement;
 
@@ -160,29 +178,37 @@ function Board(parentElm,command,prefix,fill,theme) {
     target = target.parentNode;
     }
     return (false);
-  };
+  }
 
-  var _this=this;
+  //var _this=this;
 
-  this._e.onclick=function(event) {
+  parentElm.onclick=function(event) {
     //alert (event.target.nodeName);
-    var tdId=_this.detectTd(event);
+    var tdId=detectTd(event);// closure
     //alert (tdId);
     go ( command, [ tdId.charAt(1),tdId.charAt(2) ] );
   };
 
   this.put=function(what,row,col) {
-    this._theme.put(what,row,col,this._idPrefix);
+    if (row instanceof Array) {
+      col=row[1];
+      row=row[0];
+    }
+    theme.put(what,row,col,prefix);
   };
 
   this.get=function(row,col) {
-    return( this._theme.get(row,col,this._idPrefix) );
+    if (row instanceof Array) {
+      col=row[1];
+      row=row[0];
+    }
+    return( theme.get(row,col,prefix) );
   };
 
   this.fill=function() {
     var rc,range=new Seq2d();
     while ( rc=range.go() ) {
-      this.put(this._fill,rc[0],rc[1]);
+      this.put(fill,rc);
     }
   };
 
@@ -191,21 +217,22 @@ function Board(parentElm,command,prefix,fill,theme) {
   this.toBasin=function(basin) {
     var rc,range=new Seq2d();
     while ( rc=range.go() ) {
-      basin.put( this.get(rc[0],rc[1]), rc[0], rc[1] );
+      basin.put( this.get(rc), rc );
     }
   };
 
   this.fromBasin=function(basin) {
     var rc,range=new Seq2d();
     while ( rc=range.go() ) {
-      this.put( basin.get( rc[0],rc[1] ),rc[0],rc[1] );
+      this.put( basin.get(rc),rc );
     }
   };
 }// end Board
 
 /**
- * Buttons to manage drawing of player's ships. Can be turned off when not needed
+ * Buttons to manage drawing of player's ships. Can be turned off when not needed.
  * @constructor
+ * @see toggleElement
  */
 function DrawControls() {
   var dc="";
@@ -226,6 +253,7 @@ function DrawControls() {
  * A panel to show messages
  * @constructor
  * @param string elementId a container element
+ * @see putToElement
  */
 function MessagePanel(elementId) {
   var _mes="";// private via closure
@@ -247,6 +275,7 @@ function MessagePanel(elementId) {
  * @constructor
  * @param string elementId a container element
  * @param string prefix prefix for ids
+ * @see putToElement
  */
 function StatPanel(parentElm,prefix) {
   this._prefix=prefix;
@@ -280,6 +309,8 @@ function StatPanel(parentElm,prefix) {
  * @param array histogram (see Model::Fleet)
  * @param string id container element or "return" to just return the result
  * @return nothing|string
+ * @see putToElement
+ * @see Fleet::makeHistogram
  */
 StatPanel.prototype.showClearHistogram=function(histogram,id) {
     var l, hst="", id ;
@@ -297,10 +328,7 @@ function View(game) {
   if (game) this.rf=new RulesForm(game);// View() is used in unit tests that don't need rulesForm
 
   this.dc=new DrawControls();
-  //var _this=this;
 
-  //this.ps=new StatPanel( document.getElementById("playerStat"),"p" );
-  //this.es=new StatPanel( document.getElementById("enemyStat"),"e" );
   this.ps=new StatPanel( "playerStat","p" );
   this.es=new StatPanel( "enemyStat","e" );
 
@@ -308,14 +336,12 @@ function View(game) {
   this.em=new MessagePanel("enemyMsg");
 
   this.setBoards=function(theme) {
-    var myTheme=new AsciiTheme;
-    if (theme && theme=="icons1") myTheme=new ClassTheme("classTheme1/","classTheme1.css");;
+    var myTheme={};
+    if (theme && theme=="icons1") myTheme=new ClassTheme("classTheme1/","classTheme1.css");
+    else myTheme=new AsciiTheme();
 
-    //this.pb=new Board( document.getElementById("primary"),"set","p","e",myTheme );
-    //this.tb=new Board( document.getElementById("tracking"),"strike","e","u",myTheme );
     this.pb=new Board( "primary","set","p","e",myTheme );
     this.tb=new Board( "tracking","strike","e","u",myTheme );
-
   };
 
   if (!game) this.setBoards("ascii");// View() is used in unit tests

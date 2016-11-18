@@ -53,18 +53,18 @@ function Game() {
   };
 
   this.setStage=function(stage) {
-    if (_stagesAllowed.indexOf(stage)<0 ) throw ("Game::setStage: invalid value "+stage);
+    if (_stagesAllowed.indexOf(stage)<0 ) throw new Error("Game::setStage: invalid value "+stage);
     _stage=stage;
   };
 
   this.getStage=function() {
     return(_stage);
-  }
+  };
 
   this.getForces=function() {
     return(_forces);
-  }
-}
+  };
+}// end Game
 
 var hit;// after DEBUG can be moved inside the go()
 
@@ -106,11 +106,11 @@ function go(command,data) {
       toggleElement("general");
 
       m.enemyShips=new Fleet();
-      m.enemyShips.build("byWarrant");
+      m.enemyShips.build("byWarrant",g.getForces());
       eh=m.enemyShips.makeHistogram();
       v.es.showClearHistogram(eh);
       m.enemyStat.setShips(eh);
-      v.es.showStat(m.enemyStat._shipsAlive,m.enemyStat._biggestShip,m.enemyStat._shipsSunk);
+      v.es.showStat(m.enemyStat.shipsAlive,m.enemyStat.biggestShip,m.enemyStat.shipsSunk);
       if (g._previewEnemyShips) {
         m.enemyShips.show(v.tb);
       }
@@ -123,14 +123,12 @@ function go(command,data) {
 
     case "ships":
 
-      v.pm.put("");
+      if (command=="cs" || command=="as") v.pm.put("");
       if( command=="set" && data.length==2 ) { // set a square to ship or empty
-        row=data[0];
-        col=data[1];
-        if ( m.playerBasin.get(row,col) != "s" ) c="s";
+        if ( m.playerBasin.get(data) != "s" ) c="s";
         else c="e";
-        m.playerBasin.put(c,row,col);
-        v.pb.put(c,row,col);
+        m.playerBasin.put(c,data);
+        v.pb.put(c,data);
       }
 
       if( command=="rs") { // remove all ships
@@ -175,7 +173,7 @@ function go(command,data) {
         }
 
         m.playerStat.setShips(ph);
-        v.ps.showStat(m.playerStat._shipsAlive,m.playerStat._biggestShip,m.playerStat._shipsSunk);
+        v.ps.showStat(m.playerStat.shipsAlive,m.playerStat.biggestShip,m.playerStat.shipsSunk);
         v.ps.showClearHistogram(ph);
 
         v.dc.toggle();// hide controls
@@ -203,7 +201,7 @@ function go(command,data) {
       if( g._active=="p" && command=="strike" && data.length==2 ) {
         hit=e.respond(data);
         p.reflect(hit);
-        v.ps.showStrikesHits(m.playerStat._strikes,m.playerStat._hits);
+        v.ps.showStrikesHits(m.playerStat.strikes,m.playerStat.hits);
         displayResponce( hit, data, v.tb, m.enemyBasin, v.es, m.enemyStat, v.pm );// e.display
         if ( a.checkout(hit) ) return;
         // fall-through
@@ -212,7 +210,7 @@ function go(command,data) {
       if ( g._active=="e" && command=="enemyStrike" && data.length==2 ) {
         hit=p.respond(data);
         e.reflect(hit);
-        v.es.showStrikesHits(m.enemyStat._strikes,m.enemyStat._hits);
+        v.es.showStrikesHits(m.enemyStat.strikes,m.enemyStat.hits);
         displayResponce( hit, data, v.pb, m.playerBasin, v.ps, m.playerStat, v.em );//p.display
         if (hit=="n")
           console.log( "Enemy repeats itself on "+data+" that is "+v.playerBasin.get(data[0],data[1]) );// this is not to happen
@@ -243,7 +241,7 @@ function go(command,data) {
 
 function randomStrike(targetBasin,randGen) {
   var probe=randGen.go();
-  while ( ! targetBasin.checkStrikable(probe[0],probe[1]) ) { probe=randGen.go(); }
+  while ( ! targetBasin.checkStrikable(probe) ) { probe=randGen.go(); }
   return (probe);
 }
 
@@ -254,47 +252,66 @@ function randomStrike(targetBasin,randGen) {
  * @param object Basin ownBasin
  * @param object Stat stat
  * @return string n-wrong move,m-miss,h-hit,w-killed,f-finished
+ * @see Fleet::checkHit
+ * @see Basin::checkSunk
  */
 function strikeResponce(probe,fleet,ownBasin,stat) {
-  var row=probe[0];
-  var col=probe[1];
-  //alert( ">"+typeof(fleet)+" hit="+m.enemyShips.checkHit(row,col) );
-  if ( !ownBasin.checkStrikable(row,col) ) return ("n");
-  var hit=fleet.checkHit(row,col);// false or striken ship
+  var hit;
+  if ( !ownBasin.checkStrikable(probe) ) return ("n");// wrong strike
+  hit=fleet.checkHit(probe);// hit is false or striken ship
   if ( hit===false ) { // miss
-    ownBasin.put("m",row,col);
+    ownBasin.put("m",probe);
     return ("m");
   }
-  ownBasin.put("h",row,col);
+  ownBasin.put("h",probe);
   if ( ownBasin.checkSunk(hit)===false ) { return ("h"); } // hit but not sunk
+  // sunk
   ownBasin.markSunk(hit);
   ownBasin.markAround(hit);
   if ( stat.minusOne(hit) ) { return ("f"); }
   return  ("w");
 }
 
-function strikeCount(responce,stat) {
-  stat.addStrike();
-  if ( responce !="m" && responce!="n" ) stat.addHit();
+/**
+ * Updates statistics on the active side.
+ * @param char responce
+ * @param {object Stat} sourceStat
+ * @return void
+ * @see strikeResponce
+ */
+function strikeCount(responce,sourceStat) {
+  sourceStat.addStrike();
+  if ( responce =="h" || responce=="w" || responce=="f" ) sourceStat.addHit();
 }
 
-function displayResponce ( responce, probe, targetBoard, targetBasin, targetStatPanel, targetStat, mesPanel ) {
+/**
+ * Tells the View how to display a move.
+ * @return void
+ */
+function displayResponce ( responce, probe, targetBoard, targetBasin, targetStatPanel, targetStat, sourceMesPanel ) {
   if ( responce=="n" ) {
-    mesPanel.add("Strike on already marked square "+probe[0]+probe[1]);
+    sourceMesPanel.add("Strike on already marked square "+probe[0]+probe[1]);
     return;
   }
   if ( responce=="h" || responce=="m" ) {
-    targetBoard.put(responce,probe[0],probe[1]);
+    targetBoard.put(responce,probe);
     return;
   }
   if ( responce=="w" || responce=="f" ) {
     targetBoard.fromBasin(targetBasin);
-    targetStatPanel.showStat(targetStat._shipsAlive,targetStat._biggestShip,targetStat._shipsSunk);
+    targetStatPanel.showStat(targetStat.shipsAlive,targetStat.biggestShip,targetStat.shipsSunk);
     return;
   }
 }
 
-function Enemy (fleet,ownBasin,stat,clip,targetBasin,mesPanel,mode) {
+/**
+ * A side of fighting that represents enemy.
+ * @constructor
+ * @method strike
+ * @method respond
+ * @method reflect
+ */
+function Enemy (fleet,ownBasin,stat,clip,targetBasin,mesPanel,strikeMode) {
   var _this=this;
   this._fleet=fleet;
   this._ownBasin=ownBasin;
@@ -302,14 +319,14 @@ function Enemy (fleet,ownBasin,stat,clip,targetBasin,mesPanel,mode) {
   this._stat=stat;
   this._clip=clip;
   this._mesPanel=mesPanel;
-  this._mode=mode;
+  this._striker={};// must have methods: move, reflect
+  //this._mode=mode;
 
-  if (mode=="harvester") this._striker=new Harvester(targetBasin);
+  if (strikeMode=="harvester") this._striker=new Harvester(targetBasin);
   else { // construct a random striker
     this._rand=new Rand2d();
-    this._striker={};
-    _this._striker.move=function() { return( randomStrike(_this._targetBasin,_this._rand) ); };
-    _this._striker.reflect=function(responce) {};
+    this._striker.move=function() { return( randomStrike(_this._targetBasin,_this._rand) ); };
+    this._striker.reflect=function(responce) {};
   }
 
   this.strike=function() {
@@ -331,11 +348,15 @@ function Enemy (fleet,ownBasin,stat,clip,targetBasin,mesPanel,mode) {
     strikeCount ( responce, this._stat );
     this._clip.dec();
   };
-
-  this.hi=function() { return ("Hi, I'm Enemy"); };
-
 }
 
+/**
+ * A side of fighting that represents player.
+ * @constructor
+ * @method strike
+ * @method respond
+ * @method reflect
+ */
 function PlayerAssistant (fleet,ownBasin,stat,clip,mesPanel) {
   this._fleet=fleet;
   this._ownBasin=ownBasin;
@@ -365,24 +386,24 @@ function PlayerAssistant (fleet,ownBasin,stat,clip,mesPanel) {
  * @param object Game game
  */
 function Active (player,enemy,game) {
-  var _self=player;
+  var _source=player;
   //var _game=game;
   var _letter=game._active;
 
   this.setPlayer=function() {
     _letter="p";
-    _self=player;
+    _source=player;
   };
 
   this.setEnemy=function() {
     _letter="e";
-    _self=enemy;
+    _source=enemy;
   };
 
   this.swap=function() {
     if (_letter=="p") this.setEnemy();
     else if (_letter=="e") this.setPlayer();
-    else throw ("Active::swap: wrong letter");
+    else throw new Error("Active::swap: wrong letter");
     game._active=_letter;
   };
 
@@ -400,20 +421,20 @@ function Active (player,enemy,game) {
       return false;
     }
     if (game._strikeRule=="bs") { // as many strikes as the size of biggest alive ship
-      var rem=_self._clip.get();
+      var rem=_source._clip.get();
       if (rem) {
         //alert (rem+" strikes remain");
-        _self._mesPanel.add ( rem+" strikes remain" );
-        _self.strike();
+        _source._mesPanel.add ( rem+" strikes remain" );
+        _source.strike();
         return true;
       }
       else {
         //alert ("It was a "+this._letter+"'s move");
         this.swap();
         //alert ("Now it's a "+this._letter+"'s move");
-        rem=_self._clip.load();
-        _self._mesPanel.add ( "Firepower is "+rem+" strikes" );
-        _self.strike();
+        rem=_source._clip.load();
+        _source._mesPanel.add ( "Firepower is "+rem+" strikes" );
+        _source.strike();
         return true;
       }
     }
@@ -422,15 +443,15 @@ function Active (player,enemy,game) {
         //alert ("It was a "+this._letter+"'s move");
         this.swap();
         //alert ("Now it's a "+this._letter+"'s move");
-        _self.strike();
+        _source.strike();
         return true;
       }
       if ( hit=="h" || hit=="w" ) {
         //alert (this._letter+" has an extra move");
         if (_letter=="p") mes="You've hit the enemy. Make an ";
         else mes="Enemy has an ";
-        _self._mesPanel.add ( mes+"extra move" );
-        _self.strike();
+        _source._mesPanel.add ( mes+"extra move" );
+        _source.strike();
         return true;
       }
     }

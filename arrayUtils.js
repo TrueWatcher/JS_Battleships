@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * Searches the array for the given value (primitive types)
- * @link http://stackoverflow.com/questions/143847/best-way-to-find-if-an-item-is-in-a-javascript-array
+ * Searches the array for the given value (primitive types).
+ * @see http://stackoverflow.com/questions/143847/best-way-to-find-if-an-item-is-in-a-javascript-array
  * @param primitive obj needle
  * @param integer fromIndex initial offset
  * @return integer key | -1 if not found
@@ -24,7 +24,7 @@ if (!Array.prototype.indexOf) {
 }
 
 /**
- * Searches the array for the given value (pairs and other arrays)
+ * Searches the array for the given value (pairs and other arrays).
  * @param array obj needle
  * @param integer fromIndex initial offset
  * @return integer key | -1 if not found
@@ -32,7 +32,7 @@ if (!Array.prototype.indexOf) {
 Array.prototype.indexOfVect = function (obj, fromIndex) {
   var i;
   if ( !(obj instanceof Array) ) {
-    alert("Usage error, non-array argument for indexOfVect");
+    throw new Error("indexOfVect: non-array argument");
     return -1;
   }
   if (fromIndex == null) {
@@ -47,8 +47,8 @@ Array.prototype.indexOfVect = function (obj, fromIndex) {
 };
 
 /**
- * Searches the assocArray for the given value
- * @link http://stackoverflow.com/questions/9907419/javascript-object-get-key-by-value
+ * Searches the assocArray for the given value.
+ * @see http://stackoverflow.com/questions/9907419/javascript-object-get-key-by-value
  * @param mixed value
  * @return mixed key
  */
@@ -61,8 +61,8 @@ Object.prototype.getKeyByValue = function( value ) {
 }
 
 /**
- * Shuffles the given array randomly in-place
- * @link http://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array-in-javascript
+ * Shuffles the given array randomly in-place.
+ * @see http://stackoverflow.com/questions/6274339/how-can-i-shuffle-an-array-in-javascript
  * @param array a
  * @return nothing
  */
@@ -77,7 +77,7 @@ function arrayShuffle(a) {
 }
 
 /**
- * Gives a list of all points neigbouring the given point [row,col] (and not outside the 0..max * 0..max square plane)
+ * Gives a list of all points neigbouring the given point [row,col] (and not outside the 0..max * 0..max square plane).
  * @param integer row
  * @param integer col
  * @param integer max
@@ -105,7 +105,7 @@ function adjAll(row,col,max) {
 }
 
 /**
- * Gives a list of points, neigbouring the given point [row,col] except for diagonal neighbours (and not outside the 0..max * 0..max square plane)
+ * Gives a list of points, neigbouring the given point [row,col] except for diagonal neighbours (and not outside the 0..max * 0..max square plane).
  * @param integer row
  * @param integer col
  * @param integer max
@@ -124,9 +124,9 @@ function adjCross(row,col,max) {
 }
 
 /**
- * Takes an array of points [row,col] and gives list of neigbouring points
- * @uses adjAll()
- * @uses adjCross()
+ * Takes an array of points [row,col] and gives list of neigbouring points.
+ * @see adjAll()
+ * @see adjCross()
  * @param array pointsArray array of pairs [row,col]
  * @param string mode "all" for all neighbours, "cross" for orthogonal only
  * @return array of pairs [row,col]
@@ -153,12 +153,17 @@ function around(pointsArray,mode) {
 
 /**
  * Generates random pairs [row,column], covering all plane 0..DIM * 0..DIM
- * Allows to insert one non-random pair into the output stream for debugging
+ * Allows to insert one non-random pair into the output stream for debugging.
+ *
+ * @constructor
+ * @see arrayShuffle()
  * @param integer cheatI position to insert
  * @param array cheatVal [row,column] additional pair
  *
- * @method go()
- * @return array [row,column]
+ * @example
+ * var rand=new Rand2d();
+ * var probe1=rand.go();
+ * var probe2=rand.go();
  */
 function Rand2d(cheatI,cheatVal) {
   var _arr=[];// private property by closure
@@ -170,6 +175,9 @@ function Rand2d(cheatI,cheatVal) {
   arrayShuffle(_arr);
   var _i=0;// private property by closure
 
+  /**
+   * @return array [row,column]
+   */
   this.go=function() {
     if(_i==cheatI) {
       _i++;
@@ -186,22 +194,28 @@ function Rand2d(cheatI,cheatVal) {
 }
 
 /**
- * @method go()
- * Generates pairs [row,column] : 0,0 0,1 .. 0,9 .. 1,0 1,1 .. 1,9 .. 9,9 .. false
- * @return array [row,column] | false on end
+ * Generates pairs [row,column] : 0,0 0,1 .. 0,9 .. 1,0 1,1 .. 1,9 .. 9,9 false.
+ * @constructor
+ * @example
+ * var range=new Seq2d();
+ * while ( point=range.go() ) { ... }
  */
 function Seq2d() {
-  var _r=0, _c=0; // private property by closure
+  var _r=0, _c=0; // private properties by closure
 
+  /**
+   * @return array [row,column] | false on end
+   */
   this.go=function(){
+    var rc=[];
     if ( _r>=DIM ) {
       _r=0;
       _c=0;
       return(false);
     }
-    var rc=[ _r,_c ];
+    rc=[ _r,_c ];
     _c++;
-    if( _c>=DIM ) {
+    if ( _c>=DIM ) {
       _c=0;
       _r++;
     }
@@ -210,37 +224,46 @@ function Seq2d() {
 }
 
 /**
- * Returns pairs [row,column] from the given array, one pair by each call
+ * Returns pairs [row,column] from the given array, one pair by each call.
+ * @constructor
  * @param array tape array of pairs [row,column]
- * @method go()
- * @return array [row,column] | false on end
- * @method getIndex()
- * @return integer current offset
+ * @example
+ * var testGen=new TapePlayer([ [0,0],[1,0],[1,1] ]);
+ * while ( point=testGen.go() ) { alert(point); }
  */
 function TapePlayer(tape) {
-  if ( !(tape instanceof Array) ) throw ("ArrayUtils::TapePlayer: argument is not an array");
-  if ( !(tape[0] instanceof Array) ) throw ("ArrayUtils::TapePlayer: argument is not an 2d-array");
-  var _tape=tape, _i=0; // private property by closure
+  if ( !(tape instanceof Array) ) throw new Error("ArrayUtils::TapePlayer: argument is not an array");
+  if ( !(tape[0] instanceof Array) ) throw new Error("ArrayUtils::TapePlayer: argument is not an 2d-array");
+  var _i=0; // private property by closure, also tape
 
+  /**
+   * @return array [row,column] | false on end
+   */
   this.go=function() {
-    if ( _i>=_tape.length ) return(false);
+    if ( _i>=tape.length ) return(false);
     else {
-      var ret=_tape[_i];
+      var ret=tape[_i];
       //alert( "Naxt : "+ret.join() );
       _i++;
       return ( ret );
     }
   };
 
-  this.getIndex=function() { return(_i); };
+  /**
+   * @return integer current offset
+   */
+  this.getIndex=function() {
+    return(_i);
+  };
 }
 
 /**
- * Creates an array of the given length and fills it with the given value
- * createArray(3,0) will give [ 0, 0, 0 ]
+ * Creates an array of the given length and fills it with the given value.
  * @param integer size
  * @param mixed value
  * @return array
+ * @example
+ * createArray(3,0) // [ 0, 0, 0 ]
  */
 function createArray(size,value) {
   var s=size;
@@ -251,7 +274,7 @@ function createArray(size,value) {
 }
 
 /**
- * Swaps 0th and 1st elements of the given array in place
+ * Swaps 0th and 1st elements of the given array in-place.
  * @param array arr
  * @return nothing
  */
@@ -262,9 +285,9 @@ function arraySwap01(arr) {
 }
 
 /**
- * Puts content to given HTML element
+ * Puts content to given HTML element.
  * @param string str content
- * @param string|DOMElement id target element's Id or that element itself
+ * @param {string|DOMElement} id target element's Id or that element itself
  * @return nothing
  */
 function putToElement(str,id) {
@@ -272,16 +295,16 @@ function putToElement(str,id) {
   if ( id.nodeName ) e=id;
   else if ( typeof id =="string" ) {
     e=document.getElementById(id);
-    if (!e) throw ("putToElement: invalid node id "+id);
+    if (!e) throw new Error("putToElement: invalid node id "+id);
   }
-  else throw ("putToElement: invalid argument "+id);
+  else throw new Error("putToElement: invalid argument "+id);
   //var e=document.getElementById(id);
   e.innerHTML=str;
 }
 
 /**
- * Gets content from given HTML element (value or any attribute)
- * @param string|DOMElement id target element's Id or that element itself
+ * Gets content from given HTML element (value or any attribute).
+ * @param {string|DOMElement} id target element's Id or that element itself
  * @param string attr attribute name
  * @return string element.value or element.attribute.value
  */
@@ -290,9 +313,9 @@ function getElementValue(id,attr) {
   if ( id.nodeName ) e=id;
   else if ( typeof id =="string" ) {
     e=document.getElementById(id);
-    if (!e) throw ("getElementValue: invalid node id "+id);
+    if (!e) throw new Error("getElementValue: invalid node id "+id);
   }
-  else throw ("putToElement: invalid argument "+id);
+  else throw new Error("putToElement: invalid argument "+id);
 
   if (!attr) return (e.value);
   else  if (attr=="checked") return (e.checked);// important!
@@ -300,15 +323,15 @@ function getElementValue(id,attr) {
 }
 
 /**
- * Toggles the display property of the given HTML element
- * @param string|DOMElement id target element's Id or that element itself
+ * Toggles the display property of the given HTML element.
+ * @param {string|DOMElement} id target element's Id or that element itself
  * @return nothing
  */
 function toggleElement(id) {
   var e;
   if ( id.nodeName ) e=id;
   else if ( typeof id =="string" ) e=document.getElementById(id);
-  else throw ("toggleElement: invalid argument "+id);
+  else throw new Error("toggleElement: invalid argument "+id);
   var d=e.style.display;
   if (d=="none") e.style.display="";
   else e.style.display="none";
