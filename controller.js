@@ -116,7 +116,12 @@ function go(command,data) {
       }
 
       v.dc.toggle();// show Draw controls
-      v.pm.put("Draw your ships, then press Done");
+      v.ps.toggle();
+      v.es.toggle();
+      mes="Draw your ships (";
+      mes+=v.ps.showClearHistogram( g.getForces(),"return" );
+      mes+="),<br />then press Done";
+      v.pm.put(mes);
       g.setStage("ships");
       //return;
       // fall-through
@@ -154,14 +159,14 @@ function go(command,data) {
         m.playerShips.take(hs);
         cm=m.playerShips.checkMargins();
         if (!cm) {
-          v.pm.put("Ships must be straight and not touch each other. <br />Try new ones");
+          v.pm.put("Ships must be straight<br /> and not to touch each other. <br />Try new ones");
           m.playerShips.clear();
           return;
         }
         ph=m.playerShips.makeHistogram();
         wh=g.getForces();
         if( ph.join()!=wh.join() ) {
-          mes="The rules require (squares:ships): ";
+          mes="The rules require <br />(squares:ships): ";
           mes+=v.ps.showClearHistogram(wh,"return");
           mes+='<br />Your ships does not comply';
           if ( g._demandEqualForces ) mes+="<br />Try new ones";
@@ -177,6 +182,8 @@ function go(command,data) {
         v.ps.showClearHistogram(ph);
 
         v.dc.toggle();// hide controls
+        v.ps.toggle();
+        v.es.toggle();        
         v.pm.add("<br />Make your move!");
         g.setStage("fight");
 

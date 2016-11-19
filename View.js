@@ -278,7 +278,7 @@ function MessagePanel(elementId) {
  * @see putToElement
  */
 function StatPanel(parentElm,prefix) {
-  this._prefix=prefix;
+  this._prefix=prefix;// required by StatPanel.prototype.showClearHistogram
   if(typeof parentElm == "string") parentElm=document.getElementById(parentElm);
 
   var str='Strikes:<span id="'+prefix+"Strikes"+'"></span> ';
@@ -292,15 +292,19 @@ function StatPanel(parentElm,prefix) {
   putToElement(html,parentElm);
 
   this.showStrikesHits=function(strikes,hits) {
-    putToElement(strikes,this._prefix+"Strikes");
-    putToElement(hits,this._prefix+"Hits");
-    if (strikes) putToElement(Math.round(100*hits/strikes),this._prefix+"Percent");
+    putToElement(strikes,prefix+"Strikes");
+    putToElement(hits,prefix+"Hits");
+    if (strikes) putToElement(Math.round(100*hits/strikes),prefix+"Percent");
   };
 
   this.showStat=function(afloat,biggest,sunk) {
-    putToElement(afloat,this._prefix+"Float");
-    putToElement(biggest,this._prefix+"Largest");
-    putToElement(sunk,this._prefix+"Dead");
+    putToElement(afloat,prefix+"Float");
+    putToElement(biggest,prefix+"Largest");
+    putToElement(sunk,prefix+"Dead");
+  };
+  
+  this.toggle=function() {
+    toggleElement(parentElm);
   };
 }
 
