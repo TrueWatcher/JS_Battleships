@@ -1,0 +1,435 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru" xml:lang="ru">
+<!--
+DEAL
+JS+PHP micro-framework for onlain two-player game
+by TrueWatcher
+v.0.0.1 17.1.2016
+0.0.2 18.1.2016 added processResponce as a View
+0.0.3 19.1.2016 decoupled HubManager from input and cookie, added trace, improved frontend
+-->
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>DEAL JS playground</title>
+  <link rel="stylesheet" type="text/css" href="" media="all" />
+</head>
+<body>
+<div id="localSettings">
+  <label for="playerName">Your name :</label>
+  <input type="text" name="playerName" id="playerName" value="You" />
+  &nbsp; &nbsp;
+  <label for="enemyName">Your opponent's name :</label>
+  <input type="text" name="enemyName" id="enemyName" value="Local Script" />
+  <br />
+  Theme : icons <input type="radio" name="theme" id="theme1" value="icons" checked="checked" />
+  &nbsp; &nbsp;
+  ascii chars <input type="radio" name="theme" id="theme2" value="ascii" />
+  <br />
+  <p style="text-align: center;">
+    <button id="connectButton" type="button">Connect</button>
+    &nbsp; &nbsp;
+    <button id="resetButton" type="button">Reset</button>
+    &nbsp; &nbsp;
+    <button id="localButton" type="button">Play locally</button>
+  </p>
+</div>
+<div id="connectStatus">Turn on JavaScript !!!</div>
+<table id="picksTable">
+  <tr>
+    <td></td>
+    <td><span id="nameA"></span> (A)</td>
+    <td><span id="nameB"></span> (B)</td>
+  </tr>
+  <tr>
+    <td colspan="3">First move</td>
+  </tr>
+  <tr>
+    <td>A</td>
+    <td id="firstMove_0_A"></td>
+    <td id="firstMove_0_B"></td>
+  </tr>
+  <tr>
+    <td>B</td>
+    <td id="firstMove_1_A"></td>
+    <td id="firstMove_1_B"></td>
+  </tr>  <tr>
+    <td colspan="3">Ships (squares:quantity)</td>
+  </tr>
+  <tr>
+    <td>1:4 2:3 3:2 4:1</td>
+    <td id="forces_0_A"></td>
+    <td id="forces_0_B"></td>
+  </tr>
+  <tr>
+    <td>2:1 3:1 4:1 5:1 6:1</td>
+    <td id="forces_1_A"></td>
+    <td id="forces_1_B"></td>
+  </tr>
+  <tr>
+    <td colspan="3"><button id="confirmButton" type="button">Confirm and go on</button></td>
+  </tr>
+</table>
+<div id="note"></div>
+<div id="tech"></div>
+
+<script>
+
+// utility functions
+function $(id) {
+  return( document.getElementById(id) );
+}
+
+function tickHtml(id,itemName,row,side) {
+  var el;
+  if (id) el=$(id); 
+  else el=$(itemName+"_"+row+"_"+side);
+  var val=el.innerHTML;
+  var tickSymbol="v";
+  if ( !val ) el.innerHTML=tickSymbol;
+  else el.innerHTML="";
+}
+
+function parsePickId(id) {
+  var parts=[];
+  if (!id) throw new Error ("parsePickId: empty argument");
+  parts=id.split("_");
+  if ( !parts[0] || !parts[1] || !parts[2] ) throw new Error ("parsePickId: invalid argument:"+id+"!");
+  return ( { itemName : parts[0], row: parts[1], side: parts[2] } );
+}
+
+function TdIterator() {
+
+  if ( this.l ) { // prevent repeated instantiation
+    this.i=0;
+    return this;
+  }
+  
+  this.list=makeList( $("picksTable") );
+
+  function makeList(parent) {
+    var list=[];
+    list=parent.querySelectorAll("td[id]");
+    //alert(list.length);
+    return list;
+  }
+  
+  this.l=this.list.length;
+  this.i=0;
+  
+  this.go=function() {
+    var ret=false;
+    if ( this.i >= this.l ) {
+      this.i=0;
+      return false;
+    }
+    ret=this.list[ this.i ];
+    this.i+=1;
+    return ret;
+  }
+}
+
+function readPicks(side) {
+  var ti=new TdIterator();
+  var td, parts={}, res=[], pair='"key":val', json="{}";
+  var joined="";
+  
+  while ( td=ti.go() ) {
+    //alert (">"+td.id);
+    parts=parsePickId(td.id);
+    if (parts.side==side && td.innerHTML) {
+      joined=res.join(",");
+      if ( joined.indexOf(parts.itemName) >= 0 ) { 
+        alert("Please, select only one answer on each issue");
+        return false;
+      }
+      else {
+        pair='"'+parts.itemName+'":'+parts.row;
+        res.push(pair);
+      }
+    }
+  }
+  //if ( res.length==0 ) throw new Error("readPicks: no picks found");
+  json="{"+res.join(",")+"}";
+  //alert("picked:"+json);
+  return json;
+}
+
+function drawPicks(side,json,symbol) {
+  var pairs={};
+  if ( json instanceof Object ) pairs=json;
+  else pairs=JSON.parse(json);  
+  var ti=new TdIterator();
+  var td, parts={};
+  while ( td=ti.go() ) {
+    parts=parsePickId(td.id);
+    if ( parts.side==side ) {
+      if ( parts.itemName && pairs[parts.itemName] == parts.row ) td.innerHTML=symbol;
+      else td.innerHTML="";      
+    }
+  }
+}
+
+function clearPicks() {
+  var ti=new TdIterator();
+  var td;
+  while ( td=ti.go() ) { td.innerHTML=""; }
+}
+
+//drawPicks("B",'{"firstMove":1,"forces":0}',"x");
+
+function detectTd(event) {
+  event = event || window.event;
+  var target = event.target || event.srcElement;
+
+  while(target.nodeName != 'TABLE') {
+    if (target.nodeName == 'TD') { return (target.id); }
+    target = target.parentNode;
+  }
+  return (false);
+}
+
+function readCookie(name) {
+// http://stackoverflow.com/questions/14573223/set-cookie-and-get-cookie-with-javascript
+  var nameEQ = name + "=";
+  var ca = document.cookie.split(';');
+  for(var i=0;i < ca.length;i++) {
+    var c = ca[i];
+    while (c.charAt(0)==' ') c = c.substring(1,c.length);
+    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+  }
+  return null;
+}
+
+function deleteAllCookies() {
+// http://stackoverflow.com/questions/179355/clearing-all-cookies-with-javascript
+  var cookies = document.cookie.split(";");
+
+  for (var i = 0; i < cookies.length; i++) {
+      var cookie = cookies[i];
+      var eqPos = cookie.indexOf("=");
+      var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  }
+}
+
+function otherSide(side) {
+  if (side=="A") return ("B");
+  if (side=="B") return ("A");
+  throw new Error("otherSide: wrong argument:"+side+"!");
+}
+
+// timer utility
+function Poll(millisecs) {
+  if ( !millisecs ) millisecs=10000;
+  this.handler=null;
+  var _this=this;
+  
+  this.start=function() {
+    if (!this.handler) {
+      this.handler=window.setInterval(poll,millisecs);
+      //alert("Poller started");
+    }
+  }
+  
+  this.stop=function() {
+    //alert("Poller stopped");
+    window.clearInterval(this.handler);
+    this.handler=null;
+  }
+}
+
+// AJAX utilities
+function sendRequest (queryString) {
+  if (!queryString) throw new Error ("sendRequest: empty query string");
+  var responderUrl="hub.php";
+
+  //alert("Request to be sent to "+responderUrl+"?"+queryString);
+  //return false;
+  
+  var req=new XMLHttpRequest();
+  
+  //req.open("GET",responderUrl+"?"+queryBase+"&"+queryString); // GET
+  req.open("POST",responderUrl,true); // POST
+  
+  req.setRequestHeader("Content-Type","application/x-www-form-urlencoded");// for POST; should go _after_ req.open!
+  
+  req.onreadystatechange=function () { receive(req); };// both
+  
+  //var q=req.send(null); // GET
+  var q=req.send(queryString); // POST
+  
+  //$("connectStatus").innerHTML="Connecting ...";
+}
+
+function receive(oReq) {
+  var note="";
+  if (oReq.readyState == 4) {
+    if(oReq.status==200) {
+      var t=oReq.responseText;
+      $("tech").innerHTML=" full response:<br />"+t;
+      var responseObj=JSON.parse(t);
+      processResponse(responseObj);
+    }
+  }
+}
+
+//----- event handlers -----
+
+// initialisation "event"
+// globals
+var stage="zero",state="zero",mySide="",myName="",enemySide="",message="";
+var ticks={"A":"a","B":"b"};
+var poller=new Poll();
+
+$("connectStatus").innerHTML="";
+sendRequest("rules=queryFull");
+
+// submit username form
+$("connectButton").onclick=function() {
+  var qs="";
+  var pn=$("playerName").value;
+  var en=$("enemyName").value;
+  if (!pn || !en) {
+    alert("Please, give your name and other player's name");
+    return false;
+  }
+  if ( en!=="Local Script" && pn==="You" ) {
+    alert("Please, give your name, which must be known to the other player");
+    return false;
+  }
+  qs+="intro=register"+"&playerName="+pn+"&enemyName="+en;
+  sendRequest(qs);
+  return false;
+}
+
+// click on an answer
+$("picksTable").onclick=function(event) {
+  if (state == "finished") {
+    alert("Deal is done, no more changes");
+    return false;
+  }
+  if (state == "connecting") {
+    alert("Please, wait for connect");
+    return false;
+  }
+  var details={};
+  var id=detectTd(event);
+  var myPicks="",qs="";
+  if (id) {
+    details=parsePickId(id);
+    if ( details.side==mySide ) {
+      tickHtml(id);
+      myPicks=readPicks(mySide);
+      if ( !myPicks ) return false; 
+      qs="rules=updPick&pick="+myPicks;
+      sendRequest(qs);
+      return false;      
+    }
+  }
+}
+
+// click on CONFIRM button
+$("confirmButton").onclick=function() {
+  var myPicks=readPicks("A");
+  if ( !myPicks ) return false;
+  var otherPicks=readPicks("B");
+  if ( myPicks!==otherPicks ) {
+    alert ("You answers are different from your opponent's, go on bargaining");
+    return false;
+  }
+  $("note").innerHTML="Almost done...";
+  qs="rules=confirm&pick="+myPicks;
+  sendRequest(qs);
+  //poller.stop();// DEBUG
+  return false; 
+}
+
+// timer "event"
+function poll() {
+  sendRequest("rules=queryPick");
+}
+
+// AJAX response ready "event"
+// passive View with some "events" attached
+function processResponse(r) {
+  if ( r["stage"] ) { 
+    state=r["stage"];
+    //if ( stage == "rules" ) { processRegistration(); }
+    if ( stage == "ships" ) { processFinished(); }
+    if ( stage == "over" || stage == "aborted" ) { processFinished(); }
+  }
+  
+  if ( r["state"] ) { 
+    state=r["state"];
+  }
+
+  if ( r["players"] ) {
+    processRegistration();
+    var rp=r["players"];
+    $("nameA").innerHTML=rp["A"];
+    $("nameB").innerHTML=rp["B"];
+    //var s="Player A:"+rp["A"]+", B:"+rp["B"];
+    //$("connectStatus").innerHTML=s;
+    if ( rp[mySide] != myName ) throw new Error("My name is "+myName+" in the cookie and "+rp[mySide]+" in the response!");
+  }
+  
+  if ( r["error"] ) {
+    message+=" Error! ";
+  }
+  
+  if ( r["note"] ) {
+    message+=r["note"];
+  }
+  else {
+    message=" ";
+  }
+  
+  if (message) $("note").innerHTML=message;
+  message="";
+  
+  if ( r.hasOwnProperty("picks") ) {
+    var rpp=r["picks"];
+    if ( rpp["A"] ) { drawPicks("A",rpp["A"],ticks["A"]); }
+    //alert( "!"+rpp.hasOwnProperty("B") );
+    if ( rpp["B"] ) { 
+      //alert(rpp["B"]);
+      drawPicks("B",rpp["B"],ticks["B"]); 
+    } 
+  }
+}
+
+// registration "event"
+function processRegistration() {
+  mySide=readCookie("side");
+  myName=readCookie("name");
+  enemySide=otherSide(mySide);
+  //alert("cookies side="+side+", name="+name+".");    readCookies();
+  ticks[mySide]="v";
+  ticks[enemySide]="x";
+  poller.start();
+  clearPicks();
+  message=" connected ";
+}
+
+// deal finished "event"
+function processFinished() {
+  //alert("FIN");
+  poller.stop();// there will be one last call
+}
+
+$("resetButton").onclick=function() {
+  if ( state=="picking" || state=="converged" || state=="confirming" ) {
+    alert ("This button does not work in active state");
+    return false;
+  }
+  sendRequest("intro=abort");
+  deleteAllCookies();
+  poller.stop();
+  clearPicks();
+  $("nameA").innerHTML="";
+  $("nameB").innerHTML="";
+  return false;
+}
+</script>
+</body>
+</html>
