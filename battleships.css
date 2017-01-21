@@ -20,10 +20,13 @@ td {
   text-align: center;
 }
 
-
-
 table#general {
   width: 100%;
   text-align: center;
+}
+
+table.boardLike td,table.listLike td {
+  border: 1px solid;
+  
 }
 

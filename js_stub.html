@@ -1,29 +1,37 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ru" xml:lang="ru">
 <!--
-DEAL
-JS+PHP micro-framework for onlain two-player game
+Battleships online version, working out JS+PHP micro-framework for onlain two-player game.
 by TrueWatcher
 v.0.0.1 17.1.2016
 0.0.2 18.1.2016 added processResponce as a View
 0.0.3 19.1.2016 decoupled HubManager from input and cookie, added trace, improved frontend
+2.0.1 21.1.2016 deep rewriting to MVC
 -->
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <title>DEAL JS playground</title>
-  <link rel="stylesheet" type="text/css" href="" media="all" />
+  <title>Battleships JS playground</title>
+  <link rel="stylesheet" type="text/css" href="battleships.css" media="all" />
 </head>
 <body>
-<div id="localSettings">
-  <label for="playerName">Your name :</label>
-  <input type="text" name="playerName" id="playerName" value="You" />
-  &nbsp; &nbsp;
-  <label for="enemyName">Your opponent's name :</label>
-  <input type="text" name="enemyName" id="enemyName" value="Local Script" />
-  <br />
-  Theme : icons <input type="radio" name="theme" id="theme1" value="icons" checked="checked" />
-  &nbsp; &nbsp;
-  ascii chars <input type="radio" name="theme" id="theme2" value="ascii" />
+<div id="intro">
+  <table id="introTable" class="listLike">
+    <tr>
+      <td>Your name :</td>
+      <td colspan="4"><input type="text" name="playerName" id="playerName" value="You" /></td>
+    </tr>
+    <tr>
+      <td>Your opponent's name :</td>
+      <td colspan="4"><input type="text" name="enemyName" id="enemyName" value="Local Script" /></td>
+    </tr>
+    <tr>
+      <td>Theme :</td>
+      <td>icons</td>
+      <td><input type="radio" name="theme" id="theme1" value="icons" checked="checked" /></td>
+      <td>ASCII</td>
+      <td><input type="radio" name="theme" id="theme2" value="ascii" /></td>
+    </tr>
+  </table>
   <br />
   <p style="text-align: center;">
     <button id="connectButton" type="button">Connect</button>
@@ -33,68 +41,62 @@ v.0.0.1 17.1.2016
     <button id="localButton" type="button">Play locally</button>
   </p>
 </div>
-<div id="connectStatus">Turn on JavaScript !!!</div>
-<table id="picksTable">
-  <tr>
-    <td></td>
-    <td><span id="nameA"></span> (A)</td>
-    <td><span id="nameB"></span> (B)</td>
-  </tr>
-  <tr>
-    <td colspan="3">First move</td>
-  </tr>
-  <tr>
-    <td>A</td>
-    <td id="firstMove_0_A"></td>
-    <td id="firstMove_0_B"></td>
-  </tr>
-  <tr>
-    <td>B</td>
-    <td id="firstMove_1_A"></td>
-    <td id="firstMove_1_B"></td>
-  </tr>  <tr>
-    <td colspan="3">Ships (squares:quantity)</td>
-  </tr>
-  <tr>
-    <td>1:4 2:3 3:2 4:1</td>
-    <td id="forces_0_A"></td>
-    <td id="forces_0_B"></td>
-  </tr>
-  <tr>
-    <td>2:1 3:1 4:1 5:1 6:1</td>
-    <td id="forces_1_A"></td>
-    <td id="forces_1_B"></td>
-  </tr>
-  <tr>
-    <td colspan="3"><button id="confirmButton" type="button">Confirm and go on</button></td>
-  </tr>
-</table>
-<div id="note"></div>
+<p id="introNote">Turn on JavaScript !!!</p>
+</div>
+<div id="rules">
+  <table id="picksTable" class="boardLike">
+    <tr>
+      <td></td>
+      <td><span id="nameA"></span> (A)</td>
+      <td><span id="nameB"></span> (B)</td>
+    </tr>
+    <tr>
+      <td colspan="3">First move</td>
+    </tr>
+    <tr>
+      <td>A</td>
+      <td id="firstMove_0_A"></td>
+      <td id="firstMove_0_B"></td>
+    </tr>
+    <tr>
+      <td>B</td>
+      <td id="firstMove_1_A"></td>
+      <td id="firstMove_1_B"></td>
+    </tr>
+    <tr>
+      <td colspan="3">Ships (squares:quantity)</td>
+    </tr>
+    <tr>
+      <td>1:4 2:3 3:2 4:1</td>
+      <td id="forces_0_A"></td>
+      <td id="forces_0_B"></td>
+    </tr>
+    <tr>
+      <td>2:1 3:1 4:1 5:1 6:1</td>
+      <td id="forces_1_A"></td>
+      <td id="forces_1_B"></td>
+    </tr>
+    <tr>
+      <td colspan="3">Confirm and go on</td>
+    </tr>
+    <tr>
+      <td>ready</td>
+      <td id="confirm_0_A"></td>
+      <td id="confirm_0_B"></td>
+    </tr>
+    <tr>
+      <td colspan="3"><button id="confirmButton" type="button">Confirm and go on</button></td>
+    </tr>
+  </table>
+  <p id="rulesNote"></p>
+</div>
 <div id="tech"></div>
 
 <script>
-
+"use strict";
 // utility functions
 function $(id) {
   return( document.getElementById(id) );
-}
-
-function tickHtml(id,itemName,row,side) {
-  var el;
-  if (id) el=$(id); 
-  else el=$(itemName+"_"+row+"_"+side);
-  var val=el.innerHTML;
-  var tickSymbol="v";
-  if ( !val ) el.innerHTML=tickSymbol;
-  else el.innerHTML="";
-}
-
-function parsePickId(id) {
-  var parts=[];
-  if (!id) throw new Error ("parsePickId: empty argument");
-  parts=id.split("_");
-  if ( !parts[0] || !parts[1] || !parts[2] ) throw new Error ("parsePickId: invalid argument:"+id+"!");
-  return ( { itemName : parts[0], row: parts[1], side: parts[2] } );
 }
 
 function TdIterator() {
@@ -127,55 +129,6 @@ function TdIterator() {
     return ret;
   }
 }
-
-function readPicks(side) {
-  var ti=new TdIterator();
-  var td, parts={}, res=[], pair='"key":val', json="{}";
-  var joined="";
-  
-  while ( td=ti.go() ) {
-    //alert (">"+td.id);
-    parts=parsePickId(td.id);
-    if (parts.side==side && td.innerHTML) {
-      joined=res.join(",");
-      if ( joined.indexOf(parts.itemName) >= 0 ) { 
-        alert("Please, select only one answer on each issue");
-        return false;
-      }
-      else {
-        pair='"'+parts.itemName+'":'+parts.row;
-        res.push(pair);
-      }
-    }
-  }
-  //if ( res.length==0 ) throw new Error("readPicks: no picks found");
-  json="{"+res.join(",")+"}";
-  //alert("picked:"+json);
-  return json;
-}
-
-function drawPicks(side,json,symbol) {
-  var pairs={};
-  if ( json instanceof Object ) pairs=json;
-  else pairs=JSON.parse(json);  
-  var ti=new TdIterator();
-  var td, parts={};
-  while ( td=ti.go() ) {
-    parts=parsePickId(td.id);
-    if ( parts.side==side ) {
-      if ( parts.itemName && pairs[parts.itemName] == parts.row ) td.innerHTML=symbol;
-      else td.innerHTML="";      
-    }
-  }
-}
-
-function clearPicks() {
-  var ti=new TdIterator();
-  var td;
-  while ( td=ti.go() ) { td.innerHTML=""; }
-}
-
-//drawPicks("B",'{"firstMove":1,"forces":0}',"x");
 
 function detectTd(event) {
   event = event || window.event;
@@ -258,7 +211,7 @@ function sendRequest (queryString) {
   //var q=req.send(null); // GET
   var q=req.send(queryString); // POST
   
-  //$("connectStatus").innerHTML="Connecting ...";
+  //$("noteIntro").innerHTML="Connecting ...";
 }
 
 function receive(oReq) {
@@ -273,104 +226,374 @@ function receive(oReq) {
   }
 }
 
-//----- event handlers -----
+  function Global() {     
+    this.online="online";
+    var _stage="zero";
+    var _stagesAllowed=["zero", "intro", "rules", "init", "ships", "fight", "finished"];
+    var _statesAllowed=["zero","connecting", "picking", "confirming", "converged", "aborted", "finished", "ships"];
+    var _state="zero";
+    this.pSide="";
+    this.pName="";
+    this.eSide="";
+    this.eName="";
+    this.namesEP={};
+    this.namesAB={};
+    this.theme="ascii";
+    this.message="";
+    this.picks={};
+    
+    this.setStage=function(stage) {
+      if (_stagesAllowed.indexOf(stage)<0 ) throw new Error("Global::setStage: invalid value "+stage);
+      _stage=stage;
+      return(_stage);
+    };
 
-// initialisation "event"
-// globals
-var stage="zero",state="zero",mySide="",myName="",enemySide="",message="";
-var ticks={"A":"a","B":"b"};
-var poller=new Poll();
+    this.getStage=function() {
+      return(_stage);
+    };
+    
+    this.setState=function(state) {
+      if (_statesAllowed.indexOf(state)<0 ) throw new Error("Global::setState: invalid value "+state);
+      _state=state;
+      return(state);
+    };
 
-$("connectStatus").innerHTML="";
-sendRequest("rules=queryFull");
+    this.getState=function() {
+      return(_state);
+    };
+    
+    this.setNames=function(pn,en) {
+      if (!pn || !en || pn==en) throw new Error("Global::setNames: empty or equal argument(s)");
+      this.pName=pn;
+      this.eName=en;
+      this.namesEP={"p":pn,"e":en};
+      
+    };
+    
+    this.clearNames=function() {
+      this.pName=this.eName="";
+      this.names={};    
+    }
+    
+  }
+  
+  function TopManager() {
+    var stageControllers = { "local":{"intro":Intro,"rules":RulesLocal},
+                            "online":{"intro":Intro,"rules":RulesOnline} };
+    
+    function getStageController(aOnline,aStage) {
+      if (!aStage || aStage=="zero") aStage="intro";
+      var sc=stageControllers[aOnline][aStage];
+      if (!sc) throw new Error ("Failed to find the stage controller for "+aOnline+" and "+aStage+"!");
+      return sc;
+    }
+    /**
+     * Main entry point to every controller affair.
+     */
+    this.go=function(aStage,command,data) {
+      var gs=gl.getStage();
+      if( gs=="zero" ) gs=gl.setStage("intro");
+    
+      if ( aStage!==gs && command!=="queryFull" && command!=="queryPick" && command!=="abort" ) { 
+        alert("Command ("+command+") stage is "+aStage+", global is "+gs+"!");
+        return false;
+      }
+      var Sc=getStageController(gl.online,aStage);
+      var sc=new Sc();
+      //sc=new Intro();
+      var r = sc.go(command,data);
+    }    
+  }
+  
+  function Intro() {
+  
+    function deleteAllCookies() {
+    // http://stackoverflow.com/questions/179355/clearing-all-cookies-with-javascript
+      var cookies = document.cookie.split(";");
 
-// submit username form
-$("connectButton").onclick=function() {
-  var qs="";
-  var pn=$("playerName").value;
-  var en=$("enemyName").value;
-  if (!pn || !en) {
-    alert("Please, give your name and other player's name");
-    return false;
-  }
-  if ( en!=="Local Script" && pn==="You" ) {
-    alert("Please, give your name, which must be known to the other player");
-    return false;
-  }
-  qs+="intro=register"+"&playerName="+pn+"&enemyName="+en;
-  sendRequest(qs);
-  return false;
-}
-
-// click on an answer
-$("picksTable").onclick=function(event) {
-  if (state == "finished") {
-    alert("Deal is done, no more changes");
-    return false;
-  }
-  if (state == "connecting") {
-    alert("Please, wait for connect");
-    return false;
-  }
-  var details={};
-  var id=detectTd(event);
-  var myPicks="",qs="";
-  if (id) {
-    details=parsePickId(id);
-    if ( details.side==mySide ) {
-      tickHtml(id);
-      myPicks=readPicks(mySide);
-      if ( !myPicks ) return false; 
-      qs="rules=updPick&pick="+myPicks;
-      sendRequest(qs);
-      return false;      
+      for (var i = 0; i < cookies.length; i++) {
+          var cookie = cookies[i];
+          var eqPos = cookie.indexOf("=");
+          var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      }
+    }
+  
+    this.go = function(command,data) {
+      var qs="";
+      var names={};
+      
+      switch (command) {
+      case "register":
+        gl.online="online";
+        gl.theme=v1.readTheme();
+        names=v1.getNames();
+        gl.setNames(names.p,names.e);
+        qs="intro=register"+"&playerName="+names.p+"&enemyName="+names.e;
+        sendRequest(qs);
+        break;
+      case "abort":
+        v1.clearNames();
+        gl.clearNames();
+        if (gl.online=="online") {
+          sendRequest("intro=abort");
+          deleteAllCookies();
+        }
+        poller.stop();
+        break;
+      case "playLocally":
+        gl.online="local";
+        gl.theme=v1.readTheme();
+        names=v1.getNames();
+        gl.setNames(names.p,names.e);
+        gl.pSide="A";
+        gl.eSide="B";
+        v1.ticks={A:"v",B:"x"};
+        gl.setStage("rules");
+        v1.initPicks();
+        gl.setState("converged");
+        break;
+      case "queryFull":        
+        sendRequest("intro=queryFull");
+        break;
+      default:
+        throw new Error("Intro::go: unknown command:"+command+"!");
+      }
     }
   }
-}
-
-// click on CONFIRM button
-$("confirmButton").onclick=function() {
-  var myPicks=readPicks("A");
-  if ( !myPicks ) return false;
-  var otherPicks=readPicks("B");
-  if ( myPicks!==otherPicks ) {
-    alert ("You answers are different from your opponent's, go on bargaining");
-    return false;
+  
+  function RulesOnline() {
+  
+    this.go = function(command,data) {
+      var qs="",myPicks="";
+      switch (command) {
+      case "updPick":
+        //alert("updPick "+data);
+        var details={};
+        var id=data;
+        if (!id) break;
+        details=v1.parsePickId(id);
+        if ( details.side==gl.pSide ) {
+          v1.tickHtml(id);
+          myPicks=v1.readPicks(gl.pSide);
+          if ( !myPicks ) return false; 
+          qs="rules=updPick&pick="+myPicks;
+          sendRequest(qs);     
+        }
+        //alert("myPicks:"+myPicks);
+        break;
+      case "queryPick":
+        sendRequest("rules=queryPick");
+        break;
+      case "confirm":
+        myPicks=v1.readPicks(gl.pSide);
+        if ( !myPicks ) break;
+        var otherPicks=v1.readPicks(gl.eSide);
+        if ( myPicks!==otherPicks ) {
+          alert ("You answers are different from your opponent's, go on bargaining");
+          break;
+        }
+        v1.putNote("rules","Almost done...");
+        qs="rules=confirm&pick="+myPicks;
+        sendRequest(qs);
+        break;
+      default:
+        throw new Error("RulesOnline::go: unknown command:"+command+"!");
+      }      
+    }  
   }
-  $("note").innerHTML="Almost done...";
-  qs="rules=confirm&pick="+myPicks;
-  sendRequest(qs);
-  //poller.stop();// DEBUG
-  return false; 
-}
+  
+  function RulesLocal() {
+  
+    this.go=function() { alert("RulesLocal"); };
+  
+  }
+  
+  function View1() {
+  
+    this._theme="ascii";
+    
+    this.readTheme=function() {
+      if ( $("theme1").checked ) this._theme="icons1";
+      return (this._theme);
+    };
+    
+    this.ticks={A:"a",B:"b"};
+    
+    this.clearNames=function() {
+      $("nameA").innerHTML="";
+      $("nameB").innerHTML="";
+    };
+    
+    this.putNames=function(nA,nB) {
+      if (!nA || !nB) throw new Error("View1::putNames: empty argument(s) 1:"+nA+",2:"+nB+"!");
+      $("nameA").innerHTML=nA;
+      $("nameB").innerHTML=nB;    
+    }
+    
+    this.getNames=function() {
+      var pn=$("playerName").value;
+      var en=$("enemyName").value;
+      if (!pn || !en) {
+        alert("Please, give your name and other player's name");
+        return false;
+      }
+      if ( en!=="Local Script" && pn==="You" ) {
+        alert("Please, give your name, which must be known to the other player");
+        return false;
+      }
+      return({ "p":pn, "e":en });
+    };
+    
+    this.putNote=function(stage,note) {
+      if (!note) note=gl.message;
+      if (!stage || stage=="zero") stage="intro";
+      var id=stage+"Note";
+      $(id).innerHTML=note;
+    };
+    
+    this.clearNote=function(stage) {
+      if (!stage || stage=="zero") stage="intro";
+      var id=stage+"Note";
+      $(id).innerHTML="";      
+    };
+    
+    this.tickHtml=function(id,itemName,row,side) {
+      var el;
+      if (id) el=$(id); 
+      else el=$(itemName+"_"+row+"_"+side);
+      var val=el.innerHTML;
+      var tickSymbol="v";
+      if ( !val ) el.innerHTML=tickSymbol;
+      else el.innerHTML="";
+    };
+
+    this.parsePickId=function(id) {
+      var parts=[];
+      if (!id) throw new Error ("parsePickId: empty argument");
+      parts=id.split("_");
+      if ( !parts[0] || !parts[1] || !parts[2] ) throw new Error ("parsePickId: invalid argument:"+id+"!");
+      return ( { itemName : parts[0], row: parts[1], side: parts[2] } );
+    };
+    
+    this.readPicks=function (side) {
+      var ti=new TdIterator();
+      var td, parts={}, res=[], pair='"key":val', json="{}";
+      var joined="";
+      
+      while ( td=ti.go() ) {
+        //alert (">"+td.id);
+        parts=this.parsePickId(td.id);
+        if (parts.side==side && td.innerHTML) {
+          joined=res.join(",");
+          if ( joined.indexOf(parts.itemName) >= 0 ) { 
+            alert("Please, select only one answer on each issue");
+            return false;
+          }
+          else {
+            pair='"'+parts.itemName+'":'+parts.row;
+            res.push(pair);
+          }
+        }
+      }
+      //if ( res.length==0 ) throw new Error("readPicks: no picks found");
+      json="{"+res.join(",")+"}";
+      //alert("picked:"+json);
+      return json;
+    }
+
+    this.drawPicks=function(side,json,symbol) {
+      var pairs={};
+      if ( json instanceof Object ) pairs=json;
+      else pairs=JSON.parse(json);  
+      var ti=new TdIterator();
+      var td, parts={};
+      while ( td=ti.go() ) {
+        parts=this.parsePickId(td.id);
+        if ( parts.side==side ) {
+          if ( parts.itemName && pairs[parts.itemName] == parts.row ) td.innerHTML=symbol;
+          else td.innerHTML="";      
+        }
+      }
+    }
+
+    this.initPicks=function() {
+      alert("initPicks "+gl.getStage());
+      var ti=new TdIterator();
+      var td,parts;
+      while ( td=ti.go() ) { //td.innerHTML=""; }
+      // default is 0th, skip "confirm"
+        parts=this.parsePickId(td.id);
+        //alert(parts.itemName);
+        if ( parts.itemName != "confirm" ) {
+          //alert(ticks[parts.side]);
+          if ( parts.row==0 ) td.innerHTML=this.ticks[parts.side];
+          else td.innerHTML="";
+        }
+      }
+    }
+        
+    //----- event handlers -----
+    this.setClickHandlers=function() {
+      // submit username form
+      $("connectButton").onclick=function() { tm.go("intro","register"); return false; }
+
+      // click on an answer
+      $("picksTable").onclick=function(event) {
+        if (gl.getState == "connecting") {
+          alert("Please, wait for connect");
+          return false;
+        }
+        var tdId=detectTd(event);
+        if (tdId) tm.go("rules","updPick",tdId);
+        return false;
+      }
+
+      // click on CONFIRM button
+      $("confirmButton").onclick=function() { tm.go("rules","confirm"); return false; };
+
+      $("resetButton").onclick=function() {
+        /*if ( gl.getState()=="picking" || gl.getState()=="converged" || gl.getState()=="confirming" ) {
+          alert ("This button does not work in active state");
+          return false;
+        }*/
+        tm.go("intro","abort");
+        return false;
+      };
+
+      $("localButton").onclick=function() { tm.go("intro","playLocally"); return false; };
+    };
+
+  }// end View1
+   
+    
 
 // timer "event"
-function poll() {
-  sendRequest("rules=queryPick");
-}
+// rules queryPick
+function poll() { tm.go("rules","queryPick"); }
 
 // AJAX response ready "event"
 // passive View with some "events" attached
 function processResponse(r) {
-  if ( r["stage"] ) { 
-    state=r["stage"];
-    //if ( stage == "rules" ) { processRegistration(); }
-    if ( stage == "ships" ) { processFinished(); }
-    if ( stage == "over" || stage == "aborted" ) { processFinished(); }
-  }
+  var stage,state,currentStage,currentState;
+  var message="";
+  stage=currentStage=gl.getStage();
+  state=currentState=gl.getState();
+  //alert("in "+gl.getStage());
   
-  if ( r["state"] ) { 
-    state=r["state"];
+  if ( r["stage"] ) { 
+    stage=gl.setStage(r["stage"]);
   }
+  if ( r["state"] ) { 
+    state=gl.setState(r["state"]);
+  }
+  if ( stage != currentStage || state != currentState ) onStateStageChange(currentStage,stage,currentState,state);
 
   if ( r["players"] ) {
-    processRegistration();
+    //processRegistration();
     var rp=r["players"];
-    $("nameA").innerHTML=rp["A"];
-    $("nameB").innerHTML=rp["B"];
-    //var s="Player A:"+rp["A"]+", B:"+rp["B"];
-    //$("connectStatus").innerHTML=s;
-    if ( rp[mySide] != myName ) throw new Error("My name is "+myName+" in the cookie and "+rp[mySide]+" in the response!");
+    v1.putNames(rp["A"],rp["B"]);
+    if ( rp[gl.pSide] != gl.pName ) throw new Error("My name is "+gl.pName+" in the cookie and "+rp[gl.pSide]+" in the response!");
   }
   
   if ( r["error"] ) {
@@ -384,31 +607,55 @@ function processResponse(r) {
     message=" ";
   }
   
-  if (message) $("note").innerHTML=message;
+  if (message || true) {
+    switch (stage) {
+    case "":
+    case "zero":
+    case "intro":
+      v1.putNote("intro",message);
+      break;
+    case "rules":
+      v1.putNote("rules",message);
+      break;
+    }
+  }
   message="";
   
   if ( r.hasOwnProperty("picks") ) {
     var rpp=r["picks"];
-    if ( rpp["A"] ) { drawPicks("A",rpp["A"],ticks["A"]); }
+    if ( rpp["A"] ) { v1.drawPicks("A",rpp["A"],v1.ticks["A"]); }
     //alert( "!"+rpp.hasOwnProperty("B") );
     if ( rpp["B"] ) { 
       //alert(rpp["B"]);
-      drawPicks("B",rpp["B"],ticks["B"]); 
+      v1.drawPicks("B",rpp["B"],v1.ticks["B"]); 
     } 
   }
+  //alert("out "+gl.getStage());
+}
+
+function onStateStageChange(prevStage,stage,prevState,state) {
+  if ( stage == "ships" ) { processFinished(); }
+  if ( stage == "over" || stage == "aborted" ) { processFinished(); }
+  if ( (prevStage == "intro" || prevStage == "zero") && stage == "rules" ) { 
+    v1.clearNote("intro");
+    v1.initPicks();
+    processRegistration();
+    return;
+  }
+  if ( stage == "intro" && prevState=="zero" && state=="connecting" ) processRegistration();
 }
 
 // registration "event"
 function processRegistration() {
-  mySide=readCookie("side");
-  myName=readCookie("name");
-  enemySide=otherSide(mySide);
-  //alert("cookies side="+side+", name="+name+".");    readCookies();
-  ticks[mySide]="v";
-  ticks[enemySide]="x";
+  gl.pSide=readCookie("side");
+  gl.pName=readCookie("name");
+  gl.eSide=otherSide(gl.pSide);
+  //alert("cookies side="+gl.pSide+", name="+ngl.pName+".");
+  v1.ticks[gl.pSide]="v";
+  v1.ticks[gl.eSide]="x";
   poller.start();
-  clearPicks();
-  message=" connected ";
+  //v1.initPicks();// makes problems
+  v1.putNote("intro"," connected ");
 }
 
 // deal finished "event"
@@ -417,19 +664,26 @@ function processFinished() {
   poller.stop();// there will be one last call
 }
 
-$("resetButton").onclick=function() {
-  if ( state=="picking" || state=="converged" || state=="confirming" ) {
-    alert ("This button does not work in active state");
-    return false;
-  }
-  sendRequest("intro=abort");
-  deleteAllCookies();
-  poller.stop();
-  clearPicks();
-  $("nameA").innerHTML="";
-  $("nameB").innerHTML="";
-  return false;
-}
+// intro abort
+
+
+
+  var gl=new Global();
+  var v1=new View1();
+  v1.setClickHandlers();
+  var poller=new Poll();
+  var tm=new TopManager();
+  
+  
+  //alert(gl.getStage());
+  v1.clearNote(gl.getStage());
+  if ( window.hostname!="localhost" ) tm.go("intro","queryFull");
+
+  //v1.drawPicks("B",'{"firstMove":1,"forces":0}',"x");
+  
+  //gl.setStage("picking");
+  //alert(">"+gl.getStage());
+
 </script>
 </body>
 </html>

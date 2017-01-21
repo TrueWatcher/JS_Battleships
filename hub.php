@@ -133,8 +133,8 @@ class Intro extends DetachableController {
           $state=$d->getState();
           $this->inState=$state;
           $d->setTimeConnected();
-          $d->setState("converged");// default picks are equal
-          //$d->setState("picking");
+          if ($d->checkConverged()) $d->setState("converged");// default picks are equal
+          else $d->setState("picking");
           $d->setStage("rules");
           $db->saveGame($d,true);
           $hc::setCookie($cookie,$input["playerName"],"B",$d->getId());
@@ -168,6 +168,31 @@ class Intro extends DetachableController {
       $d->setStage("aborted");
       $db->saveGame($d,true);
       $r = $hc::noteState("Session aborted by user","aborted");
+      break;
+
+    case "queryFull":
+      if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
+        $r = $hc::noteState("Brand new session","zero");
+        break;
+      }
+      //$os=Game::getOtherSide($side);
+      $d=$hc::findRecord($db,$name,$side,$id);
+      $state=$d->getState();
+      $this->inState=$state;
+      // state noChange
+      $r = '{'.$d->exportPair( ["stage","state","players","picks"] ).'}';
+      switch ($state) {
+      case "finished":
+      case "aborted":
+        $note="Game is closed";
+        break;
+      case "zero":
+        throw new Exception ("queryFull on zero state");
+      default:
+        $note="Resuming session";
+        break;
+      }
+      $r=$hc::appendToJson($r,'"note":"'.$note.'"');
       break;
       
     default:
@@ -226,30 +251,6 @@ class Rules extends DetachableController {
       if ( $state == "finished" ) $r=$hc::appendToJson($r,'"note":"Done!"');
       if ( $state == "aborted" ) $r=$hc::appendToJson($r,'"note":"Session aborted by user"');
       break;
-    case "queryFull":
-      if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
-        $r = $hc::noteState("Brand new session","zero");
-        break;
-      }
-      //$os=Game::getOtherSide($side);
-      $d=$hc::findRecord($db,$name,$side,$id);
-      $state=$d->getState();
-      $this->inState=$state;
-      // state noChange
-      $r = '{'.$d->exportPair( ["stage","state","players","picks"] ).'}';
-      switch ($state) {
-      case "finished":
-      case "aborted":
-        $note="Game is closed";
-        break;
-      case "zero":
-        throw new Exception ("queryFull on zero state");
-      default:
-        $note="Resuming session";
-        break;
-      }
-      $r=$hc::appendToJson($r,'"note":"'.$note.'"');
-      break;
     case "updPick":
       if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
         $r = $hc::fail("Please, register");
@@ -295,7 +296,7 @@ class Rules extends DetachableController {
         break;
       }
       if ( $state=="picking" ) {
-        $r = $hc::fail("Answers are different, go on bargaining", $state);
+        $r = $hc::fail("Answers are different or empty, go on bargaining", $state);
         break;
       }
       if ( $state=="converged" ) {
@@ -598,6 +599,11 @@ class Game {
   public $moves=["A"=>"{}","B"=>"{}"];
   public $movesTotal=0;
   
+  function __construct() {
+    $defaultPicks='{"firstMove":0,"forces":0}';
+    $this->picks["A"]=$this->picks["B"]=$defaultPicks;
+  }
+  
   function setTimeInit() {
     $this->timeInit=time();
   }
@@ -747,63 +753,17 @@ class Game {
   function checkConverged() {
     $s0=self::$sides[0];
     $s1=self::$sides[1];
-    if ( $this->getPick($s0) === $this->getPick($s1) ) return true;
+    if ( $this->getPick($s0) === $this->getPick($s1) &&  strlen($this->getPick($s0)) > strlen("{}") ) return true;
     return false;
   }
   
 }
 
 // MAIN
-$c1=[];
-$i1=["intro"=>"register","playerName"=>"AAA","enemyName"=>"BBB"];
 
-$controller=new HubManager($i1,$c1,"DetachedHubHelper");
-$ret=$controller->go();
-echo($ret."\n");
-print_r($c1);
-RelaySqlt::destroy();
-unset($controller);
-
-$c2=[];
-$i2=["intro"=>"register","playerName"=>"BBB","enemyName"=>"AAA"];
-
-$controller=new HubManager($i2,$c2,"DetachedHubHelper");
-$ret=$controller->go();
-echo($ret."\n");
-print_r($c2);
-RelaySqlt::destroy();
-unset($controller);
-
-$i1=["rules"=>"queryFull"];
-
-$controller=new HubManager($i1,$c1,"DetachedHubHelper");
-$ret=$controller->go();
-echo($ret."\n");
-print_r($c1);
-RelaySqlt::destroy();
-unset($controller);
-
-$i2=["rules"=>"confirm"];
-$controller=new HubManager($i2,$c2,"DetachedHubHelper");
-$ret=$controller->go();
-echo($ret."\n");
-print_r($c2);
-RelaySqlt::destroy();
-unset($controller);
-
-$i1=[ "rules"=>"updPick", "pick"=>"{\"firstMove\":1}" ];
-
-$controller=new HubManager($i1,$c1,"DetachedHubHelper");
-$ret=$controller->go();
-echo($ret."\n");
-print_r($c1);
-RelaySqlt::destroy();
-unset($controller);
-
-
-/*
+$controller=new HubManager();
 $ret=$controller->go();
 //echo("Trace:".$controller->trace);
-exit($ret);
-*/
+print($ret);
+
 ?>
