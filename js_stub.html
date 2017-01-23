@@ -42,7 +42,7 @@ v.0.0.1 17.1.2016
   </p>
 </div>
 <p id="introNote">Turn on JavaScript !!!</p>
-</div>
+
 <div id="rules">
   <table id="picksTable" class="boardLike">
     <tr>
@@ -76,14 +76,45 @@ v.0.0.1 17.1.2016
       <td id="forces_1_A"></td>
       <td id="forces_1_B"></td>
     </tr>
+        <tr>
+      <td colspan="3">Strikes per move</td>
+    </tr>
     <tr>
+      <td>one plus extra one for each hit</td>
+      <td id="strikeRule_0_A"></td>
+      <td id="strikeRule_0_B"></td>
+    </tr>
+    <tr>
+      <td>as many as is the size of the biggest alive ship</td>
+      <td id="strikeRule_1_A"></td>
+      <td id="strikeRule_1_B"></td>
+    </tr>
+        <tr>
+      <td colspan="3">Difficulty</td>
+    </tr>
+    <tr>
+      <td>full</td>
+      <td id="level_0_A"></td>
+      <td id="level_0_B"></td>
+    </tr>
+    <tr>
+      <td>easy</td>
+      <td id="level_1_A"></td>
+      <td id="level_1_B"></td>
+    </tr>
+    <tr>
+      <td>cheat</td>
+      <td id="level_2_A"></td>
+      <td id="level_2_B"></td>
+    </tr>
+    <!--<tr>
       <td colspan="3">Confirm and go on</td>
     </tr>
     <tr>
       <td>ready</td>
       <td id="confirm_0_A"></td>
       <td id="confirm_0_B"></td>
-    </tr>
+    </tr>-->
     <tr>
       <td colspan="3"><button id="confirmButton" type="button">Confirm and go on</button></td>
     </tr>
@@ -92,598 +123,71 @@ v.0.0.1 17.1.2016
 </div>
 <div id="tech"></div>
 
-<script>
-"use strict";
-// utility functions
-function $(id) {
-  return( document.getElementById(id) );
-}
+<div id="main">
+<p>Here comes Page2</p>
+<table id="general">
+<tbody>
+  <tr>
+    <td id="playerLabel"></td>
+    <td id="enemyLabel"></td>
+  </tr>
+  <tr>
+    <td id="primary"></td>
+    <td id="tracking"></td>
+  </tr>
+  <tr>
+    <td><div  id="prPanel">
+      <button type="button" id="confirmShips">Done, let's play</button>
+      <button type="button" id="removeShips">Clear</button>
+      <button type="button" id="autoShips">Auto arrange</button>
+    </div></td>
+    <td id="trPanel"></td>
+  </tr>
+  <tr>
+    <td id="playerStat"></td>
+    <td id="enemyStat"></td>
+  </tr>
+  <tr>
+    <td id="playerMsg"></td>
+    <td id="enemyMsg"></td>
+  </tr>
+</tbody>
+</table>
+</div>
+<script src="page1.js" type="text/javascript"></script>
+<script type="text/javascript">
+//MAIN ----------------------------
+  // from Page2::index.html
+  const DIM=10;
+  //var g;//=new Game();
+  var v={};//=new View
+  var m={};//=new Model();
+  var e={},p={},a={};
 
-function TdIterator() {
+  //alert("l="+window.location+" hn="+window.location.hostname);
 
-  if ( this.l ) { // prevent repeated instantiation
-    this.i=0;
-    return this;
-  }
-  
-  this.list=makeList( $("picksTable") );
-
-  function makeList(parent) {
-    var list=[];
-    list=parent.querySelectorAll("td[id]");
-    //alert(list.length);
-    return list;
-  }
-  
-  this.l=this.list.length;
-  this.i=0;
-  
-  this.go=function() {
-    var ret=false;
-    if ( this.i >= this.l ) {
-      this.i=0;
-      return false;
-    }
-    ret=this.list[ this.i ];
-    this.i+=1;
-    return ret;
-  }
-}
-
-function detectTd(event) {
-  event = event || window.event;
-  var target = event.target || event.srcElement;
-
-  while(target.nodeName != 'TABLE') {
-    if (target.nodeName == 'TD') { return (target.id); }
-    target = target.parentNode;
-  }
-  return (false);
-}
-
-function readCookie(name) {
-// http://stackoverflow.com/questions/14573223/set-cookie-and-get-cookie-with-javascript
-  var nameEQ = name + "=";
-  var ca = document.cookie.split(';');
-  for(var i=0;i < ca.length;i++) {
-    var c = ca[i];
-    while (c.charAt(0)==' ') c = c.substring(1,c.length);
-    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-  }
-  return null;
-}
-
-function deleteAllCookies() {
-// http://stackoverflow.com/questions/179355/clearing-all-cookies-with-javascript
-  var cookies = document.cookie.split(";");
-
-  for (var i = 0; i < cookies.length; i++) {
-      var cookie = cookies[i];
-      var eqPos = cookie.indexOf("=");
-      var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
-  }
-}
-
-function otherSide(side) {
-  if (side=="A") return ("B");
-  if (side=="B") return ("A");
-  throw new Error("otherSide: wrong argument:"+side+"!");
-}
-
-// timer utility
-function Poll(millisecs) {
-  if ( !millisecs ) millisecs=10000;
-  this.handler=null;
-  var _this=this;
-  
-  this.start=function() {
-    if (!this.handler) {
-      this.handler=window.setInterval(poll,millisecs);
-      //alert("Poller started");
-    }
-  }
-  
-  this.stop=function() {
-    //alert("Poller stopped");
-    window.clearInterval(this.handler);
-    this.handler=null;
-  }
-}
-
-// AJAX utilities
-function sendRequest (queryString) {
-  if (!queryString) throw new Error ("sendRequest: empty query string");
-  var responderUrl="hub.php";
-
-  //alert("Request to be sent to "+responderUrl+"?"+queryString);
-  //return false;
-  
-  var req=new XMLHttpRequest();
-  
-  //req.open("GET",responderUrl+"?"+queryBase+"&"+queryString); // GET
-  req.open("POST",responderUrl,true); // POST
-  
-  req.setRequestHeader("Content-Type","application/x-www-form-urlencoded");// for POST; should go _after_ req.open!
-  
-  req.onreadystatechange=function () { receive(req); };// both
-  
-  //var q=req.send(null); // GET
-  var q=req.send(queryString); // POST
-  
-  //$("noteIntro").innerHTML="Connecting ...";
-}
-
-function receive(oReq) {
-  var note="";
-  if (oReq.readyState == 4) {
-    if(oReq.status==200) {
-      var t=oReq.responseText;
-      $("tech").innerHTML=" full response:<br />"+t;
-      var responseObj=JSON.parse(t);
-      processResponse(responseObj);
-    }
-  }
-}
-
-  function Global() {     
-    this.online="online";
-    var _stage="zero";
-    var _stagesAllowed=["zero", "intro", "rules", "init", "ships", "fight", "finished"];
-    var _statesAllowed=["zero","connecting", "picking", "confirming", "converged", "aborted", "finished", "ships"];
-    var _state="zero";
-    this.pSide="";
-    this.pName="";
-    this.eSide="";
-    this.eName="";
-    this.namesEP={};
-    this.namesAB={};
-    this.theme="ascii";
-    this.message="";
-    this.picks={};
-    
-    this.setStage=function(stage) {
-      if (_stagesAllowed.indexOf(stage)<0 ) throw new Error("Global::setStage: invalid value "+stage);
-      _stage=stage;
-      return(_stage);
-    };
-
-    this.getStage=function() {
-      return(_stage);
-    };
-    
-    this.setState=function(state) {
-      if (_statesAllowed.indexOf(state)<0 ) throw new Error("Global::setState: invalid value "+state);
-      _state=state;
-      return(state);
-    };
-
-    this.getState=function() {
-      return(_state);
-    };
-    
-    this.setNames=function(pn,en) {
-      if (!pn || !en || pn==en) throw new Error("Global::setNames: empty or equal argument(s)");
-      this.pName=pn;
-      this.eName=en;
-      this.namesEP={"p":pn,"e":en};
-      
-    };
-    
-    this.clearNames=function() {
-      this.pName=this.eName="";
-      this.names={};    
-    }
-    
-  }
-  
-  function TopManager() {
-    var stageControllers = { "local":{"intro":Intro,"rules":RulesLocal},
-                            "online":{"intro":Intro,"rules":RulesOnline} };
-    
-    function getStageController(aOnline,aStage) {
-      if (!aStage || aStage=="zero") aStage="intro";
-      var sc=stageControllers[aOnline][aStage];
-      if (!sc) throw new Error ("Failed to find the stage controller for "+aOnline+" and "+aStage+"!");
-      return sc;
-    }
-    /**
-     * Main entry point to every controller affair.
-     */
-    this.go=function(aStage,command,data) {
-      var gs=gl.getStage();
-      if( gs=="zero" ) gs=gl.setStage("intro");
-    
-      if ( aStage!==gs && command!=="queryFull" && command!=="queryPick" && command!=="abort" ) { 
-        alert("Command ("+command+") stage is "+aStage+", global is "+gs+"!");
-        return false;
-      }
-      var Sc=getStageController(gl.online,aStage);
-      var sc=new Sc();
-      //sc=new Intro();
-      var r = sc.go(command,data);
-    }    
-  }
-  
-  function Intro() {
-  
-    function deleteAllCookies() {
-    // http://stackoverflow.com/questions/179355/clearing-all-cookies-with-javascript
-      var cookies = document.cookie.split(";");
-
-      for (var i = 0; i < cookies.length; i++) {
-          var cookie = cookies[i];
-          var eqPos = cookie.indexOf("=");
-          var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      }
-    }
-  
-    this.go = function(command,data) {
-      var qs="";
-      var names={};
-      
-      switch (command) {
-      case "register":
-        gl.online="online";
-        gl.theme=v1.readTheme();
-        names=v1.getNames();
-        gl.setNames(names.p,names.e);
-        qs="intro=register"+"&playerName="+names.p+"&enemyName="+names.e;
-        sendRequest(qs);
-        break;
-      case "abort":
-        v1.clearNames();
-        gl.clearNames();
-        if (gl.online=="online") {
-          sendRequest("intro=abort");
-          deleteAllCookies();
-        }
-        poller.stop();
-        break;
-      case "playLocally":
-        gl.online="local";
-        gl.theme=v1.readTheme();
-        names=v1.getNames();
-        gl.setNames(names.p,names.e);
-        gl.pSide="A";
-        gl.eSide="B";
-        v1.ticks={A:"v",B:"x"};
-        gl.setStage("rules");
-        v1.initPicks();
-        gl.setState("converged");
-        break;
-      case "queryFull":        
-        sendRequest("intro=queryFull");
-        break;
-      default:
-        throw new Error("Intro::go: unknown command:"+command+"!");
-      }
-    }
-  }
-  
-  function RulesOnline() {
-  
-    this.go = function(command,data) {
-      var qs="",myPicks="";
-      switch (command) {
-      case "updPick":
-        //alert("updPick "+data);
-        var details={};
-        var id=data;
-        if (!id) break;
-        details=v1.parsePickId(id);
-        if ( details.side==gl.pSide ) {
-          v1.tickHtml(id);
-          myPicks=v1.readPicks(gl.pSide);
-          if ( !myPicks ) return false; 
-          qs="rules=updPick&pick="+myPicks;
-          sendRequest(qs);     
-        }
-        //alert("myPicks:"+myPicks);
-        break;
-      case "queryPick":
-        sendRequest("rules=queryPick");
-        break;
-      case "confirm":
-        myPicks=v1.readPicks(gl.pSide);
-        if ( !myPicks ) break;
-        var otherPicks=v1.readPicks(gl.eSide);
-        if ( myPicks!==otherPicks ) {
-          alert ("You answers are different from your opponent's, go on bargaining");
-          break;
-        }
-        v1.putNote("rules","Almost done...");
-        qs="rules=confirm&pick="+myPicks;
-        sendRequest(qs);
-        break;
-      default:
-        throw new Error("RulesOnline::go: unknown command:"+command+"!");
-      }      
-    }  
-  }
-  
-  function RulesLocal() {
-  
-    this.go=function() { alert("RulesLocal"); };
-  
-  }
-  
-  function View1() {
-  
-    this._theme="ascii";
-    
-    this.readTheme=function() {
-      if ( $("theme1").checked ) this._theme="icons1";
-      return (this._theme);
-    };
-    
-    this.ticks={A:"a",B:"b"};
-    
-    this.clearNames=function() {
-      $("nameA").innerHTML="";
-      $("nameB").innerHTML="";
-    };
-    
-    this.putNames=function(nA,nB) {
-      if (!nA || !nB) throw new Error("View1::putNames: empty argument(s) 1:"+nA+",2:"+nB+"!");
-      $("nameA").innerHTML=nA;
-      $("nameB").innerHTML=nB;    
-    }
-    
-    this.getNames=function() {
-      var pn=$("playerName").value;
-      var en=$("enemyName").value;
-      if (!pn || !en) {
-        alert("Please, give your name and other player's name");
-        return false;
-      }
-      if ( en!=="Local Script" && pn==="You" ) {
-        alert("Please, give your name, which must be known to the other player");
-        return false;
-      }
-      return({ "p":pn, "e":en });
-    };
-    
-    this.putNote=function(stage,note) {
-      if (!note) note=gl.message;
-      if (!stage || stage=="zero") stage="intro";
-      var id=stage+"Note";
-      $(id).innerHTML=note;
-    };
-    
-    this.clearNote=function(stage) {
-      if (!stage || stage=="zero") stage="intro";
-      var id=stage+"Note";
-      $(id).innerHTML="";      
-    };
-    
-    this.tickHtml=function(id,itemName,row,side) {
-      var el;
-      if (id) el=$(id); 
-      else el=$(itemName+"_"+row+"_"+side);
-      var val=el.innerHTML;
-      var tickSymbol="v";
-      if ( !val ) el.innerHTML=tickSymbol;
-      else el.innerHTML="";
-    };
-
-    this.parsePickId=function(id) {
-      var parts=[];
-      if (!id) throw new Error ("parsePickId: empty argument");
-      parts=id.split("_");
-      if ( !parts[0] || !parts[1] || !parts[2] ) throw new Error ("parsePickId: invalid argument:"+id+"!");
-      return ( { itemName : parts[0], row: parts[1], side: parts[2] } );
-    };
-    
-    this.readPicks=function (side) {
-      var ti=new TdIterator();
-      var td, parts={}, res=[], pair='"key":val', json="{}";
-      var joined="";
-      
-      while ( td=ti.go() ) {
-        //alert (">"+td.id);
-        parts=this.parsePickId(td.id);
-        if (parts.side==side && td.innerHTML) {
-          joined=res.join(",");
-          if ( joined.indexOf(parts.itemName) >= 0 ) { 
-            alert("Please, select only one answer on each issue");
-            return false;
-          }
-          else {
-            pair='"'+parts.itemName+'":'+parts.row;
-            res.push(pair);
-          }
-        }
-      }
-      //if ( res.length==0 ) throw new Error("readPicks: no picks found");
-      json="{"+res.join(",")+"}";
-      //alert("picked:"+json);
-      return json;
-    }
-
-    this.drawPicks=function(side,json,symbol) {
-      var pairs={};
-      if ( json instanceof Object ) pairs=json;
-      else pairs=JSON.parse(json);  
-      var ti=new TdIterator();
-      var td, parts={};
-      while ( td=ti.go() ) {
-        parts=this.parsePickId(td.id);
-        if ( parts.side==side ) {
-          if ( parts.itemName && pairs[parts.itemName] == parts.row ) td.innerHTML=symbol;
-          else td.innerHTML="";      
-        }
-      }
-    }
-
-    this.initPicks=function() {
-      alert("initPicks "+gl.getStage());
-      var ti=new TdIterator();
-      var td,parts;
-      while ( td=ti.go() ) { //td.innerHTML=""; }
-      // default is 0th, skip "confirm"
-        parts=this.parsePickId(td.id);
-        //alert(parts.itemName);
-        if ( parts.itemName != "confirm" ) {
-          //alert(ticks[parts.side]);
-          if ( parts.row==0 ) td.innerHTML=this.ticks[parts.side];
-          else td.innerHTML="";
-        }
-      }
-    }
-        
-    //----- event handlers -----
-    this.setClickHandlers=function() {
-      // submit username form
-      $("connectButton").onclick=function() { tm.go("intro","register"); return false; }
-
-      // click on an answer
-      $("picksTable").onclick=function(event) {
-        if (gl.getState == "connecting") {
-          alert("Please, wait for connect");
-          return false;
-        }
-        var tdId=detectTd(event);
-        if (tdId) tm.go("rules","updPick",tdId);
-        return false;
-      }
-
-      // click on CONFIRM button
-      $("confirmButton").onclick=function() { tm.go("rules","confirm"); return false; };
-
-      $("resetButton").onclick=function() {
-        /*if ( gl.getState()=="picking" || gl.getState()=="converged" || gl.getState()=="confirming" ) {
-          alert ("This button does not work in active state");
-          return false;
-        }*/
-        tm.go("intro","abort");
-        return false;
-      };
-
-      $("localButton").onclick=function() { tm.go("intro","playLocally"); return false; };
-    };
-
-  }// end View1
-   
-    
-
-// timer "event"
-// rules queryPick
-function poll() { tm.go("rules","queryPick"); }
-
-// AJAX response ready "event"
-// passive View with some "events" attached
-function processResponse(r) {
-  var stage,state,currentStage,currentState;
-  var message="";
-  stage=currentStage=gl.getStage();
-  state=currentState=gl.getState();
-  //alert("in "+gl.getStage());
-  
-  if ( r["stage"] ) { 
-    stage=gl.setStage(r["stage"]);
-  }
-  if ( r["state"] ) { 
-    state=gl.setState(r["state"]);
-  }
-  if ( stage != currentStage || state != currentState ) onStateStageChange(currentStage,stage,currentState,state);
-
-  if ( r["players"] ) {
-    //processRegistration();
-    var rp=r["players"];
-    v1.putNames(rp["A"],rp["B"]);
-    if ( rp[gl.pSide] != gl.pName ) throw new Error("My name is "+gl.pName+" in the cookie and "+rp[gl.pSide]+" in the response!");
-  }
-  
-  if ( r["error"] ) {
-    message+=" Error! ";
-  }
-  
-  if ( r["note"] ) {
-    message+=r["note"];
-  }
-  else {
-    message=" ";
-  }
-  
-  if (message || true) {
-    switch (stage) {
-    case "":
-    case "zero":
-    case "intro":
-      v1.putNote("intro",message);
-      break;
-    case "rules":
-      v1.putNote("rules",message);
-      break;
-    }
-  }
-  message="";
-  
-  if ( r.hasOwnProperty("picks") ) {
-    var rpp=r["picks"];
-    if ( rpp["A"] ) { v1.drawPicks("A",rpp["A"],v1.ticks["A"]); }
-    //alert( "!"+rpp.hasOwnProperty("B") );
-    if ( rpp["B"] ) { 
-      //alert(rpp["B"]);
-      v1.drawPicks("B",rpp["B"],v1.ticks["B"]); 
-    } 
-  }
-  //alert("out "+gl.getStage());
-}
-
-function onStateStageChange(prevStage,stage,prevState,state) {
-  if ( stage == "ships" ) { processFinished(); }
-  if ( stage == "over" || stage == "aborted" ) { processFinished(); }
-  if ( (prevStage == "intro" || prevStage == "zero") && stage == "rules" ) { 
-    v1.clearNote("intro");
-    v1.initPicks();
-    processRegistration();
-    return;
-  }
-  if ( stage == "intro" && prevState=="zero" && state=="connecting" ) processRegistration();
-}
-
-// registration "event"
-function processRegistration() {
-  gl.pSide=readCookie("side");
-  gl.pName=readCookie("name");
-  gl.eSide=otherSide(gl.pSide);
-  //alert("cookies side="+gl.pSide+", name="+ngl.pName+".");
-  v1.ticks[gl.pSide]="v";
-  v1.ticks[gl.eSide]="x";
-  poller.start();
-  //v1.initPicks();// makes problems
-  v1.putNote("intro"," connected ");
-}
-
-// deal finished "event"
-function processFinished() {
-  //alert("FIN");
-  poller.stop();// there will be one last call
-}
-
-// intro abort
-
-
-
-  var gl=new Global();
+  var g=new Global();
   var v1=new View1();
   v1.setClickHandlers();
   var poller=new Poll();
   var tm=new TopManager();
   
   
-  //alert(gl.getStage());
-  v1.clearNote(gl.getStage());
-  if ( window.hostname!="localhost" ) tm.go("intro","queryFull");
+  //alert(g.getStage());
+  v1.clearNote( g.getStage() );
+  if ( window.location.hostname ) tm.go("intro","queryFull");
 
   //v1.drawPicks("B",'{"firstMove":1,"forces":0}',"x");
   
-  //gl.setStage("picking");
-  //alert(">"+gl.getStage());
+  //g.setStage("picking");
+  //alert(">"+g.getStage());
 
 </script>
+<script src="arrayUtils.js" type="text/javascript"></script>
+<script src="View.js" type="text/javascript"></script>
+<script src="Basin.js" type="text/javascript"></script>
+<script src="Model.js" type="text/javascript"></script>
+<script src="Harvester.js" type="text/javascript"></script>
+<script src="controller.js" type="text/javascript"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
  * @constructor
  * @param {object Game|nothing} g
  */
-function RulesForm(g) {
+/*function RulesForm(g) {
   if (!g) return; // View() is used in unit tests, they don't need this form
   var rf="";
   rf+='<label for="playerName">Your name :</label>';
@@ -46,7 +46,7 @@ function RulesForm(g) {
   this.toggle=function() {
     toggleElement(this._e);
   };
-}
+}*/
 
 /**
  * Defines the strategy to display board cells. This one uses simple ASCII chars.
@@ -143,6 +143,7 @@ function Board(parentElm,command,prefix,fill,theme) {
    * @see putToElement
    */
   function makeGrid(prefix) { // private method
+    //alert("Board::makeGrid");
     var row,col;
     var td,tr,table="";
     for (row=0;row<DIM;row++) {
@@ -185,8 +186,10 @@ function Board(parentElm,command,prefix,fill,theme) {
   parentElm.onclick=function(event) {
     //alert (event.target.nodeName);
     var tdId=detectTd(event);// closure
+    var data=[ tdId.charAt(1),tdId.charAt(2) ];
     //alert (tdId);
-    go ( command, [ tdId.charAt(1),tdId.charAt(2) ] );
+    var stage=g.getStage();
+    if ( stage=="ships" || stage=="fight" ) tm.go ( stage, command, data );
   };
 
   this.put=function(what,row,col) {
@@ -235,14 +238,18 @@ function Board(parentElm,command,prefix,fill,theme) {
  * @see toggleElement
  */
 function DrawControls() {
-  var dc="";
-  dc+='<button type="button" id="confirmShips" onclick="go('+"'cs'"+')" >'+"Done, let's play"+'</button>';
-  dc+='<button type="button" id="removeShips" onclick="go('+"'rs'"+')" >'+"Clear"+'</button>';
-  dc+='<button type="button" id="autoShips" onclick="go('+"'as'"+')" >'+"Auto"+'</button>';
+  //alert("DrawControls");
+  /*var dc="";
+  dc+='<button type="button" id="confirmShips" onclick="tm.go("ships",'+"'cs'"+')" >'+"Done, let's play"+'</button>';
+  dc+='<button type="button" id="removeShips" onclick="tm.go("ships",'+"'rs'"+')" >'+"Clear"+'</button>';
+  dc+='<button type="button" id="autoShips" onclick="tm.go("ships",'+"'as'"+')" >'+"Auto"+'</button>';*/
+  $("confirmShips").onclick=function(){ tm.go("ships","cs"); return false; };
+  $("removeShips").onclick=function(){ tm.go("ships","rs"); return false; };
+  $("autoShips").onclick=function(){ tm.go("ships","as"); return false; };
 
   this._e=document.getElementById("prPanel");
-  this._e.innerHTML=dc;
-  this._e.style.display="none";
+  //this._e.innerHTML=dc;
+  //this._e.style.display="none";
 
   this.toggle=function() {
     toggleElement(this._e);
@@ -329,7 +336,7 @@ StatPanel.prototype.showClearHistogram=function(histogram,id) {
 }
 
 function View(game) {
-  if (game) this.rf=new RulesForm(game);// View() is used in unit tests that don't need rulesForm
+  //if (game) this.rf=new RulesForm(game);// View() is used in unit tests that don't need rulesForm
 
   this.dc=new DrawControls();
 
@@ -347,8 +354,14 @@ function View(game) {
     this.pb=new Board( "primary","set","p","e",myTheme );
     this.tb=new Board( "tracking","strike","e","u",myTheme );
   };
-
+  
   if (!game) this.setBoards("ascii");// View() is used in unit tests
+  
+  this.putNames=function() {
+    if (!game) return;
+    putToElement(game.pName,"playerLabel");
+    putToElement(game.eName,"enemyLabel");
+  }
 }
 
 

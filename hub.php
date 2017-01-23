@@ -96,28 +96,51 @@ class Intro extends DetachableController {
     
     switch ($act) {
     case "register":
-      $cookiePresent=$hc::readCookie($cookie,$junk,$junk,$junk);
-      if (!$cookiePresent) { 
+      //$cookiePresent=$hc::readCookie($cookie,$junk,$junk,$junk);
+      //if (!$cookiePresent) { 
         if ( empty($input["playerName"]) || empty($input["playerName"]) ) {
           $r = $hc::fail("Missing name(s)");
           break;
         }
         // look for open deal records (with state=="connecting")
-        $open = $db->findByOpponent($input["playerName"]);
+        $open = $db->findOpenByB($input["playerName"]);
         //echo("found record:".$open.".");
         if ( $open===false ) {
-          $d=new Game();
-          $this->inState = "null";
-          $pn=$input["playerName"];
-          $d->setName("A",$pn);
-          $d->setName("B",$input["enemyName"]);
-          $d->setTimeInit();
-          $d->setState("connecting");
-          $d->setStage("intro");
-          $newId = $db->saveGame($d);
-          $hc::setCookie($cookie,$pn,"A",$newId);
-          $r = '{'.$d->exportPair( ["stage","state","players"] ).'}';
-          break;
+          $activeAB = $db->findActiveByAB ( $input["playerName"], $input["enemyName"] );
+          $activeBA = $db->findActiveByAB ( $input["enemyName"], $input["playerName"] );
+          if ($activeAB || $activeBA) {
+            if ($activeAB && $activeBA) {
+              $r = $hc::fail("There are two active games with this players");
+              break;
+            }
+            if ($activeAB) $arr = $db->readGame($activeAB);
+            else $arr = $db->readGame($activeBA);
+            if ( !$arr ) {
+              throw new Exception ("Something is wrong with record #".$open."!");
+            }
+            $d=new Game();
+            $d->import($arr);
+            if ($activeAB) { $hc::setCookie($cookie,$input["playerName"],"A",$d->getId()); }
+            else { $hc::setCookie($cookie,$input["playerName"],"B",$d->getId()); }
+            // reply like to queryFull
+            $r = '{'.$d->exportPair( ["stage","state","players","picks"] ).'}';
+            $r=$hc::appendToJson($r,'"note":"Re-registered to a saved game (id='.$d->getId().')"');
+            break; 
+          }
+          else {
+            $d=new Game();
+            $this->inState = "null";
+            $pn=$input["playerName"];
+            $d->setName("A",$pn);
+            $d->setName("B",$input["enemyName"]);
+            $d->setTimeInit();
+            $d->setState("connecting");
+            $d->setStage("intro");
+            $newId = $db->saveGame($d);
+            $hc::setCookie($cookie,$pn,"A",$newId);
+            $r = '{'.$d->exportPair( ["stage","state","players"] ).'}';
+            break;
+          }
         }
         else {
           $arr = $db->readGame($open);
@@ -141,11 +164,11 @@ class Intro extends DetachableController {
           $r = '{'.$d->exportPair( ["stage","state","players"] ).'}';
           break;
         }
-      }
-      else {
-        $r = $hc::fail("You are already registered");
-        break;
-      }
+      //}
+      //else {
+      //  $r = $hc::fail("You are already registered");
+      //  break;
+      //}
       throw new Exception ("Wrong state/command ".$state."/".$act."!");
     
     case "abort":
@@ -170,7 +193,7 @@ class Intro extends DetachableController {
       $r = $hc::noteState("Session aborted by user","aborted");
       break;
 
-    case "queryFull":
+    case "queryFull":// actually this should belong to the "zero" stage
       if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
         $r = $hc::noteState("Brand new session","zero");
         break;
@@ -559,10 +582,21 @@ class RelaySqlt extends RelayDb {
     return($arr);
   }
   
-  function findByOpponent($name) {
-    $qFindB="SELECT id FROM '".self::$table."' WHERE state='connecting' AND ( nB=:nB )";// OR nA=;nA)
-    $stmt=parent::$relayDbo->prepare($qFindB);
-    $stmt->bindValue(':nB',$name,SQLITE3_TEXT);
+  function findOpenByB($nameB) {
+    $qFindOpenB="SELECT id FROM '".self::$table."' WHERE state='connecting' AND ( nB=:nB )";// OR nA=;nA)
+    $stmt=parent::$relayDbo->prepare($qFindOpenB);
+    $stmt->bindValue(':nB',$nameB,SQLITE3_TEXT);
+    $result = $stmt->execute();
+    $found = $result->fetchArray();
+    if (!$found) return false;
+    return($found[0]);
+  }
+  
+  function findActiveByAB($nameA,$nameB) {
+    $qFindActiveAB="SELECT id FROM '".self::$table."' WHERE (stage<>'finished') AND (stage <>'aborted') AND state<>'finished' AND state<>'aborted'  AND nA=:nA AND nB=:nB"; 
+    $stmt=parent::$relayDbo->prepare($qFindActiveAB);
+    $stmt->bindValue(':nA',$nameA,SQLITE3_TEXT);
+    $stmt->bindValue(':nB',$nameB,SQLITE3_TEXT);
     $result = $stmt->execute();
     $found = $result->fetchArray();
     if (!$found) return false;
@@ -600,7 +634,7 @@ class Game {
   public $movesTotal=0;
   
   function __construct() {
-    $defaultPicks='{"firstMove":0,"forces":0}';
+    $defaultPicks='{"firstMove":0,"forces":0,"strikeRule":0,"level":0}';
     $this->picks["A"]=$this->picks["B"]=$defaultPicks;
   }
   

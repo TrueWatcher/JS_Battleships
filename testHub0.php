@@ -32,7 +32,7 @@ $i2=["intro"=>"register","playerName"=>"BBB","enemyName"=>"AAA"];
 
 page($i2,$c2);
 
-$i1=["rules"=>"queryFull"];
+$i1=["intro"=>"queryFull"];
 
 page($i1,$c1);
 
