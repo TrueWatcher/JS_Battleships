@@ -1,52 +1,4 @@
 "use strict";
-/**
- * Form to set up some game settings.
- * @constructor
- * @param {object Game|nothing} g
- */
-/*function RulesForm(g) {
-  if (!g) return; // View() is used in unit tests, they don't need this form
-  var rf="";
-  rf+='<label for="playerName">Your name :</label>';
-  rf+='<input type="text" name="playerName" id="playerName" value="You" />';
-  rf+="&nbsp; &nbsp;";
-  rf+='<label for="enemyName">Your opponent'+"'"+'s name :</label>';
-  rf+='<input type="text" name="enemyName" id="enemyName" value="Local Script" />';
-  rf+='<br />';
-  rf+='Ships (squares:quantity) : ';
-  var his1=StatPanel.prototype.showClearHistogram(g.forces1,"return");
-  rf+=his1+'<input type="radio" name="forces" id="forces1" value="'+1+'" checked="checked" />';
-  rf+="&nbsp; &nbsp;";
-  var his2=StatPanel.prototype.showClearHistogram(g.forces2,"return");
-  rf+=his2+'<input type="radio" name="forces" id="forces2" value="'+2+'" />';
-  rf+='<br />';
-  rf+='Strikes per move : ';
-  rf+="one plus extra one for each hit"+'<input type="radio" name="strikes" id="strikes1" value="'+"oe"+'" checked="checked" />';
-  rf+="&nbsp; &nbsp;";
-  rf+="as many as is the size of the biggest alive ship"+'<input type="radio" name="strikes" id="strikes2" value="'+"bs"+'" />';
-  rf+='<br />';
-  rf+='Difficulty : ';
-  rf+="cheat"+'<input type="radio" name="level" id="level1" value="'+"cheat"+'" />';
-  rf+="&nbsp; &nbsp;";
-  rf+="easy"+'<input type="radio" name="level" id="level2" value="'+"easy"+'" />';
-  rf+="&nbsp; &nbsp;";
-  rf+="full"+'<input type="radio" name="level" id="level3" value="'+"full"+'" checked="checked" />';
-  rf+='<br />';
-  rf+='Theme : ';
-  rf+="icons"+'<input type="radio" name="theme" id="theme1" value="'+"icons"+'" checked="checked" />';
-  rf+="&nbsp; &nbsp;";
-  rf+="ascii chars"+'<input type="radio" name="theme" id="theme2" value="'+"ascii"+'" />';
-  rf+='<br />';
-  rf+='<p style="text-align: center;"><input type="submit" value="Done" /></p>';
-  rf='<form action="javascript:;" onsubmit="go();return (false);"><div>'+rf+'</div></form>';
-
-  this._e=document.getElementById("rulesForm");
-  this._e.innerHTML=rf;
-
-  this.toggle=function() {
-    toggleElement(this._e);
-  };
-}*/
 
 /**
  * Defines the strategy to display board cells. This one uses simple ASCII chars.
@@ -238,17 +190,11 @@ function Board(parentElm,command,prefix,fill,theme) {
  * @see toggleElement
  */
 function DrawControls() {
-  //alert("DrawControls");
-  /*var dc="";
-  dc+='<button type="button" id="confirmShips" onclick="tm.go("ships",'+"'cs'"+')" >'+"Done, let's play"+'</button>';
-  dc+='<button type="button" id="removeShips" onclick="tm.go("ships",'+"'rs'"+')" >'+"Clear"+'</button>';
-  dc+='<button type="button" id="autoShips" onclick="tm.go("ships",'+"'as'"+')" >'+"Auto"+'</button>';*/
   $("confirmShips").onclick=function(){ tm.go("ships","cs"); return false; };
   $("removeShips").onclick=function(){ tm.go("ships","rs"); return false; };
   $("autoShips").onclick=function(){ tm.go("ships","as"); return false; };
 
   this._e=document.getElementById("prPanel");
-  //this._e.innerHTML=dc;
   //this._e.style.display="none";
 
   this.toggle=function() {

@@ -238,12 +238,12 @@ function Global() {
       this._activeAB="B";
     }
     else { if( picks.firstMove !== 0 ) throw new Error("setRules:invalid firstMove="+picks.firstMove) }
-    if ( picks.forces === 1 ) _forces=this.forces1;
+    if ( picks.forces === 1 ) _forces=this.forces2;
     else { if( picks.forces !== 0 ) throw new Error("setRules:invalid forces="+picks.forces) }
     if ( picks.strikeRule === 1 ) this._strikeRule=_strikes2;
     else { if( picks.strikeRule !== 0 ) throw new Error("setRules:invalid strikeRule="+picks.strikeRule) }
     if ( picks.level ===1 ) _level=1;
-    if ( picks.level ===2 ) _level=2;
+    else if ( picks.level ===2 ) _level=2;
     else { if( picks.level !== 0 ) throw new Error("setRules:invalid level="+picks.level) }
     switch (_level) {
       case 2:
@@ -380,9 +380,12 @@ function Intro() {
     var names={};
     
     switch (command) {
+    case "setTheme": 
+      g._theme=v1.applyTheme();
+      break;
     case "register":
       g.online="online";
-      g._theme=v1.readTheme();
+      g._theme=v1.applyTheme();
       names=v1.getNames();
       g.setNames(names.p,names.e);
       qs="intro=register"+"&playerName="+names.p+"&enemyName="+names.e;
@@ -399,12 +402,13 @@ function Intro() {
       break;
     case "playLocally":
       g.online="local";
-      g._theme=v1.readTheme();
+      g._theme=v1.applyTheme();
       names=v1.getNames();
       g.setNames( names.p, "Local Script" );//names.e);
       g.pSide="A";
       g.eSide="B";
       v1.putNames( g.getName("A"), g.getName("B") );
+      v1.applyTheme();
       v1.ticks={A:"v",B:"x"};
       g.setStage("rules");
       v1.initPicks();
@@ -433,6 +437,7 @@ function RulesOnline() {
       if (!id) break;
       details=v1.parsePickId(id);
       if ( details.side==g.pSide ) {
+        v1.clearGroup(details.itemName, details.row, details.side);
         v1.tickHtml(id);
         myPicks=v1.readPicks(g.pSide);
         if ( !myPicks ) return false; 
@@ -475,6 +480,7 @@ function RulesLocal() {
       if (!id) break;
       details=v1.parsePickId(id);
       if ( details.side==g.pSide ) {
+        v1.clearGroup(details.itemName, details.row, details.side);
         v1.tickHtml(id);
         myPicks=v1.readPicks(g.pSide);
         // copy picked items to enemy side
@@ -506,7 +512,7 @@ function RulesLocal() {
   };
   
   function onTransitToPage2() {
-    v1.putNote("rules","Loading more scripts");
+    v1.putNote("rules","Loading page 2");
     //alert("Running page 2");
     //g=g;//new Game();
     
@@ -583,7 +589,7 @@ function ShipsLocal() {
       }
       ph=m.playerShips.makeHistogram();
       wh=g.getForces();
-      if( ph.join()!=wh.join() ) {
+      if( ph.join() != wh.join() ) {
         mes="The rules require <br />(squares:ships): ";
         mes+=v.ps.showClearHistogram(wh,"return");
         mes+='<br />Your ships does not comply';
@@ -602,7 +608,7 @@ function ShipsLocal() {
       //v.dc.toggle();// hide controls
       //v.ps.toggle();
       //v.es.toggle();        
-      v.pm.add("<br />Make your move!");
+      
       g.setStage("fight");
       
       if( typeof e != "object") throw new Error("ShipsLocal::go: e is not the global object!");
@@ -617,6 +623,14 @@ function ShipsLocal() {
         p._clip.load();
         e._clip.load();
       }
+      
+      if (g._active=="p") { v.pm.add("<br />Make your move!"); }
+      else if (g._active=="e" ) { 
+        v.em.add("Enemy has first move");
+        a.setEnemy();
+        e.strike();
+      } 
+      else throw new Error ("Invalid active side:"+g._active+"!");
     }
     return;
   };
@@ -667,206 +681,6 @@ function FightLocal() {
     return;    
   }
 }
-
-
-function View1() {
-
-  this._theme="ascii";
-  
-  this.readTheme=function() {
-    if ( $("theme1").checked ) this._theme="icons1";
-    return (this._theme);
-  };
-  
-  this.ticks={A:"a",B:"b"};
-  
-  this.clearNames=function() {
-    $("nameA").innerHTML="";
-    $("nameB").innerHTML="";
-  };
-  
-  this.putNames=function(nA,nB) {
-    if (!nA || !nB) throw new Error("View1::putNames: empty argument(s) 1:"+nA+",2:"+nB+"!");
-    $("nameA").innerHTML=nA;
-    $("nameB").innerHTML=nB;    
-  };
-  
-  this.getNames=function() {
-    var pn=$("playerName").value;
-    var en=$("enemyName").value;
-    if (!pn || !en) {
-      alert("Please, give your name and other player's name");
-      return false;
-    }
-    if ( en!=="Local Script" && pn==="You" ) {
-      alert("Please, give your name, which must be known to the other player");
-      return false;
-    }
-    return({ "p":pn, "e":en });
-  };
-  
-  this.putNote=function(stage,note) {
-    if (!note) note=g.message;
-    if (!stage || stage=="zero") stage="intro";
-    var id=stage+"Note";
-    $(id).innerHTML=note;
-  };
-  
-  this.clearNote=function(stage) {
-    if (!stage || stage=="zero") stage="intro";
-    var id=stage+"Note";
-    $(id).innerHTML="";      
-  };
-  
-  this.tickHtml=function(id,itemName,row,side) {
-    var el;
-    if (id) el=$(id); 
-    else el=$(itemName+"_"+row+"_"+side);
-    var val=el.innerHTML;
-    var tickSymbol="v";
-    if ( !val ) el.innerHTML=tickSymbol;
-    else el.innerHTML="";
-  };
-
-  this.parsePickId=function(id) {
-    var parts=[];
-    if (!id) throw new Error ("parsePickId: empty argument");
-    parts=id.split("_");
-    if ( !parts[0] || !parts[1] || !parts[2] ) throw new Error ("parsePickId: invalid argument:"+id+"!");
-    return ( { itemName : parts[0], row: parts[1], side: parts[2] } );
-  };
-  
-  this.readPicks=function (side) {
-    var ti=new TdIterator($("picksTable"));
-    var td, parts={}, res=[], pair='"key":val', json="{}";
-    var joined="";
-    
-    while ( td=ti.go() ) {
-      //alert (">"+td.id);
-      parts=this.parsePickId(td.id);
-      if (parts.side==side && td.innerHTML) {
-        joined=res.join(",");
-        if ( joined.indexOf(parts.itemName) >= 0 ) { 
-          alert("Please, select only one answer on each issue");
-          return false;
-        }
-        else {
-          pair='"'+parts.itemName+'":'+parts.row;
-          res.push(pair);
-        }
-      }
-    }
-    //if ( res.length==0 ) throw new Error("readPicks: no picks found");
-    json="{"+res.join(",")+"}";
-    //alert("picked:"+json);
-    return json;
-  };
-
-  this.drawPicks=function(side,json,symbol) {
-    var pairs={};
-    if ( json instanceof Object ) pairs=json;
-    else pairs=JSON.parse(json);  
-    var ti=new TdIterator($("picksTable"));
-    var td, parts={};
-    while ( td=ti.go() ) {
-      parts=this.parsePickId(td.id);
-      if ( parts.side==side ) {
-        if ( parts.itemName && pairs[parts.itemName] == parts.row ) td.innerHTML=symbol;
-        else td.innerHTML="";      
-      }
-    }
-  };
-
-  this.initPicks=function() {
-    //alert("initPicks "+g.getStage());
-    var ti=new TdIterator($("picksTable"));
-    var td,parts;
-    while ( td=ti.go() ) { //td.innerHTML=""; }
-    // default is 0th, skip "confirm"
-      parts=this.parsePickId(td.id);
-      //alert(parts.itemName);
-      if ( parts.itemName != "confirm" ) {
-        //alert(ticks[parts.side]);
-        if ( parts.row==0 ) td.innerHTML=this.ticks[parts.side];
-        else td.innerHTML="";
-      }
-    }
-  };
-      
-  //----- event handlers -----
-  this.setClickHandlers=function() {
-    // submit username form
-    $("connectButton").onclick=function() { tm.go("intro","register"); return false; };
-
-    // click on an answer
-    $("picksTable").onclick=function(event) {
-      if (g.getState == "connecting") {
-        alert("Please, wait for connect");
-        return false;
-      }
-      var tdId=detectTd(event);
-      if (tdId) tm.go("rules","updPick",tdId);
-      return false;
-    };
-
-    // click on CONFIRM button
-    $("confirmButton").onclick=function() { tm.go("rules","confirm"); return false; };
-
-    $("resetButton").onclick=function() {
-      /*if ( g.getState()=="picking" || g.getState()=="converged" || g.getState()=="confirming" ) {
-        alert ("This button does not work in active state");
-        return false;
-      }*/
-      tm.go("intro","abort");
-      return false;
-    };
-
-    $("localButton").onclick=function() { tm.go("intro","playLocally"); return false; };
-  };
-  
-  this.consumeServerResponse=function(r) {
-    if ( typeof r !== "object" ) throw new Error ("View1::consumeServerResponse : non-object argument");
-    if ( r["players"] ) {
-      //processRegistration();
-      var rp=r["players"];
-      v1.putNames(rp["A"],rp["B"]);
-      //if ( rp[g.pSide] != g.pName ) throw new Error("My name is "+g.pName+" in the cookie and "+rp[g.pSide]+" in the response!");
-    }
-    var message="";
-    if ( r["error"] ) {
-      message+=" Error! ";
-    }
-    if ( r["note"] ) {
-      message+=r["note"];
-    }
-    else {
-      message=" ";
-    }
-    if (message || true) {
-      switch ( g.getStage() ) {
-      case "":
-      case "zero":
-      case "intro":
-        v1.putNote("intro",message);
-        break;
-      case "rules":
-        v1.putNote("rules",message);
-        break;
-      }
-    }
-    message="";
-    if ( r.hasOwnProperty("picks") ) {
-      var rpp=r["picks"];
-      if ( rpp["A"] ) { this.drawPicks("A",rpp["A"],this.ticks["A"]); }
-      //alert( "!"+rpp.hasOwnProperty("B") );
-      if ( rpp["B"] ) { 
-        //alert(rpp["B"]);
-        this.drawPicks("B",rpp["B"],this.ticks["B"]); 
-      } 
-    }
-  };
-
-}// end View1
    
 // timer "event"
 function onPoll() { tm.go("rules","queryPick"); }

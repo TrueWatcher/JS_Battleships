@@ -38,3 +38,8 @@ td.f {
   font-weight: bold;
   color: rgb(240,32,32);
 }
+
+.pl { 
+  color: #005f5f;
+  border-color: #000;
+}
