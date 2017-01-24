@@ -1,6 +1,5 @@
 
 function ClassThemeV1(themedir,stylesheet,table,View,pSide,eSide) {
-  var instance=null;
   if (instance) { return (instance); }
   this.label="classTheme1";
   var l;
@@ -42,7 +41,7 @@ function ClassThemeV1(themedir,stylesheet,table,View,pSide,eSide) {
     }
   };
   
-  instance=this;
+  var instance=this;
 }
 
 function DummyTheme() {
@@ -237,6 +236,13 @@ function View1() {
     };
 
     $("localButton").onclick=function() { tm.go("intro","playLocally"); return false; };
+
+    $("moreButton").onclick=function() { tm.go("finish","more"); return false; };
+    
+    $("newButton").onclick=function() { tm.go("finish","new"); return false; };
+    
+    $("quitButton").onclick=function() { tm.go("finish","quit"); return false; };
+    
   };
   
   this.consumeServerResponse=function(r) {

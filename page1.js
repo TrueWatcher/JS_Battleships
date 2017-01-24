@@ -53,6 +53,7 @@ function TdIterator(tableElement) {
   }
 }
 
+
 function detectTd(event) {
   event = event || window.event;
   var target = event.target || event.srcElement;
@@ -144,8 +145,8 @@ function receive(oReq) {
 function Global() {     
   this.online="online";
   var _stage="zero";
-  var _stagesAllowed=["zero", "intro", "rules", "init", "ships", "fight", "finished","finish","aborted"];
-  var _statesAllowed=["zero","connecting", "picking", "confirming", "converged", "aborted", "finished", "ships","init"];
+  var _stagesAllowed=["zero", "intro", "rules", "init", "ships", "fight", "finish","aborted"];
+  var _statesAllowed=["zero","connecting", "picking", "confirming", "converged", "aborted", "finish", "ships","init"];
   var _state="zero";
   this.pSide="";
   this.pName="";
@@ -259,15 +260,22 @@ function Global() {
     
     this.picksObj=picks;
   };
+  
+  this.exportSettings=function() {
+    var r={
+      activeAB:this._activeAB, forces:_forces, strikeRule:this._strikeRule, demandEqualForces:this._demandEqualForces, previewEnemyShips:this._previewEnemyShips
+    };
+    return (JSON.stringify(r));
+  }
 }
 
 function TopManager() {
-  var stageControllers = { "local":{ "intro":Intro, "rules":RulesLocal, "ships":ShipsLocal, "fight":FightLocal },
+  var stageControllers = { "local":{ "intro":Intro, "rules":RulesLocal, "ships":ShipsLocal, "fight":FightLocal, "finish":FinishLocal },
                           "online":{"intro":Intro,"rules":RulesOnline} };
   
   function getStageController(aOnline,aStage) {
-    if (!aStage || aStage=="zero") aStage="intro";
-    var sc=stageControllers[aOnline][aStage];
+    if ( !aStage || aStage=="zero" ) aStage="intro";
+    var sc = stageControllers [aOnline] [aStage];
     if (!sc) throw new Error ("Failed to find the stage controller for "+aOnline+" and "+aStage+"!");
     return sc;
   }
@@ -354,8 +362,8 @@ function TopManager() {
     v1.putNote("intro"," connected ");
   }
 
-  // deal finished "event"
-  function onFinished() {
+  // deal finish "event"
+  function onFinish() {
     //alert("FIN");
     poller.stop();// there will be one last call
   }
@@ -504,14 +512,14 @@ function RulesLocal() {
       g.setRules(myPicks);
       g.setStage("ships");
       //g.setState("draw");
-      onTransitToPage2();
+      this.initPage2();
       break;
     default:
       throw new Error("RulesOnline::go: unknown command:"+command+"!");
     }
   };
   
-  function onTransitToPage2() {
+  this.initPage2=function() {
     v1.putNote("rules","Loading page 2");
     //alert("Running page 2");
     //g=g;//new Game();
@@ -624,7 +632,10 @@ function ShipsLocal() {
         e._clip.load();
       }
       
-      if (g._active=="p") { v.pm.add("<br />Make your move!"); }
+      if (g._active=="p") {
+        v.pm.add("<br />Make your move!"); 
+        a.setPlayer();
+      }
       else if (g._active=="e" ) { 
         v.em.add("Enemy has first move");
         a.setEnemy();
@@ -669,19 +680,42 @@ function FightLocal() {
     }
     // fall-through
 
-    //case "finish":
+    //g.getState() == "finish":
     if (g._active=="p") {
       g._winner="p";
       v.pm.put('<span class="'+"win"+'">YOU HAVE WON !');
     }
     else {
-      g._winner="p";
+      g._winner="e";
       v.em.put('<span class="'+"lose"+'">ENEMY HAS WON !');
     }
     return;    
   }
 }
-   
+
+function FinishLocal() {
+  this.go=function(command,data) {
+    switch (command) {
+    case "quit":
+      window.close();
+      alert("You may close the browser window at any time");
+      break;
+    case "more":
+      //alert("g._active="+g._active);
+      // Active::swap leaves g._active=winning side
+      var rl=new RulesLocal();
+      rl.initPage2();
+      break;
+    case "new":
+      g=new Global();
+      g.setStage("intro");
+      g.setState("zero");
+      break;
+    }
+  }
+  
+}
+
 // timer "event"
 function onPoll() { tm.go("rules","queryPick"); }
 
