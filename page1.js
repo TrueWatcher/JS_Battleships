@@ -261,9 +261,9 @@ function Global() {
     this.picksObj=picks;
   };
   
-  this.exportSettings=function() {
+  this.exportRules=function() {
     var r={
-      activeAB:this._activeAB, forces:_forces, strikeRule:this._strikeRule, demandEqualForces:this._demandEqualForces, previewEnemyShips:this._previewEnemyShips
+      firstActiveAB:this._activeAB, forces:_forces, strikeRule:this._strikeRule, demandEqualForces:this._demandEqualForces, previewEnemyShips:this._previewEnemyShips
     };
     return (JSON.stringify(r));
   }

@@ -1,8 +1,11 @@
 <?php
+// The server part of Battleships game.
+// By TrueWatcher, Jan 2016
 // v.0.0.3 decoupled HubManager from input and cookie, added trace
 //   0.0.4 fixed '"{\"' in Game::exportPair
 //   0.0.5 refactoring: new classes Intro and Rules 
 //   0.0.6 minimal unit tests
+//   2.0.4 add stage Ships
 
 /**
  * Allows for calling controller with mock input and cookie arrays.
@@ -23,7 +26,7 @@ abstract class DetachableController {
     $this->helperClass = $hc;
   }
   
-  abstract function go();
+  abstract function go($action);
 }
 
 /**
@@ -34,6 +37,7 @@ abstract class DetachableController {
 class HubManager extends DetachableController {
 
   public $trace="";
+  public $act="";
   
   function track($subj) {
     $separator=">";
@@ -47,7 +51,7 @@ class HubManager extends DetachableController {
 
   public static $stageClasses=["intro"=>"Intro", "rules"=>"Rules", "ships"=>"Ships", "fight"=>"Fight", "adm"=>"Adm"];
   
-  function go() {
+  function go($action) {
     $input=$this->input;
     $cookie = & $this->cookie;
     $hc=$this->helperClass;
@@ -66,8 +70,14 @@ class HubManager extends DetachableController {
     }
     $sc = self::$stageClasses [$stage];
     $stageController = new  $sc($input,$cookie,$hc);
-    $r = $stageController->go();
-    $this->track( [ $stage, $stageController->inState, $stageController->act, $stageController->outState, $hc::collectKeys2($r) ] );
+    if ( isset($input[$stage]) ) {
+      $this->act = $input[$stage];
+    }
+    
+    $r = $stageController->go($this->act);
+    
+    //$r=$hc::appendToJson($r,'"stage":"'.$this->stage.'"');
+    $this->track( [ $stage, $stageController->inState, $this->act, $stageController->outState, $hc::collectKeys2($r) ] );
     $r=$hc::appendToJson($r,'"trace":"'.$this->trace.'"');
     return($r);    
   }
@@ -75,23 +85,17 @@ class HubManager extends DetachableController {
 
 class Intro extends DetachableController {
   
-  function go() {
+  function go($act) {
     $input=$this->input;
     $cookie = & $this->cookie;
     $hc=$this->helperClass;
   
     $junk=null;
-    $name=$side=$id="";
+    $name=$side=$id=$otherSide="";
     $state="*";
     $r=null;
 
     //print_r($cookie);
-    $act="";
-    if ( isset($input["intro"]) ) {
-      $act=$input["intro"];
-      $this->act=$act;
-    }
-    
     $db=new RelaySqlt(true);
     
     switch ($act) {
@@ -129,7 +133,7 @@ class Intro extends DetachableController {
           }
           else {
             $g=new Game();
-            $this->inState = "null";
+            $this->inState = "zero";
             $pn=$input["playerName"];
             $g->setName("A",$pn);
             $g->setName("B",$input["enemyName"]);
@@ -193,17 +197,18 @@ class Intro extends DetachableController {
       $r = $hc::noteState("Session aborted by user","aborted");
       break;
 
-    case "queryFull":// actually this should belong to the "zero" stage
+    case "queryAll":
       if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
         $r = $hc::noteState("Brand new session","zero");
         break;
       }
-      //$os=Game::getOtherSide($side);
+      $otherSide=Game::getOtherSide($side);
       $g=$hc::findRecord($db,$name,$side,$id);
       $state=$g->getState();
       $this->inState=$state;
       // state noChange
-      $r = '{'.$g->exportPair( ["stage","state","players","picks"] ).'}';
+      $r = '{'.$g->exportPair( ["state","players","picks","rules","ships"] ).'}';
+      // stage will be added anyway
       switch ($state) {
       case "finish":
       case "aborted":
@@ -223,6 +228,9 @@ class Intro extends DetachableController {
       break;
     }// end switch
     
+    if (isset($g) && is_object($g)) $resStage=$g->getStage();
+    else $resStage="?";
+    $r = $hc::appendToJson( $r, '"stage":"'.$resStage.'"' );
     if (isset($g) && is_object($g)) $resState=$g->getState();
     else $resState="?";
     $this->outState=$resState;
@@ -232,60 +240,49 @@ class Intro extends DetachableController {
 
 class Rules extends DetachableController {
    
-  function go() {
+  function go($act) {
     $input=$this->input;
     $cookie = & $this->cookie;
     $hc=$this->helperClass;
   
-    $junk=null;
-    $name=$side=$id="";
+    $name=$side=$id=$otherSide="";
     $state="*";
     $r=null;
 
     //print_r($cookie);
-    $act="";
-    if ( isset($input["rules"]) ) {
-      $act=$input["rules"];
-      $this->act=$act;
-    }
     
     $db=new RelaySqlt(true);
     
+    if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
+      $r = $hc::fail("Please, register");
+      break;
+    }
+    $otherSide=Game::getOtherSide($side);
+    $g=$hc::findRecord($db,$name,$side,$id);
+    $state=$g->getState();
+    $this->inState=$state;
+    
     switch ($act) {
+    
     case "queryPick":
-      $cookiePresent=$hc::readCookie($cookie,$name,$side,$id);
-      if ($cookiePresent!=3) {
-        $r = $hc::fail("Please, register");
-        break;
-      }
-      $os=Game::getOtherSide($side);
-      $g=$hc::findRecord($db,$name,$side,$id);
-      $state=$g->getState();
-      $this->inState=$state;
       if ( $state == "connecting" ) {
-        $note='Waiting for another player '.$g->getName($os);
+        $note='Waiting for another player '.$g->getName($otherSide);
         $r = $hc::noteState($note,$state);
         break;
       }
       // state noChange      
-      $r='{"picks":{"'.$os.'":'.$g->getPick($os).'}}';// quotes around Pick make problems for FF
-      $r=$hc::appendToJson($r,$g->exportPair(["stage","state"]));
-      if ( $state == "confirming" && $g->isActive($side) ) $r=$hc::appendToJson($r,'"note":"Waiting for '.$g->getName($os).'"');
+      $r='{"picks":{"'.$otherSide.'":'.$g->getPick($otherSide).'}}';// quotes around Pick make problems for FF
+      $r=$hc::appendToJson($r,$g->exportPair(["state"]));
+      if ( $state == "confirming" && $g->isActive($side) ) $r=$hc::appendToJson($r,'"note":"Waiting for '.$g->getName($otherSide).'"');
       if ( $state == "finish" ) $r=$hc::appendToJson($r,'"note":"Done!"');
       if ( $state == "aborted" ) $r=$hc::appendToJson($r,'"note":"Session aborted by user"');
       break;
+      
     case "updPick":
-      if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
-        $r = $hc::fail("Please, register");
-        break;
-      }
       if (!$input["pick"]) {
         $r = $hc::fail("No data found");
         break;
       }
-      $g=$hc::findRecord($db,$name,$side,$id);
-      $state=$g->getState();
-      $this->inState=$state;
       if ( ! in_array ( $state, ["picking","converged","confirming"] ) ) {
         $r = '{"note":"No update allowed in the state '.$state.'"}';
         break;
@@ -302,18 +299,11 @@ class Rules extends DetachableController {
       $db->saveGame($g,true);
       //print_r($db->readGame($g->getId()));
       // return value same as queryPick
-      $os=Game::getOtherSide($side);
-      $r='{"picks":{"'.$os.'":'.$g->getPick($os).'}}';
-      $r=$hc::appendToJson($r,$g->exportPair(["stage","state"]));
+      $r='{"picks":{"'.$otherSide.'":'.$g->getPick($otherSide).'}}';
+      $r=$hc::appendToJson($r,$g->exportPair(["state"]));
       break;
+      
     case "confirm":
-      if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
-        $r = $hc::fail("Please, register");
-        break;
-      }
-      $g=$hc::findRecord($db,$name,$side,$id);
-      $state=$g->getState();
-      $this->inState=$state;
       if ( in_array ( $state, ["connecting","finish"] ) ) {
         $r = '{"note":"No confirmation allowed in the state '.$state.'"}';
         break;
@@ -333,7 +323,7 @@ class Rules extends DetachableController {
         $g->setActive($side);
         $g->setState("confirming");
         $db->saveGame($g,true);
-        $r = '{'.$g->exportPair(["stage","state"]).'}';
+        $r = '{'.$g->exportPair(["state"]).'}';
         break;
       }
       if ( $state=="confirming" ) {
@@ -343,10 +333,10 @@ class Rules extends DetachableController {
           break;
         }
         else {
-          $g->setState("finish");
+          $g->setState("ships");
           $g->setStage("ships");
           $db->saveGame($g,true);
-          $r=$hc::noteState("Done!",$state);
+          $r=$hc::noteState("Done! Now draw your ships",$state);
           // add picks ?
           break;
         }
@@ -358,6 +348,9 @@ class Rules extends DetachableController {
       break;
     }// end switch
     
+    if (isset($g) && is_object($g)) $resStage=$g->getStage();
+    else $resStage="?";
+    $r = $hc::appendToJson( $r, '"stage":"'.$resStage.'"' );
     if (isset($g) && is_object($g)) $resState=$g->getState();
     else $resState="?";
     $this->outState=$resState;
@@ -365,6 +358,222 @@ class Rules extends DetachableController {
 
   }
 }
+
+class Ships extends DetachableController {
+   
+  function go($act) {
+    $input=$this->input;
+    $cookie = & $this->cookie;
+    $hc=$this->helperClass;
+  
+    $name=$side=$id=$otherSide="";
+    $state="*";
+    $r=null;
+
+    //print_r($cookie);
+    
+    $db=new RelaySqlt(true);
+    
+    if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
+      $r = $hc::fail("Please, register");
+      break;
+    }
+    $otherSide=Game::getOtherSide($side);
+    $g=$hc::findRecord($db,$name,$side,$id);
+    $state=$g->getState();
+    $this->inState=$state;
+    
+    switch ($act) {
+    case "confirmShips":
+      if (!isset($input["rulesSet"]) || !isset($input["fleet"])) {
+        $r = $hc::fail("Missing input parameters");
+        break;
+      }
+      // page1.js Global::exportRules
+      if ($g->rules==="{}") {
+        $parsedRules=json_decode($input["rulesSet"],true);// true to return assoc array, not object
+        //var_dump($parsedRules);
+        // page1.js Global::exportRules
+        if (count($parsedRules)!=5) {
+          $r = $hc::fail("Wrong size of Rules array:".count($parsedRules));
+          break;
+        }
+        $g->rules = $input["rulesSet"];
+      }
+      else {
+        if ( $g->rules !== $input["rulesSet"] ) {
+          $r = $hc::fail("Value of Rules array is different from the already saved:".$input["rulesSet"]."/".$g->rules);
+          break;
+        } 
+        else {
+          $parsedRules=json_decode($input["rulesSet"],true);
+        }
+      } //else throw new Exception ("Something is wrong with rulesSet or saved");
+      
+      require_once("PlayHelper.php");
+      
+      $fleetModel=PlayHelper::validateFleet( $input["fleet"],$parsedRules );
+      if (!is_array($fleetModel)) {
+        $r = $hc::fail("Ships must be straight and not to touch each other. Try new ones.");
+        break;      
+      }
+      if ( !is_array($parsedRules["forces"]) ) throw new Exception("Wrong parameter forces in rulesSet");
+      if ( $parsedRules["demandEqualForces"] ) {
+        if (! PlayHelper::validateForces($fleetModel,$parsedRules["forces"]) )  {
+          $r = $hc::fail("Sizes of your ships does not comply with what is demanded by rules. Try new ones.");
+          break;
+        }
+      }
+      // finally OK
+      $g->ships[$side] = json_encode($fleetModel);
+      if ($state=="ships") {
+        $g->setState("confirmingShips");
+        $g->setActive($side);
+        $db->saveGame($g,true);
+        $r = $hc::noteState("Wait for your opponent ".$g->getName($otherSide),$state);
+        break;
+      } else if ($state=="confirmingShips" && $otherSide==$g->getActive()) {
+        $g->setStage("fight");
+        $g->setState("fight");
+        $fa=$parsedRules["firstActiveAB"];
+        if ( $fa!="A" && $fa!="B" ) $r = $hc::fail("Invalid first move side:".$fa);
+        $g->setActive($fa);
+        $g->clip = PlayHelper::loadClip($fa,$g);
+        $db->saveGame($g,true);
+        $r = $hc::noteState("Ready to fight",$state);
+        break;
+      } else if ($state=="confirmingShips" && $side==$g->getActive()) {
+        $db->saveGame($g,true);
+        $r = $hc::noteState("New ships accepted. Wait for your opponent",$state);
+        break;
+      }
+      else { throw new Exception ("Something is wrong with stage/state/active"); }
+    case "queryStage":
+      if ($state=="ships") {
+        $note="Draw your ships, then press Done";      
+      } else if ($state=="confirmingShips" && $otherSide==$g->getActive()) {
+        $note="Your opponent is ready and waiting for you";
+      } else if ($state=="confirmingShips" && $side==$g->getActive()) {
+        $note="Wait for your opponent";      
+      }
+      else { throw new Exception ( "Something is wrong with stage/state/active :".$g->getStage()."/".$g->getState()."/".$g->getActive() ); }
+      $r = $hc::noteState($note,$state);
+      break;
+    default:
+      $r = $hc::fail("Missing or invalid command:".$act."!", $state);
+      break;
+    }// end switch
+    
+    if (isset($g) && is_object($g)) $resStage=$g->getStage();
+    else $resStage="?";
+    $r = $hc::appendToJson( $r, '"stage":"'.$resStage.'"' );
+    if (isset($g) && is_object($g)) $resState=$g->getState();
+    else $resState="?";
+    $this->outState=$resState;
+    return $r;
+  }  
+}// end class Ships
+
+class Fight extends DetachableController {
+   
+  function go($act) {
+    $input=$this->input;
+    $cookie = & $this->cookie;
+    $hc=$this->helperClass;
+  
+    $name=$side=$id=$otherSide="";
+    $state="*";
+    $r=null;
+    $err=null;
+    $note="";
+
+    //print_r($cookie);
+    
+    $db=new RelaySqlt(true);
+    
+    if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
+      $r = $hc::fail("Please, register");
+      break;
+    }
+    $otherSide=Game::getOtherSide($side);
+    $g=$hc::findRecord($db,$name,$side,$id);
+    $state=$g->getState();
+    $this->inState=$state;
+    
+    switch ($act) {
+    case "strike":
+      if (!$input["rc"] || !$input["thisMove"]) {
+        $r = $hc::fail("Not enough data");
+        break;
+      }
+      if ($side !== $g->getActive()) {
+        $r = $hc::fail("Active side is ".$g->getActive());
+        break;
+      }
+      if ( $input["thisMove"] != $g->total+1 ) {
+        $r = $hc::fail("Moves count is ".$g->total);
+        break;
+      }
+      $point=json_decode($input["rc"]);
+      $valid0 = $point[0]===0 || ( $point[0]>=1 && $point[0]<=9 );
+      $valid1 = $point[1]===0 || ( $point[1]>=1 && $point[1]<=9 );
+      if (!$valid0 || !$valid1)  {
+        $r = $hc::fail("Invalid row or column in ".$input["rc"]);
+        break;
+      }
+      // the move is valid, adopt it
+      $g->total = $g->total + 1;
+      $g->clip = $g->clip - 1;
+      $sunk = "";
+      $fleetModel = json_decode ($g->ships[$otherSide],true);
+      $hit = PLayHelper::checkHit($point,$fleetModel);
+      
+      if (is_array($hit)) {
+        $sunk = json_encode($hit);
+        $hit="w";
+        $newFleetStat = PlayHelper::makeStat($fleetModel);
+        //var_dump($newFleetStat);
+        if ( PlayHelper::checkAllSunk($fleetModel) ) { 
+          $hit="f";
+          $g->setStage("finish");
+          $g->setState("finish");
+        }
+      }
+      
+      // define new active side and message to sending side
+      $handover=PlayHelper::defineActive($hit,$g,$note);
+      
+      // prepare data and save them
+      $moveSum=PlayHelper::encodeMove($g->total,$side,$point,$hit);
+      $g->moves[$side] = $g->moves[$side].",".$moveSum;
+      if ( in_array($hit,["h","w","f"]) ) {
+        $g->ships[$otherSide] = json_encode($fleetModel);  
+      }
+      $db->saveGame($g,true);
+      
+      // make response   
+      $r = '{"move":'.$moveSum.',"stat":'.'"NA"'.',"note":"'.$note.'"}';
+      if ($sunk) $r = $hc::appendToJson( $r, '"sunk":'.$sunk.'' );
+      $r = $hc::appendToJson( $r, $g->exportPair(["activeSide","clip"]) ); 
+      break;
+      
+    case "queryMoves":
+      break;
+   
+    default:
+      $r = $hc::fail("Missing or invalid command:".$act."!", $state);
+      break;
+    }// end switch
+    
+    if (isset($g) && is_object($g)) $resStage=$g->getStage();
+    else $resStage="?";
+    $r = $hc::appendToJson( $r, '"stage":"'.$resStage.'"' );
+    if (isset($g) && is_object($g)) $resState=$g->getState();
+    else $resState="?";
+    $this->outState=$resState;
+    return $r;
+  }
+}// end class Fight
 
 class HubHelper {
 
@@ -413,6 +622,10 @@ class HubHelper {
     return $r;
   }
   
+  /**
+   *
+   * @return {object Game}
+   */
   static function findRecord($db,$name,$side,$id) {
     $rec=$db->readGame($id);
     if (!$rec) throw new Exception("Wrong id:".$id."!");//return (false);
@@ -436,7 +649,9 @@ class HubHelper {
    */
   static function collectKeys2($json,$separator="_") {
     $keys=[];
-    $obj=json_decode($json);
+    //echo("==".$json."==");
+    $obj=json_decode($json,true);
+    //var_dump($obj);
     foreach( $obj as $k1=>$v1 ) {
       $keys[]=$k1;
       if ( is_array($v1) || is_object($v1) ) {
@@ -530,13 +745,14 @@ class RelaySqlt extends RelayDb {
       sB TEXT,
       mA TEXT,
       mB TEXT,
+      cl TEXT,
       mt TEXT
     )";
     $ret = parent::$relayDbo->exec($qCreateTable);
     //echo(">".$ret);
   }
 
-  protected static $dbKeys=["nA","nB","ti","tc","tf","af","stage","state","acs","pA","pB","rl","sA","sB","mA","mB","mt"];
+  protected static $dbKeys=["nA","nB","ti","tc","tf","af","stage","state","acs","pA","pB","rl","sA","sB","mA","mB","cl","mt"];
   
   public function saveGame(Game $g,$overwrite=false) {
     $arr=$g->serialize();
@@ -623,7 +839,7 @@ class Game {
   public $timeFinished=0;
   public $agendaFile="agenda.json";
   protected $stages=["zero","intro","rules","ships","fight","finish","aborted"];
-  protected $states=["zero","connecting","picking","converged","confirming","ships","confShips","fight","finish","aborted"];
+  protected $states=["zero","connecting","picking","converged","confirming","ships","confirmingShips","fight","finish","aborted"];
   protected $stage="zero";
   protected $state="zero";
   protected $activeSide="";
@@ -631,7 +847,8 @@ class Game {
   public $rules="{}";
   public $ships=["A"=>"{}","B"=>"{}"];
   public $moves=["A"=>"{}","B"=>"{}"];
-  public $movesTotal=0;
+  public $clip=0;
+  public $total=0;
   
   function __construct() {
     $defaultPicks='{"firstMove":0,"forces":0,"strikeRule":0,"level":0}';
@@ -734,7 +951,8 @@ class Game {
     $r["sB"]=$this->ships["B"];
     $r["mA"]=$this->moves["A"];
     $r["mB"]=$this->moves["B"];
-    $r["mt"]=$this->movesTotal;
+    $r["cl"]=$this->clip;
+    $r["mt"]=$this->total;
     return $r;
   }
   
@@ -757,7 +975,8 @@ class Game {
     $this->ships["B"]=$r["sB"];
     $this->moves["A"]=$r["mA"];
     $this->moves["B"]=$r["mB"];
-    $this->movesTotal=$r["mt"];
+    $this->clip=$r["cl"];
+    $this->total=$r["mt"];
   }
   
   function exportPair($keys) {
@@ -796,7 +1015,7 @@ class Game {
 // MAIN
 
 $controller=new HubManager();
-$ret=$controller->go();
+$ret=$controller->go(null);
 //echo("Trace:".$controller->trace);
 print($ret);
 
