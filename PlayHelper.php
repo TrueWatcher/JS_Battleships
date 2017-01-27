@@ -42,7 +42,7 @@ class PlayHelper {
   
   static function validateFleet($shipsJson) {
     $shipsArray=json_decode($shipsJson);
-    $fleetModel=["fleet"=>[],"afloat"=>null,"largest"=>null];
+    $fleetModel=[];
     // check margins like Fleet::checkMargins
     if (!is_array($shipsArray)) return ("Invalid data:".$shipsJson);
     foreach ($shipsArray as $ship0) {
@@ -60,16 +60,16 @@ class PlayHelper {
     foreach ($shipsArray as $ship) {
       $shipModel=[];
       foreach ($ship as $rc) { $shipModel[] = [ "rc"=>$rc, "h"=>0 ]; }
-      $fleetModel["fleet"][] = [ "sm"=>$shipModel, "s"=>0 ];
+      $fleetModel[] = [ "sm"=>$shipModel, "s"=>0 ];
     }
-    self::makeStat($fleetModel);
+    //self::makeFleetStat($fleetModel);
     return $fleetModel;
   }
   
-  static function makeHistogram($fleetModel) {
+  static function makeHistogram(Array $fleetModel) {
     $h=[0,0,0,0,0,0,0,0,0,0,0];// 11
-    if (!is_array($fleetModel["fleet"])) throw new Exception ("Failed to find shipModels array");
-    foreach ( $fleetModel["fleet"] as $shipModel ) {
+    //if (!is_array($fleetModel)) throw new Exception ("Failed to find shipModels array");
+    foreach ( $fleetModel as $shipModel ) {
       if ($shipModel["s"]===0) {
         $decks=count($shipModel["sm"]);
         $h[$decks]+=1;
@@ -78,7 +78,7 @@ class PlayHelper {
     return ($h);
   }
   
-  function makeStat(&$fleetModel) {
+  function makeFleetStat(&$fleetModel) {
     $stat=["afloat"=>0,"largest"=>0];
     $h=self::makeHistogram($fleetModel);
     for ($i=count($h)-1; $i>=0; $i--) {
@@ -88,8 +88,8 @@ class PlayHelper {
       }
     }
     for ($j=$i;$j>=0;$j--) { $stat["afloat"] += $h[$j]; }
-    $fleetModel["largest"] = $stat["largest"];
-    $fleetModel["afloat"] = $stat["afloat"];
+    //$fleetModel["largest"] = $stat["largest"];
+    //$fleetModel["afloat"] = $stat["afloat"];
     return ($stat);
   }
   
@@ -103,9 +103,11 @@ class PlayHelper {
   static function unwrapShip(Array $shipModel) {
   // @return ship
     $ship=[];
+    if (isset($shipModel["sm"])) $shipModel = $shipModel["sm"];// fleetUnit > shipModel
     //var_dump($shipModel);
     //var_dump($shipModel["sm"]);
-    if ( !is_array($shipModel) ) throw new Exception ("Failed to find points array");    
+    if ( !is_array($shipModel) ) throw new Exception ("Failed to find points array");
+    
     foreach($shipModel as $pointModel) {
       if ( !isset($pointModel["rc"]) || !is_array($pointModel["rc"]) ) throw new Exception ("Failed to find point");
       $ship[]=$pointModel["rc"];
@@ -113,10 +115,22 @@ class PlayHelper {
     return ($ship);
   }
   
-  static function checkHit($point,&$fleetModel) {
+  static function unwrapFleet($fleetModel) {
+    $r=[];
+    if ($fleetModel=="{}" || $fleetModel=="[]" || empty($fleetModel)) return $r;
+    if (is_string($fleetModel)) { $fleetModel=json_decode($fleetModel,true); }
+    if (!is_array($fleetModel)) throw new Exception ("Invalid fleetModel :".$fleetModel."!");
+    
+    foreach ($fleetModel as $fleetUnit) {
+      $r[]=self::unwrapShip($fleetUnit);
+    }
+    return ($r);
+  }
+  
+  static function checkHit ($point, &$fleetModel) {
     if (!is_array($point) || count($point)!=2) throw new Exception ("Invalid point");
     $hit="";
-    foreach ($fleetModel["fleet"] as &$fleetUnit) {
+    foreach ($fleetModel as &$fleetUnit) {
       $shipModel=&$fleetUnit["sm"];
       $sunk=&$fleetUnit["s"];// check the sunk ships also, result will be "n"
       $wounds=0;
@@ -137,7 +151,7 @@ class PlayHelper {
         }
       }// end of points cycle
       if ($hit) {
-        echo("hit ".$wounds." of ".$decks);
+        //echo(" hit ".$wounds." squares of ".$decks." " );
         if ($wounds==$decks) {
           $sunk=1;
           //return ("w");
@@ -150,31 +164,57 @@ class PlayHelper {
   }
   
   static function checkAllSunk($fleetModel) {
-    foreach ($fleetModel["fleet"] as $fleetUnit) {
+    foreach ($fleetModel as $fleetUnit) {
       $sunk=$fleetUnit["s"];
       if (!$sunk) return false;
     }
     return true;
   }
   
-  static function encodeMove ($count,$side,$rc,$result) {
+  static function makeStrikesStat($hit,$active,$statObj) {
+    if (!is_array($statObj)) $statObj=json_decode($statObj,true);
+    if (!$statObj) throw new Exception ("Wrong statObj :".$statObj."!");
+    $r=[];
+    $strikes = $statObj[$active]["strikes"] + 1;
+    $hits = $statObj[$active]["hits"];
+    if (in_array($hit,["h","w","f"])) $hits++;
+    $r["strikes"]=$strikes;
+    $r["hits"]=$hits;
+    return $r;
+  }
+  
+  static function addToStats(&$statObj,$side,Array $what) {
+    $count=0;
+    foreach ( ["strikes","hits","afloat","largest"] as $k ) {
+      if (isset($what[$k])) {
+        $statObj[$side][$k] = $what[$k];
+        $count++;
+      }
+    }
+    if (!$count) throw new Exception ("No valid keys");
+  }
+  
+  static function encodeMove ($count,$side,$rc,$result,$sunk=null) {
     // move = [ count, r, c, hit ]
     $r=[ $count, $side, $rc[0], $rc[1], $result ];
+    if ($sunk) $r[]=$sunk;
     return (json_encode($r));
     //return ( "[".implode(",",$r)."]" ); gives error because of m instead of "m"
   }
   
-  static function decodeMove ($entry,&$count,&$side,&$rc,&$result) {
-    $entry=susstr($entry, 1, strlen($entry)-2 );
-    $arr=explode(",",$entry);
+  static function decodeMove ($entry,&$count,&$side,&$rc,&$result,&$sunk) {
+    //$entry=susstr($entry, 1, strlen($entry)-2 );
+    $arr=json_decode($entry);
     $count=$arr[0];
     $side=$arr[1];
     $rc[0]=$arr[2];
     $rc[1]=$arr[3];
     $result=$arr[4];
+    if (isset($arr[5])) $sunk=$arr[5];
+    else $sunk=null;
   }
   
-  static function defineActive ( $hit, $g, &$noteToNowActive ) {
+  static function defineActive ( $hit, Game $g, &$noteToNowActive ) {
     if ($hit=="f") {
       $noteToNowActive="You have won !";
       return false;
@@ -182,44 +222,119 @@ class PlayHelper {
     $noteToNowActive="";
     $nowActive = $g->getActive();
     $newActive=$nowActive;
-    $clip = $g->clip;
     $strikeRule = json_decode( $g->rules, true ) ["strikeRule"];
     // add to clip ?
     if ( $strikeRule=="oe" && in_array($hit,["h","w"]) ) {
-      echo(" +1 move =".$clip);
-      $clip+=1;
-      $g->clip = $clip;
+      //echo(" +1 move =".$g->getClip());
+      $g->incClip();
     } 
     // change side ?
-    if ( $clip===0 ) {
+    if ( $g->getClip() === 0 ) {
       $newActive = Game::getOtherSide( $nowActive );
       $noteToNowActive="Enemy is striking";
-      $g->clip = self::loadClip($newActive,$g);
+      $g->setClip ( self::loadClip($newActive,$g) );
       $g->setActive ($newActive);
       return $newActive;
     }
     else { 
       if ($strikeRule=="oe") $noteToNowActive="You have hit the enemy, make an extra move";
-      else $noteToNowActive=$clip." strikes left";
+      else $noteToNowActive=$g->getClip()." strikes left";
     }
     // no change
     return false;
   }
   
-  static function loadClip($newActive,$g) {
+  static function loadClip ( $newActive, Game $g ) {
     $strikeRule = json_decode( $g->rules, true ) ["strikeRule"];
+    $stats = json_decode( $g->stats, true );
     if ( $strikeRule=="oe" ) { 
       $clip=1;
       //$note="Make your move";
     }
     else if ( $strikeRule=="bs" ) {
-      $fm = json_decode( $g->ships[$newActive], true );
-      $clip = $fm["largest"];
+      $clip = $stats [$newActive] ["largest"];
       //$note="Make your move";
     }
     else throw new Exception ("Wrong strikeRule:".$strikeRule."!");
     //$g->clip = $clip;
     return $clip;
+  }
+  
+  static function fullInfo($side,Game $g) {
+    $hc="HubHelper";
+    if (!class_exists($hc)) throw new Exception ("Include all dependencies");
+    $otherSide=Game::getOtherSide($side);
+    $err=null;
+    $r=null;
+    $note="";
+    $stage=$g->getStage();
+    $state=$g->getState();
+    switch ($stage) {
+    case "intro":
+      if ( $state=="intro" || ( $state=="connecting" && ! $g->isActive($side) ) ) { 
+        $err = "You should not be registered yet";
+        break;
+      } else if ($state=="connecting") {
+        $r = $hc::notePairs( "Wait for your opponent ".$g->getName($otherSide), $g, ["state", "players", "activeSide"] ); 
+        break;
+      } 
+      $err="Invalid stage/state :".$stage."/".$state."!";
+      break;
+      
+    case "rules":
+      if ( $state=="confirming" && $g->isActive($side) ) {
+        $r=$hc::notePairs("Wait for your opponent", $g, ["state","players","picks","rules"]);
+        break;
+      }
+      $r=$hc::notePairs("Make an agreement", $g, ["state","players","picks"]);
+      break;
+      
+    case "ships":
+      if ($state=="ships") {
+        $r = $hc::notePairs( "Draw your ships",$g,["state","picks"] );
+        break;
+      }
+      if ($state=="confirmingShips" && $g->isActive($otherSide) ) {
+        $r = $hc::notePairs( "Draw your ships, your opponent is ready",$g,["state","picks"] );
+        break;      
+      }
+      if ($state=="confirmingShips" && $g->isActive($side) ) {
+        $r = $hc::notePairs ($note, $g, ["state","picks","rules"]);
+        $yourFleet = PlayHelper::unwrapFleet ( $g->ships[$side] );
+        if (!is_array($yourFleet)) throw new Exception ("Failed to unwrap ships from ".$g->ships[$side]);
+        $yourFleetJson=json_encode($yourFleet);
+        $r = $hc::appendToJson( $r, '"fleet":{"'.$side.'":'.$yourFleetJson.'}' );
+        break;      
+      }
+      $err="Invalid stage/state :".$stage."/".$state."!";
+      break;
+      
+    case "fight":
+      if ( $g->isActive($side) ) { $note="Make your move"; }
+      else { $note="Enemy is striking"; }
+      $r = $hc::notePairs ( $note, $g, [ "state", "rules", "moves", "stats", "activeSide", "clip"] );
+      $yourFleet = PlayHelper::unwrapFleet ( $g->ships[$side] );
+      if ( ! is_array($yourFleet) ) throw new Exception ("Failed to unwrap ships from ".$g->ships[$side]);
+      $yourFleetJson=json_encode($yourFleet);
+      $r = $hc::appendToJson( $r, '"fleet":{"'.$side.'":'.$yourFleetJson.'}' );
+      break;
+      
+    case "finished":
+    case "aborted":
+      $r = $hc::noteState("Game is ".$stage."!",$state);
+      break;
+      
+    default:
+    
+      $err="Invalid stage/state :".$stage."/".$state."!";
+      break;
+    }
+    if (!$err && !$r) throw new Exception ("No error and no return value");
+    if ($err) {
+      $r = $hc::fail($err);
+    }
+    return ($r);
+  
   }
 }
 ?>

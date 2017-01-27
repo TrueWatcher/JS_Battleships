@@ -17,7 +17,7 @@ function page($input,&$cookie) {
   print("Input  : ".implode("+",$input)."\n");
   $controller=new HubManager($input,$cookie,"DetachedHubHelper");
   $ret=$controller->go(null);
-  print("Reply  :".$ret."\n");
+  print("Reply  : ".$ret."\n");
   print("Cookie : ".implode("+",$cookie)."\n");
   print("Trace  : ".$controller->trace."\n");
   RelaySqlt::destroy();
@@ -109,9 +109,17 @@ $i1=["fight"=>"strike", "thisMove"=>3, "rc"=>"[1,3]" ];
 
 page($i1,$c1);
 
+$i2=["fight"=>"queryMoves","latest"=>1];
+
+page($i2,$c2);
+
 $i1=["fight"=>"strike", "thisMove"=>4, "rc"=>"[9,9]" ];
 
 page($i1,$c1);
+
+$i2=["intro"=>"queryAll"];
+
+page($i2,$c2);
 
 $i1=["fight"=>"strike", "thisMove"=>5, "rc"=>"[7,9]" ];
 

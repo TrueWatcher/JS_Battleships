@@ -126,9 +126,9 @@ class Intro extends DetachableController {
             $g->import($arr);
             if ($activeAB) { $hc::setCookie($cookie,$input["playerName"],"A",$g->getId()); }
             else { $hc::setCookie($cookie,$input["playerName"],"B",$g->getId()); }
-            // reply like to queryFull
-            $r = '{'.$g->exportPair( ["stage","state","players","picks"] ).'}';
-            $r=$hc::appendToJson($r,'"note":"Re-registered to a saved game (id='.$g->getId().')"');
+            // reply like to queryAll
+            require_once("PlayHelper.php");
+            $r = PlayHelper::fullInfo($side,$g);
             break; 
           }
           else {
@@ -206,21 +206,8 @@ class Intro extends DetachableController {
       $g=$hc::findRecord($db,$name,$side,$id);
       $state=$g->getState();
       $this->inState=$state;
-      // state noChange
-      $r = '{'.$g->exportPair( ["state","players","picks","rules","ships"] ).'}';
-      // stage will be added anyway
-      switch ($state) {
-      case "finish":
-      case "aborted":
-        $note="Game is closed";
-        break;
-      case "zero":
-        throw new Exception ("queryFull on zero state");
-      default:
-        $note="Resuming session";
-        break;
-      }
-      $r=$hc::appendToJson($r,'"note":"'.$note.'"');
+      require_once ("PlayHelper.php");
+      $r = PlayHelper::fullInfo($side,$g);
       break;
       
     default:
@@ -438,7 +425,13 @@ class Ships extends DetachableController {
         $fa=$parsedRules["firstActiveAB"];
         if ( $fa!="A" && $fa!="B" ) $r = $hc::fail("Invalid first move side:".$fa);
         $g->setActive($fa);
-        $g->clip = PlayHelper::loadClip($fa,$g);
+        $g->setClip ( PlayHelper::loadClip($fa,$g) );
+        $stat = json_decode($g->stats,true);
+        PlayHelper::addToStats( $stat, $side, PlayHelper::makeFleetStat($fleetModel) );
+        $otherFleetModel = json_decode($g->ships[$otherSide] , true);
+        if (!is_array($otherFleetModel)) throw new Exception ("Failed to decode ships from ".$otherSide);
+        PlayHelper::addToStats( $stat, $otherSide, PlayHelper::makeFleetStat($otherFleetModel) );
+        $g->stats = json_encode($stat);
         $db->saveGame($g,true);
         $r = $hc::noteState("Ready to fight",$state);
         break;
@@ -502,6 +495,8 @@ class Fight extends DetachableController {
     
     switch ($act) {
     case "strike":
+    
+      // check inputs
       if (!$input["rc"] || !$input["thisMove"]) {
         $r = $hc::fail("Not enough data");
         break;
@@ -510,8 +505,8 @@ class Fight extends DetachableController {
         $r = $hc::fail("Active side is ".$g->getActive());
         break;
       }
-      if ( $input["thisMove"] != $g->total+1 ) {
-        $r = $hc::fail("Moves count is ".$g->total);
+      if ( $input["thisMove"] != $g->getTotal()+1 ) {
+        $r = $hc::fail("Moves count is ".$g->getTotal);
         break;
       }
       $point=json_decode($input["rc"]);
@@ -521,18 +516,16 @@ class Fight extends DetachableController {
         $r = $hc::fail("Invalid row or column in ".$input["rc"]);
         break;
       }
-      // the move is valid, adopt it
-      $g->total = $g->total + 1;
-      $g->clip = $g->clip - 1;
-      $sunk = "";
+      
+      // get response from Model
+      $sunk = null;
       $fleetModel = json_decode ($g->ships[$otherSide],true);
+      if (!is_array($fleetModel)) throw new Exception ("Failed to decode fleet from ".$g->ships[$otherSide]);
       $hit = PLayHelper::checkHit($point,$fleetModel);
       
       if (is_array($hit)) {
-        $sunk = json_encode($hit);
+        $sunk = $hit;//$sunk = json_encode($hit);
         $hit="w";
-        $newFleetStat = PlayHelper::makeStat($fleetModel);
-        //var_dump($newFleetStat);
         if ( PlayHelper::checkAllSunk($fleetModel) ) { 
           $hit="f";
           $g->setStage("finish");
@@ -540,24 +533,65 @@ class Fight extends DetachableController {
         }
       }
       
+      // update statistics 
+      $g->incTotal();
+      $g->decClip();
+      $newFleetStat = PlayHelper::makeFleetStat($fleetModel);
+      //var_dump($newFleetStat);
+      $statObj=json_decode($g->stats,true);
+      if (!is_array($statObj)) throw new Exception ("Failed to decode statictics from ".$g->stats);
+      $newStrikesStat = PlayHelper::makeStrikesStat($hit,$side,$statObj);
+      PlayHelper::addToStats($statObj,$otherSide,$newFleetStat);
+      PlayHelper::addToStats($statObj,$side,$newStrikesStat);
+      //var_dump($statObj);
+      $g->stats = json_encode($statObj);
+      
       // define new active side and message to sending side
       $handover=PlayHelper::defineActive($hit,$g,$note);
-      
+
       // prepare data and save them
-      $moveSum=PlayHelper::encodeMove($g->total,$side,$point,$hit);
-      $g->moves[$side] = $g->moves[$side].",".$moveSum;
+      $moveSum = PlayHelper::encodeMove ( $g->getTotal(), $side, $point, $hit, $sunk );
+      $g->moves[$side] = $hc::appendToJson ( $g->moves[$side], $moveSum );
       if ( in_array($hit,["h","w","f"]) ) {
         $g->ships[$otherSide] = json_encode($fleetModel);  
       }
       $db->saveGame($g,true);
       
       // make response   
-      $r = '{"move":'.$moveSum.',"stat":'.'"NA"'.',"note":"'.$note.'"}';
-      if ($sunk) $r = $hc::appendToJson( $r, '"sunk":'.$sunk.'' );
-      $r = $hc::appendToJson( $r, $g->exportPair(["activeSide","clip"]) ); 
+      $r = '{"move":'.$moveSum.',"note":"'.$note.'"}';
+      $r = $hc::appendToJson( $r, $g->exportPair(["activeSide","clip","stats"]) ); 
       break;
       
     case "queryMoves":
+      $now=$g->getTotal();
+      if ( !isset( $input["latest"] ) || $input["latest"] > $now ) {
+        $r = $hc::fail("Missing or wrong argument Latest");
+        break;      
+      }
+      $latest=$input["latest"];
+      if ( $latest == $now ) {
+        if ( $side == $g->getActive() ) {
+          $r = $hc::fail("Your are expected of strikes, not queries");
+          break;         
+        } 
+        //$r = '{'.$g->exportPair(["state","activeAB","clip"]).'}';
+        $r = $hc::noteState($g->getName($g->getActive())." is thinking",$state);
+        break;
+      }
+      $freshMoves=[];
+      $moves=$g->moves[$otherSide];
+      $movesArr=json_decode($moves);
+      if (!is_array($movesArr)) throw new Exception ("Failed to decode moves from ".$moves);
+      //print_r($movesArr);
+      foreach($movesArr as $move) {
+        if ( $latest < $move[0] ) { $freshMoves [] = $move; }
+      }
+      $freshMovesJson=json_encode($freshMoves);
+      if ( $g->isActive($side) ) $note="Make your move";
+      else $note="Enemy is still striking";
+      $r = $hc::noteState($note,$state);
+      $r = $hc::appendToJson( $r, '"moves":'.$freshMovesJson );
+      $r = $hc::appendToJson( $r, $g->exportPair(["stats","activeSide","clip"]) );
       break;
    
     default:
@@ -622,6 +656,11 @@ class HubHelper {
     return $r;
   }
   
+  static function notePairs($note,Game $g, $keys) {
+    $r='{"note":"'.$note.'",'.$g->exportPair($keys).'}';
+    return $r;
+  }
+  
   /**
    *
    * @return {object Game}
@@ -638,8 +677,11 @@ class HubHelper {
   
   static function appendToJson($json,$pair) {
     $l=strlen($json);
-    if (substr($json,$l-1,1)!="}") throw new Exception ("JSON argument doesn't end with }");
-    $r=substr($json,0,$l-1).",".$pair."}";
+    if ($l<2) throw new Exception ("Too small JSON argument :".$json."!");
+    $last=substr($json,$l-1,1);
+    if ( $last!="}" && $last!="]" ) throw new Exception ("Invalid JSON argument termination :".$last."!");
+    if ($l>2) { $r=substr($json,0,$l-1).",".$pair.$last; }
+    else { $r=substr($json,0,1).$pair.$last; };
     return $r;
   }
   
@@ -745,6 +787,7 @@ class RelaySqlt extends RelayDb {
       sB TEXT,
       mA TEXT,
       mB TEXT,
+      st TEXT,
       cl TEXT,
       mt TEXT
     )";
@@ -752,10 +795,10 @@ class RelaySqlt extends RelayDb {
     //echo(">".$ret);
   }
 
-  protected static $dbKeys=["nA","nB","ti","tc","tf","af","stage","state","acs","pA","pB","rl","sA","sB","mA","mB","cl","mt"];
+  protected static $dbKeys=["nA", "nB", "ti", "tc", "tf", "af", "stage", "state", "acs", "pA", "pB", "rl", "sA", "sB", "mA", "mB", "st", "cl", "mt"];
   
   public function saveGame(Game $g,$overwrite=false) {
-    $arr=$g->serialize();
+    $arr=$g->export();
     $dealDbKeys=array_keys($arr);
     $diff1=array_diff(self::$dbKeys,$dealDbKeys);
     $diff2=array_diff($dealDbKeys,self::$dbKeys);// must be ["id"]
@@ -845,49 +888,40 @@ class Game {
   protected $activeSide="";
   protected $picks=["A"=>"{}","B"=>"{}"];
   public $rules="{}";
-  public $ships=["A"=>"{}","B"=>"{}"];
-  public $moves=["A"=>"{}","B"=>"{}"];
-  public $clip=0;
-  public $total=0;
+  public $ships=["A"=>"[]","B"=>"[]"];
+  public $moves=["A"=>"[]","B"=>"[]"];
+  public $stats='{}';
+  protected $clip=0;
+  protected $total=0;
   
   function __construct() {
     $defaultPicks='{"firstMove":0,"forces":0,"strikeRule":0,"level":0}';
     $this->picks["A"]=$this->picks["B"]=$defaultPicks;
+    $defaultStats='{"strikes":0,"hits":0,"afloat":0,"largest":0}';
+    $this->stats = '{"A":'.$defaultStats.',"B":'.$defaultStats.'}';
   }
   
-  function setTimeInit() {
-    $this->timeInit=time();
-  }
+  function setTimeInit() { $this->timeInit=time(); }
   
-  function setTimeConnected() {
-    $this->timeConnected=time();
-  }
+  function setTimeConnected() { $this->timeConnected=time(); }
   
-  function setTimeFinished() {
-    $this->timeFinished=time();
-  }
+  function setTimeFinished() { $this->timeFinished=time(); }
   
-  function getId() {
-    return($this->id);
-  }
+  function getId() { return($this->id); }
 
   function setStage($newStage) {
     if (! in_array($newStage,$this->stages) ) throw new Exception("Invalid target stage:".$newStage."!");
     $this->stage = $newStage;
   }
   
-  function getStage() {
-    return($this->stage);
-  }
+  function getStage() { return($this->stage); }
   
   function setState($newState) {
     if (! in_array($newState,$this->states) ) throw new Exception("Invalid target state:".$newState."!");
     $this->state = $newState;
   }
   
-  function getState() {
-    return($this->state);
-  }
+  function getState() { return($this->state); }
   
   function getPick($side) {
     if (! in_array($side,self::$sides) ) throw new Exception("Invalid side:".$side."!");
@@ -909,9 +943,7 @@ class Game {
     $this->players[$side] = $name;    
   }
   
-  function clearActive() {
-    $this->activeSide="";
-  }
+  function clearActive() { $this->activeSide=""; }
   
   function setActive($side) {
     if (! in_array($side,self::$sides) ) throw new Exception("Invalid side:".$side."!");
@@ -924,15 +956,21 @@ class Game {
     return false;
   }
   
-  function getActive() {
-    return($this->activeSide);
-  }
+  function getActive() { return($this->activeSide); }
   
-  function incTotal() {
-    $this->movesTotal+=1;
-  }
+  function incTotal() { $this->total+=1; }
   
-  function serialize() {
+  function getTotal() { return ($this->total); }
+
+  function decClip() { $this->clip = $this->clip - 1; }
+  
+  function incClip() { $this->clip = $this->clip + 1; }
+  
+  function getClip() { return ($this->clip); }
+  
+  function setClip($v) { $this->clip = $v; }
+  
+  function export() {
     $r=[];
     $r["id"]=$this->id;
     $r["nA"]=$this->getName("A");
@@ -951,6 +989,7 @@ class Game {
     $r["sB"]=$this->ships["B"];
     $r["mA"]=$this->moves["A"];
     $r["mB"]=$this->moves["B"];
+    $r["st"]=$this->stats;
     $r["cl"]=$this->clip;
     $r["mt"]=$this->total;
     return $r;
@@ -975,6 +1014,7 @@ class Game {
     $this->ships["B"]=$r["sB"];
     $this->moves["A"]=$r["mA"];
     $this->moves["B"]=$r["mB"];
+    $this->stats=$r["st"];
     $this->clip=$r["cl"];
     $this->total=$r["mt"];
   }
@@ -987,6 +1027,7 @@ class Game {
       if ( is_array($this->$key) ) { 
         $val=json_encode($this->$key);
         $val=str_replace(['"{','}"'],['{','}'],$val);
+        $val=str_replace(['"[',']"'],['[',']'],$val);
         $val=str_replace('\\"','"',$val);
         /*echo(">".$val);*/ 
       } 
