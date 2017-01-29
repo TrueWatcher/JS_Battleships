@@ -11,6 +11,7 @@ function AsciiTheme() {
 
   this.put=function(what,row,col,idPrefix) {
     var id="";
+    if (what=="n") return;
     if ( !_lookup[what] ) throw new Error("AsciiTheme::put: invalid argument "+what);
     id=""+idPrefix+row+col;
     putToElement(_lookup[what],id);
@@ -37,6 +38,7 @@ function ClassTheme(themedir,stylesheet) {
   var _allowed=[ "u","e","s","m","h","w","c","f" ];// private via closure
 
   this.put=function(what,row,col,idPrefix) {
+    if (what=="n") return;
     if ( _allowed.indexOf(what) < 0 ) throw new Error("ClassTheme::put: invalid argument "+what);
     var id=""+idPrefix+row+col;
     var td=document.getElementById(id);
@@ -138,10 +140,11 @@ function Board(parentElm,command,prefix,fill,theme) {
   parentElm.onclick=function(event) {
     //alert (event.target.nodeName);
     var tdId=detectTd(event);// closure
-    var data=[ tdId.charAt(1),tdId.charAt(2) ];
+    //var data=[ tdId.charAt(1),tdId.charAt(2) ];
     //alert (tdId);
-    var stage=g.getStage();
-    if ( stage=="ships" || stage=="fight" ) tm.go ( stage, command, data );
+    //alert("stage "+g.getStage());
+    tm.go ( g.getStage(), "cell", tdId );
+    return false;
   };
 
   this.put=function(what,row,col) {
@@ -307,6 +310,121 @@ function View(game) {
     if (!game) return;
     putToElement(game.pName,"playerLabel");
     putToElement(game.eName,"enemyLabel");
+  }
+  
+  this.parseGridId=function(tdId) {
+    if (!tdId) return false;
+    var prefix=tdId.charAt(0);
+    var row=tdId.charAt(1);
+    var col=tdId.charAt(2);
+    return ({ prefix:prefix, row:row, col:col });
+  }
+  
+  this.consumeServerResponse = function(r,m) {
+    var parsed={};
+    //var targetBasin,targetBoard;
+    //var side="",rc=[],hit="",sunk=[];
+    
+    if ( typeof r !== "object" ) throw new Error ("View1::consumeServerResponse : non-object argument");
+    
+    var message="";
+    if ( r["error"] ) {
+      message+=" Error! ";
+    }
+    if ( r["note"] ) {
+      message+=r["note"];
+    }
+    else {
+      message=" ";
+    }
+    if (message || true) {
+      this.pm.put(message);
+    }
+    message="";
+    
+    if ( r["players"] ) {
+      var rp=r["players"];
+      putToElement(rp[g.pSide],"playerLabel");
+      putToElement(rp[g.eSide],"enemyLabel");
+    }
+    
+    if ( r["fleet"] ) {
+      //alert("fleet");
+      var sh=r["fleet"];
+      if ( !( sh["A"] instanceof Array ) && ! ( sh["B"] instanceof Array ) ) throw new Error ("No valid index A or B in r::ships");
+      if ( sh[g.pSide] ) {
+        m.playerBasin.takeShips(sh[g.pSide]);
+        this.pb.fromBasin(m.playerBasin);
+      }
+      if ( sh[g.eSide] ) {
+        m.enemyBasin.takeShips(sh[g.eSide]);
+        this.tb.fromBasin(m.enemyBasin);
+      }
+    }
+    
+    if ( r["moves"] ) {
+      if ( !is_array(r["moves"]["A"]) && !is_array(r["moves"]["B"]) ) throw new Error ("Not  arrays :"+r["moves"]["A"]+","+r["moves"]["B"]+"!");
+      var i=0,both=[];
+      if ( is_array(r["moves"]["A"]) ) both=both.concat( r["moves"]["A"] );
+      if ( is_array(r["moves"]["B"]) ) both=both.concat( r["moves"]["B"] );          
+      for (i=0;i<both.length;i++) { this.putMove(both[i]); } // order between sides is not guranteed
+    }    
+    
+    if ( r["move"] ) {
+      //if (!is_array(r["move"])) throw new Error ("Not an array :"+r["move"]+"!");
+      this.putMove( r["move"] );
+    }
+    
+    if ( r["stats"] ) {
+      var st=r["stats"];
+      if ( !( st["A"] instanceof Object ) || ! ( st["B"] instanceof Object ) ) throw new Error ("No valid index A and B in r::stats");
+      this.ps.showStrikesHits( st[g.pSide]["strikes"], st[g.pSide]["hits"] );
+      this.es.showStrikesHits( st[g.eSide]["strikes"], st[g.eSide]["hits"] );
+      this.ps.showStat( st[g.pSide]["afloat"], st[g.pSide]["largest"], "" );
+      this.es.showStat( st[g.eSide]["afloat"], st[g.eSide]["largest"], "" );
+    }
+    
+  };
+  
+  this.parseMove=function(move) {
+    if ( ! ( move instanceof Array ) ) throw new Error ("Not array :"+move+"!");
+    var parsed={};
+    parsed.count=move[0];
+    parsed.side=move[1];
+    parsed.row=move[2];
+    parsed.col=move[3];
+    parsed.hit=move[4];
+    if (move[5]) parsed.sunk=move[5];
+    return parsed;
+  };
+  
+  this.putMove=function(moveArr){
+    var parsed={};
+    var targetBasin,targetBoard;
+    //alert (">>"+moveArr);
+    parsed = this.parseMove(moveArr);
+    if (parsed.side == g.eSide) { // if e strikes, target is p
+      targetBasin=m.playerBasin;
+      targetBoard=this.pb;
+    }
+    else if (parsed.side == g.pSide) {
+      targetBasin=m.enemyBasin;
+      targetBoard=this.tb;
+    } 
+    else {
+      throw new Error ("Invalid r::moves side:"+parsed.side+"!");  
+    }
+    if ( parsed.sunk ) {
+      if (!is_array(parsed.sunk)) throw new Error ("Not an array "+parsed.sunk+"!");
+      targetBasin.markSunk( parsed.sunk );
+      targetBasin.markAround ( parsed.sunk );
+      targetBoard.fromBasin( targetBasin );
+    }
+    else {
+      targetBasin.put( parsed.hit,parsed.row,parsed.col );
+      targetBoard.put( parsed.hit,parsed.row,parsed.col );
+    }
+    g.incTotal();    
   }
 }
 

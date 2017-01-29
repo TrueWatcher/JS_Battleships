@@ -260,7 +260,7 @@ class PlayHelper {
     return $clip;
   }
   
-  static function fullInfo($side,Game $g) {
+  static function fullInfo($side,Game $g/*,&$stage,&$state*/) {
     $hc="HubHelper";
     if (!class_exists($hc)) throw new Exception ("Include all dependencies");
     $otherSide=Game::getOtherSide($side);
@@ -291,15 +291,15 @@ class PlayHelper {
       
     case "ships":
       if ($state=="ships") {
-        $r = $hc::notePairs( "Draw your ships",$g,["state","picks"] );
+        $r = $hc::notePairs( "Draw your ships",$g,["state","players","picks"] );
         break;
       }
       if ($state=="confirmingShips" && $g->isActive($otherSide) ) {
-        $r = $hc::notePairs( "Draw your ships, your opponent is ready",$g,["state","picks"] );
+        $r = $hc::notePairs( "Draw your ships, your opponent is ready",$g,["state","players","picks"] );
         break;      
       }
       if ($state=="confirmingShips" && $g->isActive($side) ) {
-        $r = $hc::notePairs ($note, $g, ["state","picks","rules"]);
+        $r = $hc::notePairs ($note, $g, ["state","players","picks","rules"]);
         $yourFleet = PlayHelper::unwrapFleet ( $g->ships[$side] );
         if (!is_array($yourFleet)) throw new Exception ("Failed to unwrap ships from ".$g->ships[$side]);
         $yourFleetJson=json_encode($yourFleet);
@@ -312,7 +312,7 @@ class PlayHelper {
     case "fight":
       if ( $g->isActive($side) ) { $note="Make your move"; }
       else { $note="Enemy is striking"; }
-      $r = $hc::notePairs ( $note, $g, [ "state", "rules", "moves", "stats", "activeSide", "clip"] );
+      $r = $hc::notePairs ( $note, $g, [ "state", "players", "rules", "moves", "stats", "activeSide", "clip"] );
       $yourFleet = PlayHelper::unwrapFleet ( $g->ships[$side] );
       if ( ! is_array($yourFleet) ) throw new Exception ("Failed to unwrap ships from ".$g->ships[$side]);
       $yourFleetJson=json_encode($yourFleet);

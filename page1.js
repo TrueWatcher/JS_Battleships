@@ -4,6 +4,8 @@ function $(id) {
   return( document.getElementById(id) );
 }
 
+function is_array(x) { return (x instanceof Array) };
+
 function compareKeys(o1,o2,valsNotEmpty,valsEqual) {
   var k,v,j;
   if ( typeof valsNotEmpty==undefined ) valsNotEmpty=true;
@@ -98,12 +100,12 @@ function Poll(millisecs) {
   this.start=function() {
     if (!this.handler) {
       this.handler=window.setInterval(onPoll,millisecs);
-      //alert("Poller started");
+      alert("Poller started");
     }
   }
   
   this.stop=function() {
-    //alert("Poller stopped");
+    alert("Poller stopped");
     window.clearInterval(this.handler);
     this.handler=null;
   }
@@ -145,8 +147,8 @@ function receive(oReq) {
 function Global() {     
   this.online="online";
   var _stage="zero";
-  var _stagesAllowed=["zero", "intro", "rules", "init", "ships", "fight", "finish","aborted"];
-  var _statesAllowed=["zero","connecting", "picking", "confirming", "converged", "aborted", "finish", "ships","init"];
+  var _stagesAllowed=["zero", "intro", "rules", "ships", "fight", "finish","aborted"];
+  var _statesAllowed=["zero", "intro", "connecting", "picking", "converged", "confirming",  "ships", "confirmingShips", "fight", "aborted", "finish"];
   var _state="zero";
   this.pSide="";
   this.pName="";
@@ -161,6 +163,7 @@ function Global() {
   this.picksObj={};
   this.picksStr="";
   this.page2loaded=0;
+  var _total=0;
   
   this._active="p";// p e
   this._activeAB="A";
@@ -190,9 +193,7 @@ function Global() {
     return(_stage);
   };
 
-  this.getStage=function() {
-    return(_stage);
-  };
+  this.getStage=function() { return(_stage); };
   
   this.setState=function(state) {
     if (_statesAllowed.indexOf(state)<0 ) throw new Error("Global::setState: invalid value "+state);
@@ -200,9 +201,7 @@ function Global() {
     return(state);
   };
 
-  this.getState=function() {
-    return(_state);
-  };
+  this.getState=function() { return(_state); };
   
   this.setNames=function(pn,en) {
     if (!pn || !en || pn==en) throw new Error("Global::setNames: empty or equal argument(s)");
@@ -225,9 +224,18 @@ function Global() {
     this.names={};    
   };
   
-  this.getForces=function() {
-    return(_forces);
+  this.getForces=function() { return(_forces); };
+  
+  this.getActive=function() { return (this._activeAB); };
+  
+  this.setActive=function(ab) {
+    if (ab!="A" && ab!="B") throw new Error ("Invalid new active side:"+ab+"!");
+    this._activeAB=ab;
   };
+  
+  this.incTotal=function() { _total+=1; };
+  
+  this.getTotal=function() { return(_total); };
   
   this.setRules=function(picksStr) {
     //alert("setRules "+picksStr);
@@ -236,7 +244,7 @@ function Global() {
     if ( true !== ck ) throw new Error("setRules: "+ck);
     if ( picks.firstMove === 1 ) {
       this._active="e";
-      this._activeAB="B";
+      this.setActive("B");
     }
     else { if( picks.firstMove !== 0 ) throw new Error("setRules:invalid firstMove="+picks.firstMove) }
     if ( picks.forces === 1 ) _forces=this.forces2;
@@ -263,7 +271,7 @@ function Global() {
   
   this.exportRules=function() {
     var r={
-      firstActiveAB:this._activeAB, forces:_forces, strikeRule:this._strikeRule, demandEqualForces:this._demandEqualForces, previewEnemyShips:this._previewEnemyShips
+      firstActiveAB:this.getActive(), forces:_forces, strikeRule:this._strikeRule, demandEqualForces:this._demandEqualForces, previewEnemyShips:this._previewEnemyShips
     };
     return (JSON.stringify(r));
   }
@@ -271,7 +279,7 @@ function Global() {
 
 function TopManager() {
   var stageControllers = { "local":{ "intro":Intro, "rules":RulesLocal, "ships":ShipsLocal, "fight":FightLocal, "finish":FinishLocal },
-                          "online":{"intro":Intro,"rules":RulesOnline} };
+                          "online":{"intro":Intro,"rules":RulesOnline, "ships":ShipsOnline, "fight":FightOnline } };
   
   function getStageController(aOnline,aStage) {
     if ( !aStage || aStage=="zero" ) aStage="intro";
@@ -288,7 +296,10 @@ function TopManager() {
     */
   this.go=function(aStage,command,data) {
     var stage=g.getStage();
-    if( stage=="zero" ) stage=g.setStage("intro");
+    if( stage=="zero" ) { 
+      stage=g.setStage("intro");
+      state=g.setState("intro");
+    }
   
     if ( aStage!==stage && command!=="queryFull" && command!=="queryPick" && command!=="abort" ) { 
       alert("Command ("+command+") stage is "+aStage+", global is "+stage+"!");
@@ -305,7 +316,11 @@ function TopManager() {
     responseObj=JSON.parse(responseText);
     var stateChanged=adoptState(responseObj);
     if (stateChanged) onStateChange(responseObj,currentStage,stage,currentState,state);
+    if ( responseObj["activeSide"] ) g.setActive(responseObj["activeSide"]);
     v1.consumeServerResponse(responseObj);
+    if ( g.getStage()=="ships" || g.getStage()=="fight" || g.getStage()=="finish" ) {
+      v.consumeServerResponse(responseObj,m);
+    }
   };
     
   function adoptState(responseObj) {
@@ -329,8 +344,6 @@ function TopManager() {
   
   function onStateChange(responseObj,prevStage,stage,prevState,state) {
     if ( responseObj["players"] ) onRegistration();
-    if ( stage == "ships" ) { onFinished(); return; }
-    if ( stage == "over" || stage == "aborted" ) { onFinished(); return; }
     if ( (prevStage == "intro" || prevStage == "zero") && stage == "rules" ) { 
       v1.clearNote("intro");
       v1.initPicks();
@@ -341,6 +354,11 @@ function TopManager() {
       onRegistration();
       return;
     }*/
+    if ( stage == "ships" && stage!=prevStage ) { initPage2(); return; }
+    if ( stage == "fight" && prevStage=="intro" ) { initPage2(); }
+    if ( responseObj["moves"] ) onMovesReceived();
+    //if ( responceObj["ships"] ) onShipsReceived();
+    if ( stage == "over" || stage == "aborted" ) { onFinished(); return; }
   }
   
   // registration "event"
@@ -357,9 +375,55 @@ function TopManager() {
     }
     v1.ticks[g.pSide]="v";
     v1.ticks[g.eSide]="x";
+    v1.applyTheme();
     poller.start();
     //v1.initPicks();// makes problems
     v1.putNote("intro"," connected ");
+  }
+  
+  function initPage2() {
+    v1.putNote("rules","Loading page 2");
+    //alert("Running page 2");
+    //g=g;//new Game();
+    
+    if(typeof v !=="object") alert("onTransitToPage2: v is not the global object");
+    if(typeof m !=="object") alert("onTransitToPage2: m is not the global object");
+    v=new View(g);
+    m=new Model();      
+
+    v.setBoards(g._theme);
+    v.putNames();
+    //toggeElement("general");
+
+    //v.dc.toggle();// show Draw controls
+    //v.ps.toggle();
+    //v.es.toggle();
+    if (g.getStage()=="ships") {
+      var mes="Draw your ships (";
+      mes+=v.ps.showClearHistogram( g.getForces(),"return" );
+      mes+="),<br />then press Done";
+      v.pm.put(mes);
+    }
+    return;
+  }
+  
+  function onMovesReceived() {
+    return;// moves must go AFTER fleet
+    
+    var i=0,parsed={},mv=[],mvs={},mmvs=[];
+    mvs=responseObj["moves"];
+    mmvs=mvs["A"].concat(mvs["B"]);
+    console.log (mmvs.length);
+    if ( !(mmvs instanceof Array) ) throw new Error ("Not an Array united r::moves");
+
+    for (i=0;i<mmvs.length;i++) {
+      mv = mmvs[i];
+      parsed = v.parseMove(mv);
+      //if ( parsed.count > g.getTotal() ) {
+        v.consumeServerResponse( {"move":mv}, m );
+      //}
+    }
+    //if (mmvs.length && ( g.getTotal() != parsed.count ) ) throw new Error ("Counter is "+parsed.count+" in the latest move, but "+g.getTotal()+" in Global");
   }
 
   // deal finish "event"
@@ -424,8 +488,8 @@ function Intro() {
       v1.putNote("intro","Playing locally");
       v1.putNote("rules","Playing locally");
       break;
-    case "queryFull":        
-      sendRequest("intro=queryFull");
+    case "queryAll":        
+      sendRequest("intro=queryAll");
       break;
     default:
       throw new Error("Intro::go: unknown command:"+command+"!");
@@ -472,7 +536,99 @@ function RulesOnline() {
     default:
       throw new Error("RulesOnline::go: unknown command:"+command+"!");
     }      
-  };  
+  }; 
+}
+
+function ShipsOnline() {
+  this.go=function(command,data) {
+    var parsed=[],qs="",c="",sy,ps,h,hs,cm;
+    
+    v.pm.put("");
+    
+    switch(command) {
+      
+    case "cell":
+      // processed locally
+      parsed = v.parseGridId(data);
+      alert ( "cell :"+parsed.row+"_"+parsed.col );
+      if (parsed.prefix=="p") {
+        if ( m.playerBasin.get(parsed.row,parsed.col) != "s" ) c="s";
+        else c="e";
+        m.playerBasin.put(c,parsed.row,parsed.col);
+        v.pb.put(c,parsed.row,parsed.col);
+      }
+      break;
+      
+    case "rs": // remove all ships
+      m.playerBasin.clear();
+      v.pb.fromBasin(m.playerBasin);
+      break;
+
+    case "as": // automatically draw ships
+      sy=new ShipYard(g.getForces());
+      ps=sy.buildAll();
+      m.playerBasin.clear();
+      m.playerBasin.takeShips(ps);
+      v.pb.fromBasin(m.playerBasin);
+      break;
+      
+    case "cs": // check up and go playing
+      h=new Harvester(m.playerBasin);
+      h.search();
+      m.playerBasin.cleanUp();
+      v.pb.fromBasin(m.playerBasin);
+      hs=h.yield();
+      m.playerShips = new Fleet();
+      m.playerShips.take(hs);
+      cm=m.playerShips.checkMargins();
+      if (!cm) {
+        v.pm.put("Ships must be straight<br /> and not to touch each other. <br />Try new ones");
+        m.playerShips.clear();
+        return;
+      }
+      hs=JSON.stringify(hs);
+      qs="ships=confirmShips&rulesSet="+g.exportRules()+"&fleet="+hs;
+      sendRequest(qs);
+      break;
+    
+    default:
+      throw new Error("ShipsOnline::go: unknown command:"+command+"!");
+    } 
+  }
+  
+}
+
+function FightOnline() {
+  this.go=function(command,data) {
+    var parsed=[],qs="",c="",sy,ps,h,hs,cm;
+    
+    switch(command) {
+      
+    case "cell":
+      // processed locally
+      if (g.getActive()!==g.pSide) break;
+      parsed = v.parseGridId(data);
+      //alert ( "cell : "+parsed.prefix+"_"+parsed.row+"_"+parsed.col );
+      if ( parsed.prefix == "e" ) {
+        c="f";
+        //m.enemyBasin.put(f,parsed.row,parsed.col);
+        v.tb.put(c,parsed.row,parsed.col);
+        //g.incTotal(); // moves are counted in View::putMove
+        qs="fight=strike&rc=["+parsed.row+","+parsed.col+"]&thisMove="+(g.getTotal()+1);
+        alert("qs="+qs);
+        sendRequest(qs);
+        break;
+      }
+      break;
+    
+    case "queryMoves":
+       qs="fight=queryMoves&latest="+g.getTotal();
+       sendRequest(qs);
+       break;
+    default:
+      throw new Error("ShipsOnline::go: unknown command:"+command+"!");
+    }
+  }
 }
 
 function RulesLocal() {
@@ -717,7 +873,17 @@ function FinishLocal() {
 }
 
 // timer "event"
-function onPoll() { tm.go("rules","queryPick"); }
+function onPoll() { 
+  //alert ("poll, stage="+g.getStage());
+  if ( g.getStage()=="rules" ) { 
+    tm.go("rules","queryPick");
+    return;
+  }
+  if ( g.getStage()=="fight" ) {
+    tm.go("fight","queryMoves");
+    return;
+  }
+}
 
 // AJAX response ready "event"
 function onAjaxReceived(responseText) { tm.pull(responseText); }

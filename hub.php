@@ -198,8 +198,9 @@ class Intro extends DetachableController {
       break;
 
     case "queryAll":
+      //echo(">queryAll");
       if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
-        $r = $hc::noteState("Brand new session","zero");
+        $r = $hc::noteState("Brand new session","intro");
         break;
       }
       $otherSide=Game::getOtherSide($side);
@@ -215,8 +216,9 @@ class Intro extends DetachableController {
       break;
     }// end switch
     
+    //var_dump($g);
     if (isset($g) && is_object($g)) $resStage=$g->getStage();
-    else $resStage="?";
+    else $resStage="intro";
     $r = $hc::appendToJson( $r, '"stage":"'.$resStage.'"' );
     if (isset($g) && is_object($g)) $resState=$g->getState();
     else $resState="?";
@@ -493,6 +495,8 @@ class Fight extends DetachableController {
     $state=$g->getState();
     $this->inState=$state;
     
+    require_once("PlayHelper.php");
+    
     switch ($act) {
     case "strike":
     
@@ -506,7 +510,7 @@ class Fight extends DetachableController {
         break;
       }
       if ( $input["thisMove"] != $g->getTotal()+1 ) {
-        $r = $hc::fail("Moves count is ".$g->getTotal);
+        $r = $hc::fail("Moves count is ".$g->getTotal());
         break;
       }
       $point=json_decode($input["rc"]);
@@ -521,7 +525,7 @@ class Fight extends DetachableController {
       $sunk = null;
       $fleetModel = json_decode ($g->ships[$otherSide],true);
       if (!is_array($fleetModel)) throw new Exception ("Failed to decode fleet from ".$g->ships[$otherSide]);
-      $hit = PLayHelper::checkHit($point,$fleetModel);
+      $hit = PlayHelper::checkHit($point,$fleetModel);
       
       if (is_array($hit)) {
         $sunk = $hit;//$sunk = json_encode($hit);
@@ -586,7 +590,8 @@ class Fight extends DetachableController {
       foreach($movesArr as $move) {
         if ( $latest < $move[0] ) { $freshMoves [] = $move; }
       }
-      $freshMovesJson=json_encode($freshMoves);
+      $fms=[$otherSide=>$freshMoves];
+      $freshMovesJson=json_encode($fms);
       if ( $g->isActive($side) ) $note="Make your move";
       else $note="Enemy is still striking";
       $r = $hc::noteState($note,$state);
