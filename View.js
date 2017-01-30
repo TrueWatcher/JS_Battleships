@@ -67,7 +67,7 @@ function ClassTheme(themedir,stylesheet) {
     (new Image).src=themedir+"burn.png";
   }
 
-  addStyleSheet(themedir,stylesheet);
+  //addStyleSheet(themedir,stylesheet);
   images2cache();
 }
 
@@ -363,10 +363,11 @@ function View(game) {
     }
     
     if ( r["moves"] ) {
-      if ( !is_array(r["moves"]["A"]) && !is_array(r["moves"]["B"]) ) throw new Error ("Not  arrays :"+r["moves"]["A"]+","+r["moves"]["B"]+"!");
+      //if ( !is_array(r["moves"]["A"]) && !is_array(r["moves"]["B"]) ) throw new Error ("Not  arrays :"+r["moves"]["A"]+","+r["moves"]["B"]+"!");
       var i=0,both=[];
-      if ( is_array(r["moves"]["A"]) ) both=both.concat( r["moves"]["A"] );
-      if ( is_array(r["moves"]["B"]) ) both=both.concat( r["moves"]["B"] );          
+      both=r["moves"];
+      //if ( is_array(r["moves"]["A"]) ) both=both.concat( r["moves"]["A"] );
+      //if ( is_array(r["moves"]["B"]) ) both=both.concat( r["moves"]["B"] );          
       for (i=0;i<both.length;i++) { this.putMove(both[i]); } // order between sides is not guranteed
     }    
     

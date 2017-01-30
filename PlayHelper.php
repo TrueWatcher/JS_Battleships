@@ -147,7 +147,7 @@ class PlayHelper {
           $wounds++;
           $isHit=1;
           $hit="h";
-          break;
+          //break;
         }
       }// end of points cycle
       if ($hit) {
@@ -157,7 +157,7 @@ class PlayHelper {
           //return ("w");
           return ( self::unwrapShip($shipModel) );
         }
-        else { return("h"); }
+        else { return($hit); }
       }
     }// end of ships cycle
     return ("m");
@@ -222,7 +222,7 @@ class PlayHelper {
     $noteToNowActive="";
     $nowActive = $g->getActive();
     $newActive=$nowActive;
-    $strikeRule = json_decode( $g->rules, true ) ["strikeRule"];
+    $strikeRule = json_decode( $g->rulesSet, true ) ["strikeRule"];
     // add to clip ?
     if ( $strikeRule=="oe" && in_array($hit,["h","w"]) ) {
       //echo(" +1 move =".$g->getClip());
@@ -245,7 +245,7 @@ class PlayHelper {
   }
   
   static function loadClip ( $newActive, Game $g ) {
-    $strikeRule = json_decode( $g->rules, true ) ["strikeRule"];
+    $strikeRule = json_decode( $g->rulesSet, true ) ["strikeRule"];
     $stats = json_decode( $g->stats, true );
     if ( $strikeRule=="oe" ) { 
       $clip=1;
@@ -253,6 +253,7 @@ class PlayHelper {
     }
     else if ( $strikeRule=="bs" ) {
       $clip = $stats [$newActive] ["largest"];
+      if ($clip==0) throw new Exception ("Zero largest ship at ".$newActive);
       //$note="Make your move";
     }
     else throw new Exception ("Wrong strikeRule:".$strikeRule."!");
@@ -283,7 +284,7 @@ class PlayHelper {
       
     case "rules":
       if ( $state=="confirming" && $g->isActive($side) ) {
-        $r=$hc::notePairs("Wait for your opponent", $g, ["state","players","picks","rules"]);
+        $r=$hc::notePairs("Wait for your opponent", $g, ["state","players","picks","rulesSet"]);
         break;
       }
       $r=$hc::notePairs("Make an agreement", $g, ["state","players","picks"]);
@@ -291,15 +292,15 @@ class PlayHelper {
       
     case "ships":
       if ($state=="ships") {
-        $r = $hc::notePairs( "Draw your ships",$g,["state","players","picks"] );
+        $r = $hc::notePairs( "Draw your ships",$g,["state","players","picks","rulesSet"] );
         break;
       }
       if ($state=="confirmingShips" && $g->isActive($otherSide) ) {
-        $r = $hc::notePairs( "Draw your ships, your opponent is ready",$g,["state","players","picks"] );
+        $r = $hc::notePairs( "Draw your ships, your opponent is ready",$g,["state","players","picks","rulesSet"] );
         break;      
       }
       if ($state=="confirmingShips" && $g->isActive($side) ) {
-        $r = $hc::notePairs ($note, $g, ["state","players","picks","rules"]);
+        $r = $hc::notePairs ($note, $g, ["state","players","picks","rulesSet"]);
         $yourFleet = PlayHelper::unwrapFleet ( $g->ships[$side] );
         if (!is_array($yourFleet)) throw new Exception ("Failed to unwrap ships from ".$g->ships[$side]);
         $yourFleetJson=json_encode($yourFleet);
@@ -312,14 +313,14 @@ class PlayHelper {
     case "fight":
       if ( $g->isActive($side) ) { $note="Make your move"; }
       else { $note="Enemy is striking"; }
-      $r = $hc::notePairs ( $note, $g, [ "state", "players", "rules", "moves", "stats", "activeSide", "clip"] );
+      $r = $hc::notePairs ( $note, $g, [ "state", "players", "rulesSet", "moves", "stats", "activeSide", "clip"] );
       $yourFleet = PlayHelper::unwrapFleet ( $g->ships[$side] );
       if ( ! is_array($yourFleet) ) throw new Exception ("Failed to unwrap ships from ".$g->ships[$side]);
       $yourFleetJson=json_encode($yourFleet);
       $r = $hc::appendToJson( $r, '"fleet":{"'.$side.'":'.$yourFleetJson.'}' );
       break;
       
-    case "finished":
+    case "finish":
     case "aborted":
       $r = $hc::noteState("Game is ".$stage."!",$state);
       break;
