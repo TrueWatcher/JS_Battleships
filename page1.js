@@ -167,6 +167,7 @@ function Global() {
   
   this._active="p";// p e
   this._activeAB="A";
+  this._firstActiveAB="A";
   //this._letter="p";
   this._winner;
   this.forces1=[0,4,3,2,1,0,0,0,0,0,0];// public, used by RulesForm
@@ -244,18 +245,29 @@ function Global() {
     var picks=JSON.parse(picksStr);
     var ck=compareKeys(this.defaultPicks,picks);
     if ( true !== ck ) throw new Error("setRules: "+ck);
-    if ( picks.firstMove === 1 ) {
+    
+    if ( picks.firstMove == 0 ) {
+      this._active="p";
+      this.setActive("A");
+      this._firstActiveAB="A";      
+    }
+    else if ( picks.firstMove == 1 ) {
       this._active="e";
       this.setActive("B");
+      this._firstActiveAB="B"; 
     }
-    else { if( picks.firstMove !== 0 ) throw new Error("setRules:invalid firstMove="+picks.firstMove) }
+    else throw new Error("setRules:invalid firstMove="+picks.firstMove);
+    
     if ( picks.forces === 1 ) _forces=this.forces2;
-    else { if( picks.forces !== 0 ) throw new Error("setRules:invalid forces="+picks.forces) }
+    else if( picks.forces !== 0 ) throw new Error("setRules:invalid forces="+picks.forces);
+    
     if ( picks.strikeRule === 1 ) this._strikeRule=_strikes2;
-    else { if( picks.strikeRule !== 0 ) throw new Error("setRules:invalid strikeRule="+picks.strikeRule) }
+    else if( picks.strikeRule !== 0 ) throw new Error("setRules:invalid strikeRule="+picks.strikeRule);
+    
     if ( picks.level ===1 ) _level=1;
     else if ( picks.level ===2 ) _level=2;
-    else { if( picks.level !== 0 ) throw new Error("setRules:invalid level="+picks.level) }
+    else if( picks.level !== 0 ) throw new Error("setRules:invalid level="+picks.level);
+    
     switch (_level) {
       case 2:
         this._demandEqualForces=0;
@@ -273,10 +285,12 @@ function Global() {
   
   this.exportRules=function() {
     var r={
-      firstActiveAB:this.getActive(), forces:_forces, strikeRule:this._strikeRule, demandEqualForces:this._demandEqualForces, previewEnemyShips:this._previewEnemyShips
+      firstActiveAB:this._firstActiveAB, forces:_forces, strikeRule:this._strikeRule, demandEqualForces:this._demandEqualForces, previewEnemyShips:this._previewEnemyShips
     };
-    return (JSON.stringify(r));
-  }
+    r=JSON.stringify(r);
+    //alert (r);
+    return (r);
+  };
   
   this.importRules=function(r) {
     //alert ("import rules");
@@ -286,7 +300,7 @@ function Global() {
     this._strikeRule=r["strikeRule"];
     this._demandEqualForces=r["demandEqualForces"];
     this._previewEnemyShips=r["previewEnemyShips"];
-  }
+  };
 }
 
 function TopManager() {
@@ -375,10 +389,10 @@ function TopManager() {
       initPage2();
       return;
     }
-    if ( stage == "fight" && prevStage=="intro" ) { initPage2(); }
+    if ( stage == "fight" && prevStage=="intro" ) { initPage2(); return; }
     //if ( responseObj["moves"] ) onMovesReceived();
     //if ( responceObj["ships"] ) onShipsReceived();
-    if ( stage == "finish" /*|| stage == "aborted"*/ ) { onFinish(responseObj); return; }
+    if ( stage == "finish" || state == "finish" ) { onFinish(responseObj); return; }
   }
   
   // registration "event"
@@ -421,6 +435,7 @@ function TopManager() {
     //v.dc.toggle();// show Draw controls
     //v.ps.toggle();
     //v.es.toggle();
+    v.em.put(" ");
     if (g.getStage()=="ships") {
       g.setTotal(0);
       var mes="Draw your ships (";

@@ -242,7 +242,7 @@ function StatPanel(parentElm,prefix) {
   str+='(<span id="'+prefix+"Percent"+'"></span>%) ';
   var sh='Ships afloat:<span id="'+prefix+"Float"+'"></span> ';
   sh+='largest:<span id="'+prefix+"Largest"+'"></span> ';
-  sh+='dead:<span id="'+prefix+"Dead"+'"></span> ';
+  //sh+='dead:<span id="'+prefix+"Dead"+'"></span> ';
   var hist='Ships all (squares:ships): <span id="'+prefix+"Hist"+'"></span> ';
   var html=hist+"<br />"+str+"<br />"+sh+"<br />";
   putToElement(html,parentElm);
@@ -256,7 +256,7 @@ function StatPanel(parentElm,prefix) {
   this.showStat=function(afloat,biggest,sunk) {
     putToElement(afloat,prefix+"Float");
     putToElement(biggest,prefix+"Largest");
-    putToElement(sunk,prefix+"Dead");
+    //putToElement(sunk,prefix+"Dead");
   };
   
   this.toggle=function() {

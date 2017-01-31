@@ -78,7 +78,7 @@ class Game {
   function clearActive() { $this->activeSide=""; }
   
   function setActive($side) {
-    if (! in_array($side,self::$sides) ) throw new Exception("Invalid side:".$side."!");
+    if ( ! in_array($side,self::$sides) ) throw new Exception("Invalid side:".$side."!");
     $this->activeSide = $side;
   }
   
@@ -209,7 +209,7 @@ class Game {
   function addToRulesSet($key,$val) {
     $rulesObj=json_decode($this->rulesSet,true);
     if ( !isset( $rulesObj[$key] ) ) throw new Exception ("Wrong key:".$key."!");
-    $SrulesObj[$key] = $val;
+    $rulesObj[$key] = $val;
     $this->rulesSet = json_encode($rulesObj);
   }
   

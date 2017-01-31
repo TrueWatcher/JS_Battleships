@@ -351,7 +351,7 @@ class Rules extends DetachableController {
         }
         else {
           if ( $g->rulesSet !== $input["rulesSet"] ) {
-            $r = $hc::fail("Value of Rules array is different from the already saved:".$input["rulesSet"]."/".$g->rulesSet);
+            $r = $hc::fail('Value of Rules array is different from the already saved:"'.$input["rulesSet"].'"/"'.$g->rulesSet.'"');
             break;
           } 
           else {
@@ -461,9 +461,10 @@ class Ships extends DetachableController {
         if (!is_array($otherFleetModel)) throw new Exception ("Failed to decode ships from ".$otherSide);
         PlayHelper::addToStats( $stat, $otherSide, PlayHelper::makeFleetStat($otherFleetModel) );
         $g->stats = json_encode($stat);
+        
         // set active side and load clip
         $fa=$parsedRules["firstActiveAB"];
-        if ( $fa!="A" && $fa!="B" ) $r = $hc::fail("Invalid first move side:".$fa);
+        //if ( $fa!="A" && $fa!="B" ) $r = $hc::fail("Invalid first move side:".$fa);
         $g->setActive($fa);
         $g->setClip ( PlayHelper::loadClip($fa,$g) );        
         $db->saveGame($g,true);
@@ -590,6 +591,8 @@ class Fight extends DetachableController {
           $g->setStage("finish");
           $g->setState("finish");
           $g->winner = $g->getActive();
+          //echo($g->getActive()." has won ");
+          $g->setTimeFinished();
         }
       }
       
@@ -725,7 +728,8 @@ class Finish extends DetachableController {
         $ng=new Game();
         $ng->import($g->export());
         $ng->recycle();
-        $ng->setActive($g->winner);
+        $ng->addToRulesSet("firstActiveAB",$g->winner);
+        //echo (" added ".$g->winner);
         $r=PlayHelper::fullInfo($side,$ng);
         $newId = $db->saveGame($ng,false);
         $hc::setCookie($cookie,$ng->getName($side),$side,$newId);
