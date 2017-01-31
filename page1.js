@@ -326,7 +326,10 @@ function TopManager() {
   
   this.pull=function(responseText) {
     $("tech").innerHTML=" full response:<br />"+responseText;
-    responseObj=JSON.parse(responseText);
+    try { responseObj=JSON.parse(responseText); }
+    catch (err) {
+      alert ("Unparsable server response:"+responseText);
+    }
     var stateChanged=adoptState(responseObj);
     if (stateChanged) onStateChange(responseObj,currentStage,stage,currentState,state);
     if ( responseObj["activeSide"] ) g.setActive(responseObj["activeSide"]);
@@ -644,6 +647,7 @@ function FightOnline() {
        qs="fight=queryMoves&latest="+g.getTotal();
        sendRequest(qs);
        break;
+       
     default:
       throw new Error("ShipsOnline::go: unknown command:"+command+"!");
     }
@@ -654,11 +658,13 @@ function FinishOnline() {
   this.go=function(command,data) {
     var qs="";
     switch (command) {
+      
     case "quit":
       window.close();
       alert("You may close the browser window at any time");
       break;
-    case "more":
+      
+    case "more":      
       //alert("g._active="+g._active);
       // Active::swap leaves g._active=winning side
       //var rl=new RulesLocal();
@@ -666,13 +672,22 @@ function FinishOnline() {
       qs="finish=more";
       sendRequest(qs);
       break;
-    case "new":
+      
+    case "new":      
       //g=new Global();
       //g.setStage("intro");
       //g.setState("zero");
       qs="finish=new";
       sendRequest(qs);
       break;
+      
+    case "queryStage":
+      qs="finish=queryStage";
+      sendRequest(qs);
+      break;    
+      
+    default:
+      throw new Error("ShipsOnline::go: unknown command:"+command+"!");      
     }
   }  
 }
@@ -940,6 +955,7 @@ function onPoll() {
   }
   if ( stage=="finish" && ( state=="cycling" || state=="cyclingReq" || state=="cyclingOk" ) ) {
     tm.go("finish","queryStage");
+    return;
   }
 }
 
