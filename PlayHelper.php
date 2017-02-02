@@ -216,7 +216,7 @@ class PlayHelper {
   
   static function defineActive ( $hit, Game $g, &$noteToNowActive ) {
     if ($hit=="f") {
-      $noteToNowActive="You have won !";
+      $noteToNowActive="<span class='win'>YOU HAVE WON !</span>";
       return false;
     }
     $noteToNowActive="";

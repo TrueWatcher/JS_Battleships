@@ -57,6 +57,7 @@ function strikeCount(responce,sourceStat) {
  * @return void
  */
 function displayResponce ( responce, probe, targetBoard, targetBasin, targetStatPanel, targetStat, sourceMesPanel ) {
+  if ( probe.length!==2 ) throw new Error ("Invalid probe:"+probe+"!");
   if ( responce=="n" ) {
     sourceMesPanel.add("Strike on already marked square "+probe[0]+probe[1]);
     return;

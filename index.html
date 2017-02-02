@@ -43,8 +43,8 @@ v.0.0.1 17.1.2016
       </td>
     </tr>
   </table>
+  <p>&nbsp;</p>
 </div>
-<p>&nbsp;</p>
 
 <div id="rules">
   <table id="picksTable" class="boardLike">
@@ -127,38 +127,42 @@ v.0.0.1 17.1.2016
     </tr>
   </table> 
 </div>
-<div id="tech"></div>
-
+<div id="ajaxPanel" style="text-align:left;">
+      &nbsp;&nbsp;<span id="led" class="ledOff">&nbsp;</span>&nbsp;&nbsp;
+      <button type="button"  id="detailsButton">↴</button>&nbsp;&nbsp;
+      <button type="button"  id="resetButton2">Reset</button>
+  <p id="tech" style="display:none;"></p>
+</div>
 <div id="main">
-<p>Here comes Page2</p>
-<table id="general">
-<tbody>
-  <tr>
-    <td id="playerLabel"></td>
-    <td id="enemyLabel"></td>
-  </tr>
-  <tr>
-    <td id="primary"></td>
-    <td id="tracking"></td>
-  </tr>
-  <tr>
-    <td><div  id="prPanel">
-      <button type="button" id="confirmShips">Done, let's play</button>
-      <button type="button" id="removeShips">Clear</button>
-      <button type="button" id="autoShips">Auto arrange</button>
-    </div></td>
-    <td id="trPanel"></td>
-  </tr>
-  <tr>
-    <td id="playerStat"></td>
-    <td id="enemyStat"></td>
-  </tr>
-  <tr>
-    <td id="playerMsg"></td>
-    <td id="enemyMsg"></td>
-  </tr>
-</tbody>
-</table>
+  <!--<p>Here comes Page2</p>-->
+  <table id="general">
+  <tbody>
+    <tr>
+      <td id="playerLabel"></td>
+      <td id="enemyLabel"></td>
+    </tr>
+    <tr>
+      <td id="primary"></td>
+      <td id="tracking"></td>
+    </tr>
+    <tr>
+      <td><div  id="prPanel">
+        <button type="button" id="confirmShips">Done, let's play</button>
+        <button type="button" id="removeShips">Clear</button>
+        <button type="button" id="autoShips">Auto arrange</button>
+      </div></td>
+      <td id="trPanel"></td>
+    </tr>
+    <tr>
+      <td id="playerStat"></td>
+      <td id="enemyStat"></td>
+    </tr>
+    <tr>
+      <td id="playerMsg"></td>
+      <td id="enemyMsg"></td>
+    </tr>
+  </tbody>
+  </table>
 </div>
 <div id="finish">
   <p style="text-align: center;">
@@ -169,6 +173,8 @@ v.0.0.1 17.1.2016
     <button id="quitButton" type="button">Quit</button>
   </p>
 </div>
+<script src="arrayUtils.js" type="text/javascript"></script>
+<script src="htmlUtils.js" type="text/javascript"></script>
 <script src="page1.js" type="text/javascript"></script>
 <script src="View1.js" type="text/javascript"></script>
 <script type="text/javascript">
@@ -181,10 +187,13 @@ v.0.0.1 17.1.2016
   //alert("l="+window.location+" hn="+window.location.hostname);
 
   var g=new Global();
+  g.allowHideControls=true;
+  hideElement("main");
+  hideElement("finish");
   var v1=new View1();
   v1.applyTheme();
   v1.setClickHandlers();
-  var poller=new Poll();
+  var poller=new Poll(2000);
   var tm=new TopManager();
   
   
@@ -198,7 +207,6 @@ v.0.0.1 17.1.2016
   //alert(">"+g.getStage());
 
 </script>
-<script src="arrayUtils.js" type="text/javascript"></script>
 <script src="View.js" type="text/javascript"></script>
 <script src="Basin.js" type="text/javascript"></script>
 <script src="Model.js" type="text/javascript"></script>

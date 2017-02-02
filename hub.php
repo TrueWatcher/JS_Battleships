@@ -220,7 +220,7 @@ class Intro extends DetachableController {
       $g->setStage("aborted");
       $db->saveGame($g,true);
       $hc::clearCookies($cookie);
-      $r = $hc::noteState("Session aborted by user","aborted");
+      $r = $hc::noteState("Session aborted by user, you may register again","intro");
       break;
 
     case "queryAll":
@@ -469,7 +469,7 @@ class Ships extends DetachableController {
         $g->setClip ( PlayHelper::loadClip($fa,$g) );        
         $db->saveGame($g,true);
         if ($side==$fa) $r = $hc::noteState("Make your move",$state);
-        else $r = $hc::noteState("Prepare to fight",$state);
+        else $r = $hc::noteState("Enemy is striking first",$state);
         $r = $hc::appendToJson($r,$g->exportPair(["activeSide","stats"]));
         break;
       } 
@@ -480,7 +480,7 @@ class Ships extends DetachableController {
       }
       else if ($state=="fight") {
         if ($side == $g->getActive()) $note="Make your move";
-        else $note="Prepare to fight";
+        else $note="Enemy is striking first";
         $r = $hc::notePairs($note, $g, ["activeSide","state"] );
         break;      
       }
@@ -489,7 +489,7 @@ class Ships extends DetachableController {
     case "queryStage":
       if ($state=="fight") {
         if ($side == $g->getActive()) $note="Make your move";
-        else $note="Prepare to fight";
+        else $note="Enemy is striking first";
         $r = $hc::notePairs($note, $g, ["activeSide","state"] );
         break;
       }
@@ -658,7 +658,7 @@ class Fight extends DetachableController {
       $freshMovesJson=json_encode($freshMoves);
       if ( $g->getStage() == "finish" ) {
         if ( $g->winner == $side ) $note="You have won";
-        else $note="Enemy has won !";
+        else $note="<span class='lose'>ENEMY HAS WON !</span>";
       }
       else {
         if ( $g->isActive($side) ) $note="Make your move";

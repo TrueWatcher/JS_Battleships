@@ -285,54 +285,34 @@ function arraySwap01(arr) {
 }
 
 /**
- * Puts content to given HTML element.
- * @param string str content
- * @param {string|DOMElement} id target element's Id or that element itself
- * @return nothing
+ * Tests if argument is an array.
+ * @return boolean
  */
-function putToElement(str,id) {
-  var e;
-  if ( id.nodeName ) e=id;
-  else if ( typeof id =="string" ) {
-    e=document.getElementById(id);
-    if (!e) throw new Error("putToElement: invalid node id "+id);
-  }
-  else throw new Error("putToElement: invalid argument "+id);
-  //var e=document.getElementById(id);
-  e.innerHTML=str;
-}
+function isArray(x) { return (x instanceof Array) };
 
 /**
- * Gets content from given HTML element (value or any attribute).
- * @param {string|DOMElement} id target element's Id or that element itself
- * @param string attr attribute name
- * @return string element.value or element.attribute.value
+ * Compares associative arrays.
+ * @param object o1
+ * @param object o2
+ * @param boolean valsNotEmpty=true demands similar keys and non-empty values
+ * @param boolean valsEqual=false demands similar keys and values ( by == )
+ * @return string|boolean true on success, error message on failure
  */
-function getElementValue(id,attr) {
-  var e;
-  if ( id.nodeName ) e=id;
-  else if ( typeof id =="string" ) {
-    e=document.getElementById(id);
-    if (!e) throw new Error("getElementValue: invalid node id "+id);
+function compareKeys(o1,o2,valsNotEmpty,valsEqual) {
+  var k,v,j;
+  if ( typeof valsNotEmpty==undefined ) valsNotEmpty=true;
+  if ( typeof valsEqual==undefined ) valsEqual=false;
+  for (k in o1) {
+    if ( o1.hasOwnProperty(k) ) {
+      if ( ! o2.hasOwnProperty(k) ) return ("Key in o1, not in o2 :"+k);
+      if ( valsNotEmpty && ( !o1[k] || !o2[k] ) ) return ("Values for "+k+":"+o1[k]+"/"+o2[k]+"!");
+      if ( valsEqual && o1[k] != o2[k] ) return ("Values for "+k+":"+o1[k]+"/"+o2[k]+"!");
+    }
   }
-  else throw new Error("putToElement: invalid argument "+id);
-
-  if (!attr) return (e.value);
-  else  if (attr=="checked") return (e.checked);// important!
-  else  return ( e.getAttribute(attr) );
-}
-
-/**
- * Toggles the display property of the given HTML element.
- * @param {string|DOMElement} id target element's Id or that element itself
- * @return nothing
- */
-function toggleElement(id) {
-  var e;
-  if ( id.nodeName ) e=id;
-  else if ( typeof id =="string" ) e=document.getElementById(id);
-  else throw new Error("toggleElement: invalid argument "+id);
-  var d=e.style.display;
-  if (d=="none") e.style.display="";
-  else e.style.display="none";
+  for (j in o2) {
+    if ( o2.hasOwnProperty(j) ) {
+      if ( ! o1.hasOwnProperty(j) ) return ("Key in o2, not in o1 :"+j);
+    }
+  }
+  return true;
 }

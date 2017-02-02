@@ -30,3 +30,14 @@ table.boardLike td,table.listLike td {
   
 }
 
+.ledOn {
+  background-color: yellow;
+}
+
+.ledOff {
+  background-color: gray;
+}
+
+#ajaxPanel td {
+  padding: 0.7em 0.7em;
+}

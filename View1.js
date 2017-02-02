@@ -226,14 +226,7 @@ function View1() {
     // click on CONFIRM button
     $("confirmButton").onclick=function() { tm.go("rules","confirm"); return false; };
 
-    $("resetButton").onclick=function() {
-      /*if ( g.getState()=="picking" || g.getState()=="converged" || g.getState()=="confirming" ) {
-        alert ("This button does not work in active state");
-        return false;
-      }*/
-      tm.go("intro","abort");
-      return false;
-    };
+    $("resetButton").onclick=function() { tm.go("intro","abort"); return false; };
 
     $("localButton").onclick=function() { tm.go("intro","playLocally"); return false; };
 
@@ -286,5 +279,38 @@ function View1() {
       } 
     }
   };
+  
+  this.ap=new AjaxPanel("ajaxPanel");
 
 }// end View1
+
+function AjaxPanel(container) {
+  var _this=this;
+  
+  this._container=$(container);
+  
+  this.display=function() { displayElement(this._container); };
+  
+  this.hide=function() { hideElement(this._container); };
+  
+  this.ledEl=$("led");
+  
+  this.ledOn=function() {
+    this.ledEl.className="ledOn";
+  }
+
+  this.ledOff=function() {
+    this.ledEl.className="ledOff";
+  }
+  
+  this.techEl=$("tech");
+  
+  this.toggleTech=function() {
+    toggleElement(_this.techEl);
+    g.allowHideControls=false;
+  }
+  
+  $("detailsButton").onclick=_this.toggleTech;
+  
+  $("resetButton2").onclick=function() { tm.go("intro","abort"); return false; };
+}
