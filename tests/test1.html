@@ -9,22 +9,32 @@
 </head>
 <body>
 <table id="general">
+<tbody>
   <tr>
-    <td>Your ships</td>
-    <td>Enemy ships</td>
+    <td id="playerLabel"></td>
+    <td id="enemyLabel"></td>
   </tr>
   <tr>
     <td id="primary"></td>
     <td id="tracking"></td>
   </tr>
   <tr>
-    <td id="prPanel"></td>
+    <td><div  id="prPanel">
+      <button type="button" id="confirmShips">Done, let's play</button>
+      <button type="button" id="removeShips">Clear</button>
+      <button type="button" id="autoShips">Auto arrange</button>
+    </div></td>
     <td id="trPanel"></td>
   </tr>
   <tr>
     <td id="playerStat"></td>
     <td id="enemyStat"></td>
-  </tr>  
+  </tr>
+  <tr>
+    <td id="playerMsg"></td>
+    <td id="enemyMsg"></td>
+  </tr>
+</tbody>
 </table>
 
 <script>
@@ -32,6 +42,7 @@
 </script>
 <script src="testUtils.js"></script>
 <script src="../arrayUtils.js"></script>
+<script src="../htmlUtils.js"></script>
 <script src="../View.js"></script>
 <script src="../Basin.js"></script>
 <script src="../Model.js"></script>
