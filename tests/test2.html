@@ -55,8 +55,8 @@
 <script>
 "use strict";
 try{
-  var v=new View();
-  //v.setBoards();
+  var view2=new View();
+  //view2.setBoards();
   var b=new Basin();
   //var m=new Model();
 
@@ -73,7 +73,7 @@ try{
   f._ships.push(testShip2);
   b.markShip(testShip1);
   b.markShip(testShip2);
-  v.pb.fromBasin(b);  
+  view2.pb.fromBasin(b);  
   var s=new Stat();
   var h=f.makeHistogram();
   assertEqualsVect([0,0,0,1,1,0,0,0,0,0,0],h,"Wromg histogram","histogram")
@@ -98,7 +98,7 @@ try{
   assertEqualsPrim("h",r,"Wrong responce on hit","hit");
   r=strikeResponce( [ testShip2[j][0], testShip2[j][1] ] ,f,b,s );
   assertEqualsPrim("f",r,"Wrong responce on finishing hit","finishing hit");
-  v.pb.fromBasin(b);
+  view2.pb.fromBasin(b);
   
   //throw ("Finished");  
   //b.clear();
@@ -109,23 +109,23 @@ try{
   
   b.cleanUp();
   s.setShips( h );
-  var g=new Global();
-  g.setStage("fight");
-  g._active="e";
-  g._strikeRule="oe";
+  var global=new Global();
+  global.setStage("fight");
+  global._active="e";
+  global._strikeRule="oe";
   var striker=new TapePlayer( [ [4,4], [1,2], [5,5], [1,3], [1,4], [6,6], [3,0], [3,1], [3,2],  [3,3] ] );
   var expectedHits_oe=["m","h","m","h","w","m","h","h","h","f"];
   var expectedPStrikeCalled_oe=[1,1,2,2,2,3, 3,3,3,3];
   var expectedFinish_oe=9;
   
-  function P() { // does almost nothing
+  function P() { // does almost nothing, substitute for PlayerAssistant class
     this._strikeCalled=0;
     this.strike=function() {// count one call and imitate move transfer
       //alert("p.strike() is being called");
       this._strikeCalled++;
-      g._active="e";
+      global._active="e";
       e._clip.load();
-      a.swap();
+      arbiter.swap();
       return (0); 
     }
     
@@ -134,10 +134,10 @@ try{
     this._clip= new Clip(s);
     this._clip._rounds=100;
     
-    this._mesPanel=v.pm;
+    this._mesPanel=view2.pm;
   }
   
-  function E() {
+  function E() { // substitute for Enemy class
     //this._stat=new Stat();
     this._fleet=f;
     this._ownBasin=b;
@@ -148,8 +148,8 @@ try{
     this.strike=function() {
       //alert("e.strike() is being called");
       this._strikeCalled++;
-      //g._active="p";
-      //a.swap();
+      //global._active="p";
+      //arbiter.swap();
       return (0); 
     }
     
@@ -167,41 +167,41 @@ try{
     this._clip= new Clip(s);
     //this._clip._rounds=4;
     
-    this._mesPanel=v.pm;
+    this._mesPanel=view2.pm;
   }
   var e=new E();
   var p=new P();
-  var a=new Active(p,e,g);
+  var arbiter=new Arbiter(p,e,global);
   var probe,hit,checkout,step;
   
   println("strike rule: one plus extra for a hit");
   while ( probe=striker.go() ) {
     hit=e.respond(probe);
     e.reflect(hit);
-    v.ps.showStrikesHits(e._stat.strikes,e._stat.hits);
-    displayResponce( hit, probe, v.pb, b, v.es, s, v.pm );
-    v.pb.fromBasin(b);
-    checkout=a.checkout(hit);
+    view2.ps.showStrikesHits(e._stat.strikes,e._stat.hits);
+    displayResponce( hit, probe, view2.pb, b, view2.es, s, view2.pm );
+    view2.pb.fromBasin(b);
+    checkout=arbiter.checkout(hit);
     
     step=striker.getIndex()-1;
     assertEqualsPrim( expectedHits_oe[step],hit,"Wrong responce","responce "+step );
     assertEqualsPrim( step+1,s.strikes,"Wrong stat::strikes","stat::strikes "+step );
-    //assertEqualsPrim( expectedActive_oe[step],g._active,"Wrong active side","active "+step );
+    //assertEqualsPrim( expectedActive_oe[step],global._active,"Wrong active side","active "+step );
     assertEqualsPrim( expectedPStrikeCalled_oe[step],p._strikeCalled,"Wrong number of p.strike calls -- wrong active side","active "+step );
-    if ( g.getStage()!="fight" ) {
-      //alert ("Stage="+g.getStage());
+    if ( global.getStage()!="fight" ) {
+      //alert ("Stage="+global.getStage());
       assertEqualsPrim( expectedFinish_oe, step, "Wrong finish step", "finish "+step );
     }
     //alert("Step "+step);
   }
 
   println("\nstrike rule: length of the biggest ship");
-  g.setStage("fight");
-  g._active="e";
-  g._strikeRule="bs";
+  global.setStage("fight");
+  global._active="e";
+  global._strikeRule="bs";
   b.cleanUp();
-  v.pb.fromBasin(b);
-  var aa=new Active(p,e,g);
+  view2.pb.fromBasin(b);
+  var aa=new Arbiter(p,e,global);
   s.setShips(h);
   e._stat.strikes=0;
   e._stat.hits=0;
@@ -216,18 +216,18 @@ try{
   while ( probe=striker.go() ) {
     hit=e.respond(probe);
     e.reflect(hit);
-    v.ps.showStrikesHits(e._stat.strikes,e._stat.hits);
-    displayResponce( hit, probe, v.pb, b, v.es, s, v.pm );
-    v.pb.fromBasin(b);
-    checkout=a.checkout(hit);
+    view2.ps.showStrikesHits(e._stat.strikes,e._stat.hits);
+    displayResponce( hit, probe, view2.pb, b, view2.es, s, view2.pm );
+    view2.pb.fromBasin(b);
+    checkout=arbiter.checkout(hit);
     
     step=striker.getIndex()-1;
     assertEqualsPrim( expectedHits_bs[step],hit,"Wrong responce","responce "+step );
     assertEqualsPrim( step+1,s.strikes,"Wrong stat::strikes","stat::strikes "+step );
     assertEqualsPrim( expectedClip[step],e._clip.get(),"Wrong number of rounds in the clip","clip "+step );
     assertEqualsPrim( expectedPStrikeCalled_bs[step],p._strikeCalled,"Wrong number of p.strike calls -- wrong active side","active "+step );
-    if ( g.getStage()!="fight" ) {
-      //alert ("Stage="+g.getStage());
+    if ( global.getStage()!="fight" ) {
+      //alert ("Stage="+global.getStage());
       assertEqualsPrim( expectedFinish_bs, step, "Wrong finish step", "finish "+step );
     }
     //alert("Step "+step);

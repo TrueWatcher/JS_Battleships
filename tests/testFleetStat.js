@@ -1,11 +1,11 @@
 "use strict";
 
-var v=[];
-v.tb=[];
-v.tb.put=function(){}
-//var g={};
+var view2=[];
+view2.tb=[];
+view2.tb.put=function(){}
+//var global={};
 var plan=[0,4,3,2,1,0,0,0,0,0,0];
-//g.getForces=function() { return plan; };
+//global.getForces=function() { return plan; };
 
 function testFleetStat(){
 try {

@@ -32,11 +32,11 @@ function TopManager() {
     * @return mixed return value of subcontroller, currently void
     */
   this.go=function(aStage,command,data) {
-    var stage=g.getStage();
+    var stage=global.getStage();
     var state;
     if( stage=="zero" ) { 
-      stage=g.setStage("intro");
-      state=g.setState("intro");
+      stage=global.setStage("intro");
+      state=global.setState("intro");
     }
   
     // some commands are stage-ignorant, most are not
@@ -44,7 +44,7 @@ function TopManager() {
       alert("Command ("+command+") stage is "+aStage+", global is "+stage+"!");
       return false;
     }
-    var Sc=getStageController(g.online,aStage);
+    var Sc=getStageController(global.online,aStage);
     var sc=new Sc();
     //sc=new Intro();
     var r = sc.go(command,data);
@@ -57,26 +57,30 @@ function TopManager() {
    * @return void
    */
   this.pull=function(responseText) {
-    var responseObj={};    
+    var responseObj={};
+    stage=global.getStage();
     $("tech").innerHTML=" full response:<br />"+responseText;
-    try { responseObj=JSON.parse(responseText); }
+    try { 
+      responseObj=JSON.parse(responseText); 
+    }
     catch (err) {
       alert ("Unparsable server response:"+responseText);
     }
     var stateChanged=adoptState(responseObj);
     if (stateChanged) onStateChange(responseObj,currentStage,stage,currentState,state);
-    if ( responseObj["activeSide"] ) g.setActive(responseObj["activeSide"]);
-    v1.consumeServerResponse(responseObj);
-    if ( g.getStage()=="ships" || g.getStage()=="fight" || g.getStage()=="finish" ) {
-      v.consumeServerResponse(responseObj,m);
+    if ( responseObj["activeSide"] ) global.setActive(responseObj["activeSide"]);
+    view1.consumeServerResponse(responseObj);
+    if ( stage=="ships" || stage=="fight" || stage=="finish" ) {
+      view2.consumeServerResponse(responseObj,model);
     }
   };
-    
+  
+  var stage,state,currentStage,currentState;// output vars of adoptState()
+  
   function adoptState(responseObj) {
-    var stage,state,currentStage,currentState;
-    stage=currentStage=g.getStage();
-    state=currentState=g.getState();
-    //alert("in Stage="+g.getStage());
+    stage=currentStage=global.getStage();
+    state=currentState=global.getState();
+    //alert("in Stage="+global.getStage());
     if ( responseObj["stage"] ) { 
       stage=responseObj["stage"];
     }
@@ -84,9 +88,9 @@ function TopManager() {
       state=responseObj["state"];
     }
     if ( stage != currentStage || state != currentState ) {
-      g.setStage(stage);
-      g.setState(state);
-      //alert("out stage="+g.getStage());
+      global.setStage(stage);
+      global.setState(state);
+      //alert("out stage="+global.getStage());
       return (true);
     }
     else return false;
@@ -94,11 +98,11 @@ function TopManager() {
   
   // Handlers for custom events fired by TopManager::pull
   function onStateChange(responseObj,prevStage,stage,prevState,state) {
-    if ( responseObj["players"] ) onRegistration();
-    if ( responseObj["rulesSet"] ) g.importRules( responseObj["rulesSet"] );
+    if ( responseObj["players"] ) onRegistration(responseObj);
+    if ( responseObj["rulesSet"] ) global.importRules( responseObj["rulesSet"] );
     if ( (prevStage == "intro" || prevStage == "zero") && stage == "rules" ) { 
-      v1.clearNote("intro");
-      v1.initPicks();
+      view1.clearNote("intro");
+      view1.initPicks();
       return;
     }
     if ( stage == "ships" && prevStage!=stage ) { 
@@ -125,57 +129,57 @@ function TopManager() {
     }
   }
   
-  function onRegistration() {    
-    g.pSide=readCookie("side");
-    g.pName=readCookie("name");
-    g.eSide=g.otherSide(g.pSide);
-    //alert("cookies side="+g.pSide+", name="+ng.pName+".");
+  function onRegistration(responseObj) {    
+    global.pSide=readCookie("side");
+    global.pName=readCookie("name");
+    global.eSide=global.otherSide(global.pSide);
+    //alert("cookies side="+global.pSide+", name="+nglobal.pName+".");
     if ( responseObj["players"] ) {
       var rp=responseObj["players"];
-      if ( rp[g.pSide] != g.pName ) throw new Error("My name is "+g.pName+" in the cookie and "+rp[g.pSide]+" in the response!");
+      if ( rp[global.pSide] != global.pName ) throw new Error("My name is "+global.pName+" in the cookie and "+rp[global.pSide]+" in the response!");
     }
-    v1.ticks[g.pSide]="v";
-    v1.ticks[g.eSide]="x";
-    g._theme = v1.applyTheme();
+    view1.ticks[global.pSide]="v";
+    view1.ticks[global.eSide]="x";
+    global._theme = view1.applyTheme();
     poller.start();
-    //v1.initPicks();// makes problems
-    v1.putNote("intro"," connected ");
+    //view1.initPicks();// makes problems
+    view1.putNote("intro"," connected ");
   }
   
   function initPage2() {
-    v1.putNote("rules","Loading page 2");
+    view1.putNote("rules","Loading page 2");
     //alert("Running page 2");
     
-    if(typeof v !=="object") alert("onTransitToPage2: v is not the global object");
-    if(typeof m !=="object") alert("onTransitToPage2: m is not the global object");
-    v=new View(g);
-    //alert ("theme:"+g._theme);
-    m=new Model();      
-    v.setBoards(g._theme);
-    v.putNames();
+    if(typeof view2 !=="object") throw new Error("view2 is not the global object");
+    if(typeof model !=="object") throw new Error("model is not the global object");
+    view2=new View(global);
+    //alert ("theme:"+global._theme);
+    model=new Model();      
+    view2.setBoards(global._theme);
+    view2.putNames();
 
-    if (g.allowHideControls) { 
+    if (global.allowHideControls) { 
       hideElement("intro");
       hideElement("rules");
       hideElement("finish");
     }
     displayElement("main");
-    v.dc.display();
+    view2.dc.display();
 
-    v.em.put(" ");
-    if (g.getStage()=="ships") {
-      g.setTotal(0);
+    view2.em.put(" ");
+    if (global.getStage()=="ships") {
+      global.setTotal(0);
       var mes="Draw your ships (";
-      mes+=v.ps.showClearHistogram( g.getForces(),"return" );
+      mes+=view2.ps.showClearHistogram( global.getForces(),"return" );
       mes+="),<br />then press Done";
-      v.pm.put(mes);
+      view2.pm.put(mes);
     }
     return;
   }
   
   function onInitFight() {
-    if (g.allowHideControls) { 
-      v.dc.hide();
+    if (global.allowHideControls) { 
+      view2.dc.hide();
     }    
   }
 
@@ -183,19 +187,19 @@ function TopManager() {
     displayElement("finish");
     return;
 //     if (!r["activeSide"]) alert ("No activeSide value in Finish stage");
-//     if (r["activeSide"]==g.eSide) {
-//       v.em.put('<span class="'+"lose"+'">ENEMY HAS WON !');
+//     if (r["activeSide"]==global.eSide) {
+//       view2.em.put('<span class="'+"lose"+'">ENEMY HAS WON !');
 //     }
-//     if (r["activeSide"]==g.pSide) {
-//       v.pm.put('<span class="'+"win"+'">YOU HAVE WON !');
+//     if (r["activeSide"]==global.pSide) {
+//       view2.pm.put('<span class="'+"win"+'">YOU HAVE WON !');
 //     }
     //poller.stop();// there will be one last call
   }
   
   function onReIntro() {
-    g = new Global();
-    g.allowHideControls=true;
-    if (g.allowHideControls) { 
+    global = new Global();
+    global.allowHideControls=true;
+    if (global.allowHideControls) { 
       hideElement("main");
       hideElement("finish");
     }
@@ -229,22 +233,22 @@ function Intro() {
     switch (command) {
       
     case "setTheme": 
-      g._theme=v1.applyTheme();
+      global._theme=view1.applyTheme();
       break;
       
     case "register":
-      g.online="online";
-      g._theme=v1.applyTheme();
-      names=v1.getNames();
-      g.setNames(names.p,names.e);
+      global.online="online";
+      global._theme=view1.applyTheme();
+      names=view1.getNames();
+      global.setNames(names.p,names.e);
       qs="intro=register"+"&playerName="+names.p+"&enemyName="+names.e;
       sendRequest(qs);
       break;
       
     case "abort":
-      v1.clearNames();
-      g.clearNames();
-      if (g.online=="online") {
+      view1.clearNames();
+      global.clearNames();
+      if (global.online=="online") {
         sendRequest("intro=abort");
         deleteAllCookies();
       }
@@ -253,20 +257,20 @@ function Intro() {
       
     case "playLocally":
       if (poller) poller.stop();
-      g.online="local";
-      g._theme=v1.applyTheme();
-      names=v1.getNames();
-      g.setNames( names.p, "Local Script" );//local enemy is always Local Script
-      g.pSide="A";
-      g.eSide="B";
-      v1.putNames( g.getName("A"), g.getName("B") );
-      v1.applyTheme();
-      v1.ticks={A:"v",B:"x"};
-      g.setStage("rules");
-      v1.initPicks();
-      g.setState("converged");
-      v1.putNote("intro","Playing locally");
-      v1.putNote("rules","Playing locally");
+      global.online="local";
+      global._theme=view1.applyTheme();
+      names=view1.getNames();
+      global.setNames( names.p, "Local Script" );//local enemy is always Local Script
+      global.pSide="A";
+      global.eSide="B";
+      view1.putNames( global.getName("A"), global.getName("B") );
+      view1.applyTheme();
+      view1.ticks={A:"v",B:"x"};
+      global.setStage("rules");
+      view1.initPicks();
+      global.setState("converged");
+      view1.putNote("intro","Playing locally");
+      view1.putNote("rules","Playing locally");
       break;
       
     case "queryStage":
@@ -300,11 +304,11 @@ function RulesOnline() {
       var details={};
       var id=data;
       if (!id) break;
-      details=v1.parsePickId(id);
-      if ( details.side==g.pSide ) {
-        v1.clearGroup(details.itemName, details.row, details.side);
-        v1.tickHtml(id);
-        myPicks=v1.readPicks(g.pSide);
+      details=view1.parsePickId(id);
+      if ( details.side==global.pSide ) {
+        view1.clearGroup(details.itemName, details.row, details.side);
+        view1.tickHtml(id);
+        myPicks=view1.readPicks(global.pSide);
         if ( !myPicks ) return false; 
         qs="rules=updPick&pick="+myPicks;
         sendRequest(qs);     
@@ -317,16 +321,16 @@ function RulesOnline() {
       break;
       
     case "confirm":
-      myPicks=v1.readPicks(g.pSide);
+      myPicks=view1.readPicks(global.pSide);
       if ( !myPicks ) break;
-      var otherPicks=v1.readPicks(g.eSide);
+      var otherPicks=view1.readPicks(global.eSide);
       if ( myPicks!==otherPicks ) {
         alert ("You answers are different from your opponent's, go on bargaining");
         break;
       }
-      v1.putNote("rules","Almost done...");
-      g.setRules(myPicks);
-      qs="rules=confirm&pick="+myPicks+"&rulesSet="+g.exportRules();
+      view1.putNote("rules","Almost done...");
+      global.setRules(myPicks);
+      qs="rules=confirm&pick="+myPicks+"&rulesSet="+global.exportRules();
       sendRequest(qs);
       break;
       
@@ -345,46 +349,46 @@ function ShipsOnline() {
   this.go=function(command,data) {
     var parsed=[],qs="",c="",sy,ps,h,hs,cm;
     
-    v.pm.put("");
+    view2.pm.put("");
     
     switch(command) {
       
     case "cell":
       // processed locally
-      parsed = v.parseGridId(data);
+      parsed = view2.parseGridId(data);
       //alert ( "cell :"+parsed.row+"_"+parsed.col );
       if (parsed.prefix=="p") {
-        if ( m.playerBasin.get(parsed.row,parsed.col) != "s" ) c="s";
+        if ( model.playerBasin.get(parsed.row,parsed.col) != "s" ) c="s";
         else c="e";
-        m.playerBasin.put(c,parsed.row,parsed.col);
-        v.pb.put(c,parsed.row,parsed.col);
+        model.playerBasin.put(c,parsed.row,parsed.col);
+        view2.pb.put(c,parsed.row,parsed.col);
       }
       break;
       
     case "rs": // remove all ships
-      m.playerBasin.clear();
-      v.pb.fromBasin(m.playerBasin);
+      model.playerBasin.clear();
+      view2.pb.fromBasin(model.playerBasin);
       break;
 
     case "as": // automatically draw ships
-      sy=new ShipYard(g.getForces());
+      sy=new ShipYard(global.getForces());
       ps=sy.buildAll();
-      m.playerBasin.clear();
-      m.playerBasin.takeShips(ps);
-      v.pb.fromBasin(m.playerBasin);
+      model.playerBasin.clear();
+      model.playerBasin.takeShips(ps);
+      view2.pb.fromBasin(model.playerBasin);
       break;
       
     case "cs": // check up and go playing
-      h=new Harvester(m.playerBasin);
+      h=new Harvester(model.playerBasin);
       h.search();
-      m.playerBasin.cleanUp();
-      v.pb.fromBasin(m.playerBasin);
+      model.playerBasin.cleanUp();
+      view2.pb.fromBasin(model.playerBasin);
       hs=h.yield();
-      m.playerShips = new Fleet();
-      m.playerShips.take(hs);
-      if ( ! m.playerShips.checkMargins() ) {
-        v.pm.put("Ships must be straight<br /> and not to touch each other. <br />Try new ones");
-        m.playerShips.clear();
+      model.playerShips = new Fleet();
+      model.playerShips.take(hs);
+      if ( ! model.playerShips.checkMargins() ) {
+        view2.pm.put("Ships must be straight<br /> and not to touch each other. <br />Try new ones");
+        model.playerShips.clear();
         return;
       }
       hs=JSON.stringify(hs);
@@ -415,14 +419,14 @@ function FightOnline() {
     switch(command) {
       
     case "cell":
-      if (g.getActive()!==g.pSide) break;
-      parsed = v.parseGridId(data);
+      if (global.getActive()!==global.pSide) break;
+      parsed = view2.parseGridId(data);
       //alert ( "cell : "+parsed.prefix+"_"+parsed.row+"_"+parsed.col );
       if ( parsed.prefix == "e" ) {
         c="f";
-        v.tb.put(c,parsed.row,parsed.col);
-        //g.incTotal(); // moves are counted in View::putMove
-        qs="fight=strike&rc=["+parsed.row+","+parsed.col+"]&thisMove="+(g.getTotal()+1);
+        view2.tb.put(c,parsed.row,parsed.col);
+        //global.incTotal(); // moves are counted in View::putMove
+        qs="fight=strike&rc=["+parsed.row+","+parsed.col+"]&thisMove="+(global.getTotal()+1);
         //alert("qs="+qs);
         sendRequest(qs);
         break;
@@ -430,7 +434,7 @@ function FightOnline() {
       break;
     
     case "queryMoves":
-       qs="fight=queryMoves&latest="+g.getTotal();
+       qs="fight=queryMoves&latest="+global.getTotal();
        sendRequest(qs);
        break;
        
@@ -480,11 +484,11 @@ function FinishOnline() {
 
 // timer "event"
 function onPoll() { 
-  //alert ("poll, stage="+g.getStage());
+  //alert ("poll, stage="+global.getStage());
   var divisors={intro:3,rules:0,ships:1,fight:0,finish:3};
   if ( typeof this._i == undefined ) this._i=0;
-  var stage=g.getStage();
-  var state=g.getState();
+  var stage=global.getStage();
+  var state=global.getState();
   
   if ( divisors[stage]<0 ) return;
   if ( this._i < divisors[stage] ) {
@@ -505,7 +509,7 @@ function onPoll() {
     tm.go("ships","queryStage");
     return;
   }
-  if ( stage=="fight" && ( g.getActive() != g.pSide ) ) {
+  if ( stage=="fight" && ( global.getActive() != global.pSide ) ) {
     tm.go("fight","queryMoves");
     return;
   }

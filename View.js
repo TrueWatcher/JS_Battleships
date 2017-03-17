@@ -142,8 +142,8 @@ function Board(parentElm,command,prefix,fill,theme) {
     var tdId=detectTd(event);// closure
     //var data=[ tdId.charAt(1),tdId.charAt(2) ];
     //alert (tdId);
-    //alert("stage "+g.getStage());
-    tm.go ( g.getStage(), "cell", tdId );
+    //alert("stage "+global.getStage());
+    tm.go ( global.getStage(), "cell", tdId );
     return false;
   };
 
@@ -353,21 +353,21 @@ function View(game) {
     
     if ( r["players"] ) {
       var rp=r["players"];
-      putToElement(rp[g.pSide],"playerLabel");
-      putToElement(rp[g.eSide],"enemyLabel");
+      putToElement(rp[global.pSide],"playerLabel");
+      putToElement(rp[global.eSide],"enemyLabel");
     }
     
     if ( r["fleet"] ) {
       //alert("fleet");
       var sh=r["fleet"];
       if ( !( sh["A"] instanceof Array ) && ! ( sh["B"] instanceof Array ) ) throw new Error ("No valid index A or B in r::ships");
-      if ( sh[g.pSide] ) {
-        m.playerBasin.takeShips(sh[g.pSide]);
-        this.pb.fromBasin(m.playerBasin);
+      if ( sh[global.pSide] ) {
+        model.playerBasin.takeShips(sh[global.pSide]);
+        this.pb.fromBasin(model.playerBasin);
       }
-      if ( sh[g.eSide] ) {
-        m.enemyBasin.takeShips(sh[g.eSide]);
-        this.tb.fromBasin(m.enemyBasin);
+      if ( sh[global.eSide] ) {
+        model.enemyBasin.takeShips(sh[global.eSide]);
+        this.tb.fromBasin(model.enemyBasin);
       }
     }
     
@@ -385,10 +385,10 @@ function View(game) {
     if ( r["stats"] ) {
       var st=r["stats"];
       if ( !( st["A"] instanceof Object ) || ! ( st["B"] instanceof Object ) ) throw new Error ("No valid index A and B in r::stats");
-      this.ps.showStrikesHits( st[g.pSide]["strikes"], st[g.pSide]["hits"] );
-      this.es.showStrikesHits( st[g.eSide]["strikes"], st[g.eSide]["hits"] );
-      this.ps.showStat( st[g.pSide]["afloat"], st[g.pSide]["largest"], "" );
-      this.es.showStat( st[g.eSide]["afloat"], st[g.eSide]["largest"], "" );
+      this.ps.showStrikesHits( st[global.pSide]["strikes"], st[global.pSide]["hits"] );
+      this.es.showStrikesHits( st[global.eSide]["strikes"], st[global.eSide]["hits"] );
+      this.ps.showStat( st[global.pSide]["afloat"], st[global.pSide]["largest"], "" );
+      this.es.showStat( st[global.eSide]["afloat"], st[global.eSide]["largest"], "" );
     }
     
   };
@@ -410,16 +410,16 @@ function View(game) {
     var targetBasin,targetBoard;
     //alert (">>"+moveArr);
     parsed = this.parseMove(moveArr);
-    if ( parsed.count <= g.getTotal() ) {
-      alert("Received move #"+parsed.count+", but Total="+g.getTotal() );
+    if ( parsed.count <= global.getTotal() ) {
+      alert("Received move #"+parsed.count+", but Total="+global.getTotal() );
       return;
     }
-    if (parsed.side == g.eSide) { // if e strikes, target is p
-      targetBasin=m.playerBasin;
+    if (parsed.side == global.eSide) { // if e strikes, target is p
+      targetBasin=model.playerBasin;
       targetBoard=this.pb;
     }
-    else if (parsed.side == g.pSide) {
-      targetBasin=m.enemyBasin;
+    else if (parsed.side == global.pSide) {
+      targetBasin=model.enemyBasin;
       targetBoard=this.tb;
     } 
     else {
@@ -435,7 +435,7 @@ function View(game) {
       targetBasin.put( parsed.hit,parsed.row,parsed.col );
       targetBoard.put( parsed.hit,parsed.row,parsed.col );
     }
-    g.incTotal();    
+    global.incTotal();    
   }
 }
 

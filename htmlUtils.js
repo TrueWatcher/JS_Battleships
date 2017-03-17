@@ -189,7 +189,7 @@ function Poll(millisecs) {
  * @return void
  */
 function sendRequest (queryString,indicator) {
-  if (v1) indicator=v1.ap;
+  if (typeof view1 != "undefined") indicator=view1.ap;
   
   if (!queryString) throw new Error ("sendRequest: empty query string");
   var responderUrl="hub.php";
@@ -218,7 +218,7 @@ function sendRequest (queryString,indicator) {
  * @param {object XHR} oReq
  */
 function receive(oReq,indicator) {
-  if (v1) indicator=v1.ap;
+  if (typeof view1 != "undefined") indicator=view1.ap;
   var note="";
   if (oReq.readyState == 4) {
     if(oReq.status==200) {

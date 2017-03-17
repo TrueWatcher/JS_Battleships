@@ -17,32 +17,32 @@ function RulesLocal() {
       var details={};
       var id=data;
       if (!id) break;
-      details=v1.parsePickId(id);
-      if ( details.side==g.pSide ) {
-        v1.clearGroup(details.itemName, details.row, details.side);
-        v1.tickHtml(id);
-        myPicks=v1.readPicks(g.pSide);
+      details=view1.parsePickId(id);
+      if ( details.side==global.pSide ) {
+        view1.clearGroup(details.itemName, details.row, details.side);
+        view1.tickHtml(id);
+        myPicks=view1.readPicks(global.pSide);
         // copy picked items to enemy side
-        v1.drawPicks("B",myPicks,v1.ticks["B"]);
+        view1.drawPicks("B",myPicks,view1.ticks["B"]);
       }
       //alert("myPicks:"+myPicks);
-      // g.setState("converged");
+      // global.setState("converged");
       break;
     case "queryPick":
       alert("Command queryPick while playing locally");
       break;
     case "confirm":
-      myPicks=v1.readPicks(g.pSide);
+      myPicks=view1.readPicks(global.pSide);
       //alert("myPicks:"+myPicks);
-      if ( true !== compareKeys( JSON.parse(myPicks), g.defaultPicks ) ) { 
+      if ( true !== compareKeys( JSON.parse(myPicks), global.defaultPicks ) ) { 
         alert ("Please, give all answers");
         break;
       }
-      v1.putNote("rules","Done");
-      g.pickStr=myPicks;
-      g.setRules(myPicks);
-      g.setStage("ships");
-      //g.setState("draw");
+      view1.putNote("rules","Done");
+      global.pickStr=myPicks;
+      global.setRules(myPicks);
+      global.setStage("ships");
+      //global.setState("draw");
       this.initPage2();
       break;
     default:
@@ -51,41 +51,43 @@ function RulesLocal() {
   };
   
   this.initPage2=function() {
-    v1.putNote("rules","Loading page 2");
+    view1.putNote("rules","Loading page 2");
     //alert("Running page 2");
     //g=g;//new Game();
     
-    if(typeof v !=="object") alert("onTransitToPage2: v is not the global object");
-    if(typeof m !=="object") alert("onTransitToPage2: m is not the global object");
-    v=new View(g);
-    m=new Model();      
+    if(typeof view2 !=="object") alert("onTransitToPage2: view2 is not the global object");
+    if(typeof model !=="object") alert("onTransitToPage2: model is not the global object");
+    view2=new View(global);
+    model=new Model();      
     
-    v.setBoards(g._theme);
-    v.putNames();
+    view2.setBoards(global._theme);
+    view2.putNames();
+    view2.pm.put("");
+    view2.em.put("");
     
-    if (g.allowHideControls) { 
+    if (global.allowHideControls) { 
       hideElement("intro");
       hideElement("rules");
       hideElement("finish");
     }
     displayElement("main");
-    v.dc.display();
+    view2.dc.display();
 
-    m.enemyShips=new Fleet();
-    m.enemyShips.build("byWarrant",g.getForces());
-    var eh=m.enemyShips.makeHistogram();
-    v.es.showClearHistogram(eh);
-    m.enemyStat.setShips(eh);
-    v.es.showStat(m.enemyStat.shipsAlive,m.enemyStat.biggestShip,m.enemyStat.shipsSunk);
-    if (g._previewEnemyShips) {
-      m.enemyShips.show(v.tb);
+    model.enemyShips=new Fleet();
+    model.enemyShips.build("byWarrant",global.getForces());
+    var eh=model.enemyShips.makeHistogram();
+    view2.es.showClearHistogram(eh);
+    model.enemyStat.setShips(eh);
+    view2.es.showStat(model.enemyStat.shipsAlive,model.enemyStat.biggestShip,model.enemyStat.shipsSunk);
+    if (global._previewEnemyShips) {
+      model.enemyShips.show(view2.tb);
     }
 
     var mes="Draw your ships (";
-    mes+=v.ps.showClearHistogram( g.getForces(),"return" );
+    mes+=view2.ps.showClearHistogram( global.getForces(),"return" );
     mes+="),<br />then press Done";
-    v.pm.put(mes);
-    g.setStage("ships");
+    view2.pm.put(mes);
+    global.setStage("ships");
     return;
   };
 }
@@ -101,94 +103,94 @@ function ShipsLocal() {
     var parsed={};
     //alert(command+"+"+data);
     
-    if ( command=="cs" || command=="as" ) v.pm.put("");
+    if ( command=="cs" || command=="as" ) view2.pm.put("");
     
     if ( command=="cell" && data ) { // set a square to ship or empty
-      parsed = v.parseGridId(data);
+      parsed = view2.parseGridId(data);
       //alert ( "cell :"+parsed.row+"_"+parsed.col );
       if (parsed.prefix=="p") {
-        if ( m.playerBasin.get(parsed.row,parsed.col) != "s" ) c="s";
+        if ( model.playerBasin.get(parsed.row,parsed.col) != "s" ) c="s";
         else c="e";
-        m.playerBasin.put(c,parsed.row,parsed.col);
-        v.pb.put(c,parsed.row,parsed.col);
+        model.playerBasin.put(c,parsed.row,parsed.col);
+        view2.pb.put(c,parsed.row,parsed.col);
       }
     }
 
     if (command=="rs") { // remove all ships
-      m.playerBasin.clear();
-      v.pb.fromBasin(m.playerBasin);
+      model.playerBasin.clear();
+      view2.pb.fromBasin(model.playerBasin);
     }
 
     if (command=="as") { // automatically draw ships
-      sy=new ShipYard(g.getForces());
+      sy=new ShipYard(global.getForces());
       ps=sy.buildAll();
-      m.playerBasin.clear();
-      m.playerBasin.takeShips(ps);
-      v.pb.fromBasin(m.playerBasin);
+      model.playerBasin.clear();
+      model.playerBasin.takeShips(ps);
+      view2.pb.fromBasin(model.playerBasin);
     }
 
     if (command=="cs") { // check up and go playing
-      h=new Harvester(m.playerBasin);
+      h=new Harvester(model.playerBasin);
       h.search();
-      m.playerBasin.cleanUp();
-      v.pb.fromBasin(m.playerBasin);
+      model.playerBasin.cleanUp();
+      view2.pb.fromBasin(model.playerBasin);
       hs=h.yield();
-      m.playerShips = new Fleet();
-      m.playerShips.take(hs);
-      if ( ! m.playerShips.checkMargins() ) {
-        v.pm.put("Ships must be straight<br /> and not to touch each other. <br />Try new ones");
-        m.playerShips.clear();
+      model.playerShips = new Fleet();
+      model.playerShips.take(hs);
+      if ( ! model.playerShips.checkMargins() ) {
+        view2.pm.put("Ships must be straight<br /> and not to touch each other. <br />Try new ones");
+        model.playerShips.clear();
         return;
       }
-      pHistogram=m.playerShips.makeHistogram();
-      warrantHistogram=g.getForces();
+      pHistogram=model.playerShips.makeHistogram();
+      warrantHistogram=global.getForces();
       if ( pHistogram.join() != warrantHistogram.join() ) {
         mes="The rules require <br />(squares:ships): ";
-        mes+=v.ps.showClearHistogram(warrantHistogram,"return");
-        mes+='<br />Your ships does not comply';
-        if ( g._demandEqualForces ) mes+="<br />Try new ones";
-        v.pm.put( mes );
-        if ( g._demandEqualForces ) {
-          m.playerShips.clear();
+        mes+=view2.ps.showClearHistogram(warrantHistogram,"return");
+        mes+='<br />Your ships do not comply';
+        if ( global._demandEqualForces ) mes+="<br />Try new ones";
+        view2.pm.put( mes );
+        if ( global._demandEqualForces ) {
+          model.playerShips.clear();
           return;
         }
       }
 
-      m.playerStat.setShips(pHistogram);
-      v.ps.showStat(m.playerStat.shipsAlive,m.playerStat.biggestShip,m.playerStat.shipsSunk);
-      v.ps.showClearHistogram(pHistogram);
-      if (g.allowHideControls) { v.dc.hide(); }
+      model.playerStat.setShips(pHistogram);
+      view2.ps.showStat(model.playerStat.shipsAlive,model.playerStat.biggestShip,model.playerStat.shipsSunk);
+      view2.ps.showClearHistogram(pHistogram);
+      if (global.allowHideControls) { view2.dc.hide(); }
       initFight();
     }
     return;
   };
   
   function initFight() {
-    if( typeof e != "object" ) throw new Error("ShipsLocal::go: e is not the global object!");
-    if( typeof p != "object" ) throw new Error("ShipsLocal::go: p is not the global object!");
-    if( typeof a != "object" ) throw new Error("ShipsLocal::go: a is not the global object!");
+    if( typeof enemy != "object" ) throw new Error("ShipsLocal::go: enemy is not the global object!");
+    if( typeof player != "object" ) throw new Error("ShipsLocal::go: player is not the global object!");
+    if( typeof arbiter != "object" ) throw new Error("ShipsLocal::go: arbiter is not the global object!");
     
-    g.setStage("fight");
+    global.setStage("fight");
     
-    e=new Enemy( m.enemyShips, m.enemyBasin, m.enemyStat, m.enemyClip, m.playerBasin, v.em, g._enemyStriker );
-    //alert("E_hi="+e.hi());
-    p=new PlayerAssistant( m.playerShips, m.playerBasin, m.playerStat, m.playerClip, v.pm );
-    a=new Active(p,e,g);
-    if (g._strikeRule=="bs") {
-      p._clip.load();
-      e._clip.load();
+    enemy=new Enemy( model.enemyShips, model.enemyBasin, model.enemyStat, model.enemyClip, model.playerBasin, view2.em, global._enemyStriker );
+    //alert("E_hi="+enemy.hi());
+    player=new PlayerAssistant( model.playerShips, model.playerBasin, model.playerStat, model.playerClip, view2.pm );
+    arbiter=new Arbiter(player,enemy,global);
+    if (global._strikeRule=="bs") {
+      player._clip.load();
+      enemy._clip.load();
     }
     
-    if (g._active=="p") {
-      v.pm.add("<br />Make your move!"); 
-      a.setPlayer();
+    if (global._active=="p") {
+      view2.pm.add("<br />Make your move!"); 
+      arbiter.setPlayer();
     }
-    else if (g._active=="e" ) { 
-      v.em.add("Enemy has first move");
-      a.setEnemy();
-      e.strike();
+    else if (global._active=="e" ) { 
+      view2.em.add("Enemy has first move");
+      arbiter.setEnemy();
+      enemy.strike();
     } 
-    else throw new Error ("Invalid active side:"+g._active+"!");    
+    else throw new Error ("Invalid active side:"+global._active+"!");    
   }
 }
 
@@ -202,49 +204,49 @@ function FightLocal() {
     var hit;
     var parsed={};
 
-    v.pm.put("");
-    v.em.put("");
+    view2.pm.put("");
+    view2.em.put("");
     
     // player's strike
-    if( g._active=="p" && command=="cell" && data ) {
-      parsed = v.parseGridId(data);
+    if( global._active=="p" && command=="cell" && data ) {
+      parsed = view2.parseGridId(data);
       if ( parsed.prefix != "e" ) return;
-      hit=e.respond([parsed.row,parsed.col]);
+      hit=enemy.respond([parsed.row,parsed.col]);
       //alert(">"+hit);
-      p.reflect(hit);
-      v.ps.showStrikesHits(m.playerStat.strikes,m.playerStat.hits);
-      displayResponce( hit, [parsed.row,parsed.col], v.tb, m.enemyBasin, v.es, m.enemyStat, v.pm );// e.display
-      if ( a.checkout(hit) ) return;
+      player.reflect(hit);
+      view2.ps.showStrikesHits(model.playerStat.strikes,model.playerStat.hits);
+      displayResponce( hit, [parsed.row,parsed.col], view2.tb, model.enemyBasin, view2.es, model.enemyStat, view2.pm );// enemy.display
+      if ( arbiter.checkout(hit) ) return;
       // fall-through
     }
     
     // LocalScript's strike
-    if ( g._active=="e" && command=="enemyStrike" && data.length==2 ) {
-      hit=p.respond(data);
-      e.reflect(hit);
-      v.es.showStrikesHits(m.enemyStat.strikes,m.enemyStat.hits);
-      displayResponce( hit, data, v.pb, m.playerBasin, v.ps, m.playerStat, v.em );//p.display
+    if ( global._active=="e" && command=="enemyStrike" && data.length==2 ) {
+      hit=player.respond(data);
+      enemy.reflect(hit);
+      view2.es.showStrikesHits(model.enemyStat.strikes,model.enemyStat.hits);
+      displayResponce( hit, data, view2.pb, model.playerBasin, view2.ps, model.playerStat, view2.em );//player.display
       if (hit=="n")
-        console.log( "Enemy repeats itself on "+data+" that is "+v.playerBasin.get(data[0],data[1]) );// this is not to happen
-      if ( a.checkout(hit) ) return;
+        console.log( "Enemy repeats itself on "+data+" that is "+model.playerBasin.get(data[0],data[1]) );// this is not to happen
+      if ( arbiter.checkout(hit) ) return;
       // fall-through
     }
     
-    if ( g.getStage()!="finish" ) { // some command out of order
-      console.log( "Out of order: player="+g._active+" command="+command+" data="+data+" stage="+g.getStage() );
+    if ( global.getStage()!="finish" ) { // some command out of order
+      console.log( "Out of order: player="+global._active+" command="+command+" data="+data+" stage="+global.getStage() );
       return;
     }
     // fall-through
 
     // fight finished
     displayElement("finish");
-    if (g._active=="p") {
-      g._winner="p";
-      v.pm.put('<span class="'+"win"+'">YOU HAVE WON !');
+    if (global._active=="p") {
+      global._winner="p";
+      view2.pm.put('<span class="'+"win"+'">YOU HAVE WON !');
     }
     else {
-      g._winner="e";
-      v.em.put('<span class="'+"lose"+'">ENEMY HAS WON !');
+      global._winner="e";
+      view2.em.put('<span class="'+"lose"+'">ENEMY HAS WON !');
     }
     return;    
   };
@@ -266,17 +268,17 @@ function FinishLocal() {
       break;
       
     case "more":
-      //alert("g._active="+g._active);
-      // Active::swap leaves g._active equal to the winning side
+      //alert("global._active="+global._active);
+      // Active::swap leaves global._active equal to the winning side
       var rl=new RulesLocal();
-      rl.initPage2();
+      rl.initPage2();// call existing subcontroller's init routine
       break;
       
     case "new":
-      g=new Global();
-      g.setStage("intro");
-      g.setState("zero");
-      if (g.allowHideControls) { 
+      global=new Global();
+      global.setStage("intro");
+      global.setState("zero");
+      if (global.allowHideControls) { 
         hideElement("main");
         hideElement("finish");
       }
@@ -328,14 +330,14 @@ function strikeResponce(probe,fleet,ownBasin,stat) {
 
 /**
  * Updates statistics on the active side.
- * @param char responce
+ * @param char response
  * @param {object Stat} sourceStat
  * @return void
  * @see strikeResponce
  */
-function strikeCount(responce,sourceStat) {
+function strikeCount(response,sourceStat) {
   sourceStat.addStrike();
-  if ( responce =="h" || responce=="w" || responce=="f" ) sourceStat.addHit();
+  if ( response =="h" || response=="w" || response=="f" ) sourceStat.addHit();
 }
 
 /**
@@ -387,7 +389,7 @@ function Enemy (fleet,ownBasin,stat,clip,targetBasin,mesPanel,strikeMode) {
   this.strike=function() {
     //var probe=randomStrike(this._targetBasin,this._rand);
     var probe=_this._striker.move();
-    v.pb.put("f",probe[0],probe[1]);
+    view2.pb.put("f",probe[0],probe[1]);
     var t=window.setTimeout( function(){
       //alert("Enemy is striking");
       tm.go("fight","enemyStrike",probe);
@@ -433,26 +435,26 @@ function PlayerAssistant (fleet,ownBasin,stat,clip,mesPanel) {
 }
 
 /**
- * Sub-unit of Controller, which manages order of moves and calls respective sides
+ * Sub-unit of Controller, which manages order of moves and calls respective sides.
  *
  * @constructor
- * @param object PlayerAssistant player
- * @param object Enemy enemy
+ * @param object PlayerAssistant aPlayer
+ * @param object Enemy aEnemy
  * @param object Game game
  */
-function Active (player,enemy,game) {
-  var _source=player;
+function Arbiter (aPlayer,aEnemy,game) {
+  var _source=aPlayer;
   //var _game=game;
   var _letter=game._active;
 
   this.setPlayer=function() {
     _letter="p";
-    _source=player;
+    _source=aPlayer;
   };
 
   this.setEnemy=function() {
     _letter="e";
-    _source=enemy;
+    _source=aEnemy;
   };
 
   this.swap=function() {

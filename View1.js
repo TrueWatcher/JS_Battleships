@@ -57,10 +57,10 @@ function View1() {
   
   this.applyTheme=function() {
     this.readTheme();
-    //g._theme=this._theme; delegated to controller
+    //global._theme=this._theme; delegated to controller
     //alert("applying "+myTheme.label+"/"+this._theme);
     if (this._theme=="icons1") { 
-      myTheme=new ClassThemeV1 ( "classTheme1/", "classTheme1.css", $("picksTable"), this, g.pSide, g.eSide );
+      myTheme=new ClassThemeV1 ( "classTheme1/", "classTheme1.css", $("picksTable"), this, global.pSide, global.eSide );
       myTheme.apply();
       return this._theme;
     }
@@ -106,7 +106,7 @@ function View1() {
   };
   
   this.putNote=function(stage,note) {
-    if (!note) note=g.message;
+    if (!note) note=global.message;
     if (!stage || stage=="zero") stage="intro";
     var id=stage+"Note";
     $(id).innerHTML=note;
@@ -189,7 +189,7 @@ function View1() {
   };
 
   this.initPicks=function() {
-    //alert("initPicks "+g.getStage());
+    //alert("initPicks "+global.getStage());
     var ti=new TdIterator($("picksTable"));
     var td,parts;
     while ( td=ti.go() ) { //td.innerHTML=""; }
@@ -214,7 +214,7 @@ function View1() {
 
     // click on an answer
     $("picksTable").onclick=function(event) {
-      if (g.getState == "connecting") {
+      if (global.getState == "connecting") {
         alert("Please, wait for connect");
         return false;
       }
@@ -223,7 +223,6 @@ function View1() {
       return false;
     };
 
-    // click on CONFIRM button
     $("confirmButton").onclick=function() { tm.go("rules","confirm"); return false; };
 
     $("resetButton").onclick=function() { tm.go("intro","abort"); return false; };
@@ -243,8 +242,8 @@ function View1() {
     if ( r["players"] ) {
       //processRegistration();
       var rp=r["players"];
-      v1.putNames(rp["A"],rp["B"]);
-      //if ( rp[g.pSide] != g.pName ) throw new Error("My name is "+g.pName+" in the cookie and "+rp[g.pSide]+" in the response!");
+      this.putNames(rp["A"],rp["B"]);
+      //if ( rp[global.pSide] != global.pName ) throw new Error("My name is "+global.pName+" in the cookie and "+rp[global.pSide]+" in the response!");
     }
     var message="";
     if ( r["error"] ) {
@@ -257,14 +256,14 @@ function View1() {
       message=" ";
     }
     if (message || true) {
-      switch ( g.getStage() ) {
+      switch ( global.getStage() ) {
       case "":
       case "zero":
       case "intro":
-        v1.putNote("intro",message);
+        this.putNote("intro",message);
         break;
       case "rules":
-        v1.putNote("rules",message);
+        this.putNote("rules",message);
         break;
       }
     }
@@ -281,36 +280,41 @@ function View1() {
   };
   
   this.ap=new AjaxPanel("ajaxPanel");
-
 }// end View1
 
+/**
+ * Part of View that creates: 
+ * LED-like square which turns yellow when AJAX request is sent and dims when response is received,
+ * tech field that contains raw response and can be displayed or hidden
+ * reset button
+ * @constructor
+ * @param string container id of the parent HTML element
+ */
 function AjaxPanel(container) {
   var _this=this;
   
   this._container=$(container);
-  
   this.display=function() { displayElement(this._container); };
-  
   this.hide=function() { hideElement(this._container); };
   
   this.ledEl=$("led");
-  
   this.ledOn=function() {
     this.ledEl.className="ledOn";
   }
-
   this.ledOff=function() {
     this.ledEl.className="ledOff";
   }
+  this.getLed=function() {
+    if (this.ledEl.className == "ledOn") return true;
+    return false;
+  }
   
   this.techEl=$("tech");
-  
   this.toggleTech=function() {
     toggleElement(_this.techEl);
-    g.allowHideControls=false;
+    global.allowHideControls=false;
   }
   
   $("detailsButton").onclick=_this.toggleTech;
-  
   $("resetButton2").onclick=function() { tm.go("intro","abort"); return false; };
 }

@@ -438,7 +438,7 @@ class Ships extends DetachableController {
       if ( !is_array($parsedRules["forces"]) ) throw new Exception("Wrong parameter forces in rulesSet");
       if ( $parsedRules["demandEqualForces"] ) {
         if (! PlayHelper::validateForces($fleetModel,$parsedRules["forces"]) )  {
-          $r = $hc::fail("Sizes of your ships does not comply with what is demanded by rules. Try new ones.");
+          $r = $hc::fail("Sizes of your ships do not comply with what is demanded by rules. Try new ones.");
           break;
         }
       }
