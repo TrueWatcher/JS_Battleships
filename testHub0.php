@@ -130,6 +130,10 @@ $i1=["fight"=>"strike", "thisMove"=>2, "rc"=>"[1,2]" ];
 $r=page($i1,$c1);
 //echo(implode(",",$r["stats"]["A"]));
 
+//AAA strike repeat move 2, expecting error
+$i1=["fight"=>"strike", "thisMove"=>2, "rc"=>"[1,2]" ];
+$r=page($i1,$c1);
+
 //BBB strike expecting error
 $i2=["fight"=>"strike", "thisMove"=>3, "rc"=>"[5,3]" ];
 page($i2,$c2);
