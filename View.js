@@ -83,18 +83,14 @@ function ClassTheme(themedir,stylesheet) {
  */
 function Board(parentElm,command,prefix,fill,theme) {
   if ( typeof theme.put != "function" || typeof theme.get != "function" ) throw new Error ("Board: invalid theme");
-  /*var e;// private
-  if(typeof parentElm == "string") e=document.getElementById(parentElm);
-  else if (parentElm.nodeName) e=parentElm;
-  else throw new Error("Board: invalid argument parentElm");*/
-  if(typeof parentElm == "string") parentElm=document.getElementById(parentElm);
+  if ( typeof parentElm == "string" ) parentElm=document.getElementById(parentElm);
 
   /**
    * Makes a HTML TABLE with DIM*DIM cells.
+   * @private
+   * @see putToElement   
    * @param string prefix a letter to use as prefix for TDs' ids like id="p04"
    * @return string HTML code
-   * @private
-   * @see putToElement
    */
   function makeGrid(prefix) { // private method
     //alert("Board::makeGrid");
@@ -117,7 +113,7 @@ function Board(parentElm,command,prefix,fill,theme) {
   putToElement(html,parentElm);
 
   /**
-   * Utilizes the Event Delegation pattern: detects the id of clicked square
+   * Utilizes the Event Delegation pattern: detects the id of clicked square.
    * @see http://javascript.info/tutorial/event-delegation
    * @return {string|false} the id of clicked TD element or false if border is clicked
    * @private
@@ -140,8 +136,6 @@ function Board(parentElm,command,prefix,fill,theme) {
   parentElm.onclick=function(event) {
     //alert (event.target.nodeName);
     var tdId=detectTd(event);// closure
-    //var data=[ tdId.charAt(1),tdId.charAt(2) ];
-    //alert (tdId);
     //alert("stage "+global.getStage());
     tm.go ( global.getStage(), "cell", tdId );
     return false;
@@ -188,7 +182,7 @@ function Board(parentElm,command,prefix,fill,theme) {
 }// end Board
 
 /**
- * Buttons to manage drawing of player's ships. Can be turned off when not needed.
+ * Buttons to manage drawing of player's ships. Can be turned off when not needed..
  * @constructor
  * @see toggleElement
  */
@@ -209,7 +203,7 @@ function DrawControls() {
 }
 
 /**
- * A panel to show messages
+ * A panel to show messages.
  * @constructor
  * @param string elementId a container element
  * @see putToElement
@@ -230,7 +224,7 @@ function MessagePanel(elementId) {
 }
 
 /**
- * A panel to show statistics
+ * A panel to show statistics.
  * @constructor
  * @param string elementId a container element
  * @param string prefix prefix for ids
@@ -269,11 +263,11 @@ function StatPanel(parentElm,prefix) {
 
 /**
  * Presents histogram as pairs size:quantity
+ * @see putToElement
+ * @see Fleet::makeHistogram
  * @param array histogram (see Model::Fleet)
  * @param string id container element or "return" to just return the result
  * @return nothing|string
- * @see putToElement
- * @see Fleet::makeHistogram
  */
 StatPanel.prototype.showClearHistogram=function(histogram,id) {
     var l, hst="", id ;
@@ -287,6 +281,12 @@ StatPanel.prototype.showClearHistogram=function(histogram,id) {
     putToElement(hst,id);
 }
 
+/**
+ * An unit of View that handles Ships,Fight,Finish stages (page2).
+ * Page1 is View1 class.
+ * @constructor
+ * @param {object Global} game
+ */
 function View(game) {
   //if (game) this.rf=new RulesForm(game);// View() is used in unit tests that don't need rulesForm
 
@@ -315,7 +315,12 @@ function View(game) {
     putToElement(game.eName,"enemyLabel");
   }
   
-  this.parseGridId=function(tdId) {
+  /**
+   * Transforms the Id of clicked cell into {prefix,row,col}
+   * @param string tdId normally output of Grid::detectId()
+   * @return object
+   */
+  this.parseGridId=function(tdId) 
     if (!tdId) return false;
     var prefix=tdId.charAt(0);
     var row=tdId.charAt(1);
@@ -323,10 +328,19 @@ function View(game) {
     return ({ prefix:prefix, row:row, col:col });
   }
   
+  /**
+   * Translates server response in onlain playing into View actions.
+   * @see TopManager::pull()
+   * @param object r json-decoded server response
+   * @param object Model m
+   * @return void
+   */
   this.consumeServerResponse = function(r,m) {
     var parsed={};
+    var rp,sh,st;
+    var both=[];
     
-    if ( typeof r !== "object" ) throw new Error ("View1::consumeServerResponse : non-object argument");
+    if ( typeof r !== "object" ) throw new Error ("View::consumeServerResponse : non-object argument");
     
     var message="";
     if ( r["error"] ) {
@@ -340,26 +354,32 @@ function View(game) {
     }
     if (message || true) {
       if ( game.getState() != "fight" ) {
-        this.pm.put(message); this.em.put(" ");
+        this.pm.put(message); 
+        this.em.put(" ");
       }
       else {
-        if (  game.getActive() == game.pSide ) { this.pm.put(message); this.em.put(" "); }
-        else if ( game.getActive() == game.eSide ) { this.em.put(message); this.pm.put(" "); }
+        if (  game.getActive() == game.pSide ) {
+          this.pm.put(message);
+          this.em.put(" ");
+        }
+        else if ( game.getActive() == game.eSide ) {
+          this.em.put(message);
+          this.pm.put(" ");
+        }
         else throw new Error ("Invalid active side:"+game.getActive()+"!");
       }
     }
     message="";
-    
-    
+        
     if ( r["players"] ) {
-      var rp=r["players"];
+      rp=r["players"];
       putToElement(rp[global.pSide],"playerLabel");
       putToElement(rp[global.eSide],"enemyLabel");
     }
     
     if ( r["fleet"] ) {
       //alert("fleet");
-      var sh=r["fleet"];
+      sh=r["fleet"];
       if ( !( sh["A"] instanceof Array ) && ! ( sh["B"] instanceof Array ) ) throw new Error ("No valid index A or B in r::ships");
       if ( sh[global.pSide] ) {
         model.playerBasin.takeShips(sh[global.pSide]);
@@ -372,9 +392,8 @@ function View(game) {
     }
     
     if ( r["moves"] ) {
-      var i=0,both=[];
       both=r["moves"];         
-      for (i=0;i<both.length;i++) { this.putMove(both[i]); } 
+      for (var i=0;i<both.length;i++) { this.putMove(both[i]); } 
     }    
     
     if ( r["move"] ) {
@@ -383,18 +402,22 @@ function View(game) {
     }
     
     if ( r["stats"] ) {
-      var st=r["stats"];
-      if ( !( st["A"] instanceof Object ) || ! ( st["B"] instanceof Object ) ) throw new Error ("No valid index A and B in r::stats");
+      st=r["stats"];
+      if ( !( st["A"] instanceof Object ) || !( st["B"] instanceof Object ) ) throw new Error ("No valid index A and B in r::stats");
       this.ps.showStrikesHits( st[global.pSide]["strikes"], st[global.pSide]["hits"] );
       this.es.showStrikesHits( st[global.eSide]["strikes"], st[global.eSide]["hits"] );
       this.ps.showStat( st[global.pSide]["afloat"], st[global.pSide]["largest"], "" );
       this.es.showStat( st[global.eSide]["afloat"], st[global.eSide]["largest"], "" );
     }
-    
   };
   
+  /**
+   * Maps a move information in server object into assoc array {count,side,row,col,hit,sunk}.
+   * @param array move
+   * @return object
+   */
   this.parseMove=function(move) {
-    if ( ! ( move instanceof Array ) ) throw new Error ("Not array :"+move+"!");
+    if ( ! ( move instanceof Array ) ) throw new Error ("Not an array :"+move+"!");
     var parsed={};
     parsed.count=move[0];
     parsed.side=move[1];
@@ -405,13 +428,22 @@ function View(game) {
     return parsed;
   };
   
+  /**
+   * Puts one move to the appropriate board.
+   * @uses Model m
+   * @uses Global g
+   * @param object moveArr output of this.parseMove()
+   * @return void
+   */
   this.putMove=function(moveArr){
     var parsed={};
     var targetBasin,targetBoard;
     //alert (">>"+moveArr);
     parsed = this.parseMove(moveArr);
     if ( parsed.count <= global.getTotal() ) {
-      alert("Received move #"+parsed.count+", but Total="+global.getTotal() );
+      // this move has been already received -- wrong but sometimes happens
+      //alert("Received move #"+parsed.count+", but Total="+global.getTotal() );
+      console.log("Received move #"+parsed.count+", but Total="+global.getTotal() );
       return;
     }
     if (parsed.side == global.eSide) { // if e strikes, target is p
@@ -426,12 +458,14 @@ function View(game) {
       throw new Error ("Invalid r::moves side:"+parsed.side+"!");  
     }
     if ( parsed.sunk ) {
+      // mark a sunk ship
       if (!isArray(parsed.sunk)) throw new Error ("Not an array "+parsed.sunk+"!");
       targetBasin.markSunk( parsed.sunk );
       targetBasin.markAround ( parsed.sunk );
       targetBoard.fromBasin( targetBasin );
     }
     else {
+      // mark one cell
       targetBasin.put( parsed.hit,parsed.row,parsed.col );
       targetBoard.put( parsed.hit,parsed.row,parsed.col );
     }

@@ -203,8 +203,11 @@ page($i2,$c2);
 $i1=["ships"=>"confirmShips", "fleet"=>$ships4];
 page($i1,$c1);
 
-$i2=["ships"=>"confirmShips", "fleet"=>$ships1];
-page($i2,$c2);
+//$i2=["ships"=>"confirmShips", "fleet"=>$ships1];
+//page($i2,$c2);
+
+$i2=["intro"=>"queryAll"];
+$r=page($i2,$c2);
 
 $i1=["fight"=>"strike", "thisMove"=>"1", "rc"=>"[5,5]" ];
 page($i1,$c1);

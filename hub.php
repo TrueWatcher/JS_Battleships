@@ -622,7 +622,9 @@ class Fight extends DetachableController {
       // make response   
       $r = '{"move":'.$moveSum.',"note":"'.$note.'"}';
       $r = $hc::appendToJson( $r, $g->exportPair(["activeSide","clip","stats"]) );
-      if ($g->winner) $r = $hc::appendToJson( $r, $g->exportPair(["winner"]) );
+      if ( $g->getState() == "finish" ) {
+        $r = $hc::appendToJson( $r, $g->exportPair(["winner","state"]) );
+      }
       break;
       
     case "queryMoves":
