@@ -320,7 +320,7 @@ function View(game) {
    * @param string tdId normally output of Grid::detectId()
    * @return object
    */
-  this.parseGridId=function(tdId) 
+  this.parseGridId=function(tdId) {
     if (!tdId) return false;
     var prefix=tdId.charAt(0);
     var row=tdId.charAt(1);

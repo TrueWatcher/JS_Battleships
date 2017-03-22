@@ -271,7 +271,7 @@ class Rules extends DetachableController {
     
     if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
       $r = $hc::fail("Please, register");
-      break;
+      exit($r);      
     }
     $otherSide=Game::getOtherSide($side);
     $g=$hc::findRecord($db,$name,$side,$id);
@@ -414,7 +414,7 @@ class Ships extends DetachableController {
     
     if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
       $r = $hc::fail("Please, register");
-      break;
+      exit($r);      
     }
     $otherSide=Game::getOtherSide($side);
     $g=$hc::findRecord($db,$name,$side,$id);
@@ -544,7 +544,7 @@ class Fight extends DetachableController {
     
     if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
       $r = $hc::fail("Please, register");
-      break;
+      exit($r);
     }
     $otherSide=Game::getOtherSide($side);
     $g=$hc::findRecord($db,$name,$side,$id);
@@ -707,7 +707,7 @@ class Finish extends DetachableController {
     
     if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
       $r = $hc::fail("Please, register");
-      break;
+      exit($r);
     }
     $otherSide=Game::getOtherSide($side);
     $g=$hc::findRecord($db,$name,$side,$id);
@@ -829,7 +829,6 @@ class Adm extends DetachableController {
     
     if ( 3 != $hc::readCookie($cookie,$name,$side,$id) ) {
       $r = $hc::fail("Please, register");
-      break;
     }
     $otherSide=Game::getOtherSide($side);
     $g=$hc::findRecord($db,$name,$side,$id);

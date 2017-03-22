@@ -25,24 +25,6 @@ function page($input,&$cookie) {
   return(json_decode($ret,true));
 }
 
-function parseTrace($trace,&$inState,&$outState) {
-  if (is_array($trace)) $trace=$trace["trace"];
-  if ( !is_string($trace) || strlen($trace)===0 || strpos($trace,">") ) throw new Exceptioon("parseTrace: invalid argument");
-  $a=explode(">",$trace);
-  //print_r($a);
-  $inState=$a[2];
-  $outState=$a[4];
-}
-
-function deepImplode($arr,$separator=",") {
-  $r="";
-  foreach($arr as $key=>$val) {
-    if (!is_array($val)) $r.=$separator.$val;
-    else $r.=$separator.deepImplode($val);
-  }
-  return ltrim($r,$separator);
-}
-
 $picks1='{ "firstMove":1, "forces":1, "strikeRule":0, "level":2 }';
 $picks2='{ "firstMove":0, "forces":1, "strikeRule":1, "level":2 }';
 
@@ -141,8 +123,6 @@ page($i2,$c2);
 //AAA strike expecting sunk ship stats={"A":{"strikes":2,"hits":2,"afloat":3,"largest":2},"B":{"strikes":1,"hits":0,"afloat":2,"largest":1}}
 $i1=["fight"=>"strike", "thisMove"=>3, "rc"=>"[1,3]" ];
 $r=page($i1,$c1);
-//print_r($r["move"]);
-echo(deepImplode($r["move"]));
 
 //BBB queryMoves expecting moves 2 and 3
 $i2=["fight"=>"queryMoves","latest"=>1];
@@ -174,99 +154,129 @@ page($i2,$c2);
 
 print("<br /><hr /><br />");
 
+//register AA
 $c1=[];
 $i1=["intro"=>"register","playerName"=>"AA","enemyName"=>"BB"];
 page($i1,$c1);
 
+//register BB
 $c2=[];
 $i2=["intro"=>"register","playerName"=>"BB","enemyName"=>"AA"];
 page($i2,$c2);
 
+//AA updPick, expecting Ok
 $i1=[ "rules"=>"updPick", "pick"=>$picks2 ];
 page($i1,$c1);
 
+//BB updPick, expecting Ok
 $i2=[ "rules"=>"updPick", "pick"=>$picks2 ];
 page($i2,$c2);
 
+//AA confirm, expecting Ok
 $i1=["rules"=>"confirm", "rulesSet"=>$rules2];
 page($i1,$c1);
 
+//BB confirm, expecting Ok stage=ships
 $i2=["rules"=>"confirm", "rulesSet"=>$rules2];
 page($i2,$c2);
 
+//AA queryPick, expecting stage=ships state=ships
 $i1=["rules"=>"queryPick"];
 page($i1,$c1);
 
+//BB confirmShips, expecting Ok
 $i2=["ships"=>"confirmShips", "fleet"=>$ships1];
 page($i2,$c2);
 
+//AA confirmShips, expecting Ok stage=fight
 $i1=["ships"=>"confirmShips", "fleet"=>$ships4];
 page($i1,$c1);
 
+//BB trying to repeat confirmShips
 //$i2=["ships"=>"confirmShips", "fleet"=>$ships1];
 //page($i2,$c2);
 
+//BB queryAll
 $i2=["intro"=>"queryAll"];
 $r=page($i2,$c2);
 
+//AA strike,expecting miss clip=1
 $i1=["fight"=>"strike", "thisMove"=>"1", "rc"=>"[5,5]" ];
 page($i1,$c1);
 
+//BB queryMoves
 $i2=["fight"=>"queryMoves", "latest"=>0];
 page($i2,$c2);
 
+//AA strike, expecting kill and active=BB
 $i1=["fight"=>"strike", "thisMove"=>"2", "rc"=>"[9,9]" ];
 page($i1,$c1);
 
 //$i2=["fight"=>"queryMoves", "latest"=>1];
+//BB re-register, expecting success and full info
 $c2=[];
 $i2=["intro"=>"register","playerName"=>"BB","enemyName"=>"AA"];
 page($i2,$c2);
 
+//AA queryMoves, expecting info but no moves yet
 $i1=["fight"=>"queryMoves", "latest"=>2];
 page($i1,$c1);
 // 2 strikes
 
+//BB strike expecting hit and clip=1
 $i2=["fight"=>"strike", "thisMove"=>"3", "rc"=>"[5,2]" ];
 page($i2,$c2);
 
+//BB strike expecting kill 2-decker active=AA with clip=1
 $i2=["fight"=>"strike", "thisMove"=>"4", "rc"=>"[5,3]" ];
 page($i2,$c2);
 
+//AA strike expecting kill active=BB with clip=2
 $i1=["fight"=>"strike", "thisMove"=>"5", "rc"=>"[7,9]" ];
 page($i1,$c1);
 // only 1 strike, active>2
 
+//BB queryMoves, expecting one #5
 $i2=["fight"=>"queryMoves", "latest"=>4];
 page($i2,$c2);
 
+//BB strike expecting kill and clip=1
 $i2=["fight"=>"strike", "thisMove"=>"6", "rc"=>"[8,8]" ];
 page($i2,$c2);
 
+//nBB strike expecting final kill and victory
 $i2=["fight"=>"strike", "thisMove"=>"7", "rc"=>"[1,1]" ];
 page($i2,$c2);
 
+//AA queryMoves expecting #6 #7
 $i1=["fight"=>"queryMoves", "latest"=>"5" ];
-page($i1,$c1);
-
-$i1=["finish"=>"more"];
-page($i1,$c1);
-
-$i2=["finish"=>"more"];
-page($i2,$c2);
-
-//$i1=["finish"=>"queryStage"];
-$i1=["finish"=>"more"];
 page($i1,$c1);
 
 print("<br /><hr /><br />");
 
+//AA more, expecting state finish>cyclingReq
+$i1=["finish"=>"more"];
+//$c1=[]; // test "Please, register"
+page($i1,$c1);
+
+//BB more, expecting new gameId, new cookie and stage=ships
+$i2=["finish"=>"more"];
+page($i2,$c2);
+
+//AA more again, expecting new cookie, stage=ships state=ships
+//$i1=["finish"=>"queryStage"];
+$i1=["finish"=>"more"];
+page($i1,$c1);
+
+//BB confirmShips, expecting note=Wait
 $i2=["ships"=>"confirmShips", "fleet"=>$ships1];
 page($i2,$c2);
 
+//AA confirmShips, expecting stage=fight active=BB
 $i1=["ships"=>"confirmShips", "fleet"=>$ships4];
 page($i1,$c1);
 
+//BB queryAll, expecting rulesSet=rules2 activeSide=B clip=2
 $i2=["intro"=>"queryAll"];
 page($i2,$c2);
 

@@ -489,34 +489,87 @@ class Test_Hub_basic extends PHPUnit_Framework_TestCase {
     $this->assertEquals ( "finish", $r["stage"], "wrong Stage");
     $this->assertEquals ( "B", $r["winner"], "wrong Winner");
     $this->assertContains ( "ENEMY HAS WON", $r["note"], "wrong Note");
+  }
+    
+  public function test_new() {
+    
+    $picks0='{ "firstMove":0, "forces":0, "strikeRule":0, "level":0 }';
+    $picks1='{ "firstMove":1, "forces":1, "strikeRule":0, "level":2 }';
+    $picks2='{ "firstMove":0, "forces":1, "strikeRule":1, "level":2 }';
 
+    $rules0='{ "firstActiveAB":"A", "forces":[0,4,3,2,1,0,0,0,0,0,0], "strikeRule":"oe", "demandEqualForces":1, "previewEnemyShips":0 }';
+    $rules1='{ "firstActiveAB":"B", "forces":[0,2,1,0,0,0,0,0,0,0,0], "strikeRule":"oe", "demandEqualForces":1, "previewEnemyShips":1 }';
+    $rules2='{ "firstActiveAB":"A", "forces":[0,2,1,0,0,0,0,0,0,0,0], "strikeRule":"bs", "demandEqualForces":1, "previewEnemyShips":1 }';
+
+    $ships1="[ [[9,9]], [[7,9]], [[1,2],[1,3]] ]";
+    $ships2="[ [[8,8]], [[7,7]], [[5,2],[5,3]] ]";
+    $ships3="[ [[8,8]], [[1,1]], [[5,2],[5,3],[5,4]] ]";
+    $ships4="[ [[8,8]], [[1,1]], [[5,2],[5,3]] ]";
+    
+    $c1=["name"=>"AA","side"=>"A","dealId"=>2];
+    $c2=["name"=>"BB","side"=>"B","dealId"=>2];
+    
     echo("\nAA more, expecting state finish>cyclingReq\n");
     $i1=["finish"=>"more"];
     $r=respond($i1,$c1);
+    $this->assertEquals ( "cyclingReq", $r["state"], "wrong State");
+    $this->assertEquals ( "finish", $r["stage"], "wrong Stage");
+    $this->assertContains ( "Wait", $r["note"], "wrong Note");
+    $this->assertEquals ( "A", $r["activeSide"], "wrong ActiveSide");
+    $this->assertEquals ( "AA,A,2", implode(",",$c1), "wrong cookie" );
 
-    echo("\nBB more, expecting state cyclingReq>cyclingOk\n");
+    echo("\nBB more, expecting new gameId, new cookie and stage=ships\n");
     $i2=["finish"=>"more"];
     $r=respond($i2,$c2);
+    $this->assertEquals ( "cyclingReq>cyclingOk", parseTrace($r,$is,$os), "wrong inner states" );
+    $this->assertEquals ( "ships", $r["stage"], "wrong Stage");;
+    $this->assertEquals ( "ships", $r["state"], "wrong State");
+    $this->assertEquals ( "BB,B,3", implode(",",$c2), "wrong cookie" );
+    $this->assertEquals ( "AA,BB", implodePlus($r["players"]), "wrong Players" );
+    $this->assertEquals ( "B,0,2,1,0,0,0,0,0,0,0,0,bs,1,1", implodePlus($r["rulesSet"]), "wrong RulesSet");// $rules2 with firstActiveAB=B
+    $this->assertContains ( "Draw your ships", $r["note"], "wrong Note");
 
     //echo("\nAA queryStage, expecting stage=ships state=ships\n");
     //$i1=["finish"=>"queryStage"];
-    echo("\nAA more again, expecting stage=ships state=ships\n");
+    echo("\nAA more again, expecting new cookie, stage=ships state=ships\n");
     $i1=["finish"=>"more"];
     $r=respond($i1,$c1);
-
-    //print("<br /><hr /><br />");
+    $this->assertEquals ( "cyclingOk>cyclingOk", parseTrace($r,$is,$os), "wrong inner states" );
+    $this->assertEquals ( "ships", $r["stage"], "wrong Stage");;
+    $this->assertEquals ( "ships", $r["state"], "wrong State");
+    $this->assertEquals ( "AA,A,3", implode(",",$c1), "wrong cookie" );
+    $this->assertEquals ( "AA,BB", implodePlus($r["players"]), "wrong Players" );
+    $this->assertEquals ( "B,0,2,1,0,0,0,0,0,0,0,0,bs,1,1", implodePlus($r["rulesSet"]), "wrong RulesSet");// $rules2 with firstActiveAB=B
+    $this->assertContains ( "Draw your ships", $r["note"], "wrong Note");
 
     echo("\nBB confirmShips, expecting note=Wait\n");
     $i2=["ships"=>"confirmShips", "fleet"=>$ships1];
     $r=respond($i2,$c2);
+    $this->assertEquals ( "ships", $r["stage"], "wrong Stage");;
+    $this->assertEquals ( "confirmingShips", $r["state"], "wrong State");
+    $this->assertContains ( "Wait", $r["note"], "wrong Note");
 
     echo("\nAA confirmShips, expecting stage=fight active=BB\n");
     $i1=["ships"=>"confirmShips", "fleet"=>$ships4];
     $r=respond($i1,$c1);
-
-    echo("\nBB queryAll, expecting rulesSet=rules2\n");
+    $this->assertEquals ( "fight", $r["stage"], "wrong Stage");;
+    $this->assertEquals ( "fight", $r["state"], "wrong State");
+    $this->assertContains ( "Enemy", $r["note"], "wrong Note");
+    $this->assertEquals ( "B", $r["activeSide"], "wrong ActiveSide");
+    //$this->assertEquals ( "2", $r["clip"], "wrong Clip");
+    $this->assertEquals ( "0,0,3,2,0,0,3,2", implodePlus($r["stats"]), "wrong Stats");    
+    
+    echo("\nBB queryAll, expecting rulesSet=rules2 activeSide=B clip=2\n");
     $i2=["intro"=>"queryAll"];
     $r=respond($i2,$c2);
+    $this->assertEquals ( "fight", $r["stage"], "wrong Stage");;
+    $this->assertEquals ( "fight", $r["state"], "wrong State");
+    $this->assertContains ( "Make your move", $r["note"], "wrong Note");
+    $this->assertEquals ( "B", $r["activeSide"], "wrong ActiveSide");
+    $this->assertEquals ( "2", $r["clip"], "wrong Clip");
+    $this->assertEquals ( "0,0,3,2,0,0,3,2", implodePlus($r["stats"]), "wrong Stats");
+    $this->assertEquals ( "B,0,2,1,0,0,0,0,0,0,0,0,bs,1,1", implodePlus($r["rulesSet"]), "wrong RulesSet");// $rules2 with firstActiveAB=B
+    
   }
 }
 ?>
