@@ -52,10 +52,11 @@ $i1=["intro"=>"queryAll"];
 page($i1,$c1);
 
 //BBB rules confirm, expecting state converged>confirming
-$i2=["rules"=>"confirm", "rulesSet"=>$rules0];
-$r=page($i2,$c2);
-//parseTrace($r,$inState,$outState);
-//echo("\n".$inState.">".$outState."\n");
+//$i2=["rules"=>"confirm", "rulesSet"=>$rules0];
+//$r=page($i2,$c2);
+$i2=["rules"=>"confirm", "rulesSet"=>$rules0, "reqId"=>"BBB_B_1"];
+$c3=["dummy cookie"];
+$r=page($i2,$c3);
 
 //AAA rules updPick, expecting state confirming>picking
 $i1=[ "rules"=>"updPick", "pick"=>$picks1 ];

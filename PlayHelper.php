@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * The server-side business logic ( Model :) ).
+ * Some utils are translated from JS, but FleetModel is autohtonic.
+ */
 class PlayHelper {
   
   static function adjAll($row,$col,$max=10) {
@@ -21,9 +25,6 @@ class PlayHelper {
   
   static function around (Array $pointsArray) {
   // arrayUtils.js around
-    //if ( !is_array($pointsArray) ) {  throw new Exception ("Usage error! Non-array or single-dimension array passed to 'around()' ");
-      //return false;
-    //}
     $res=[];
     $adjacent=[];
     //var rc,rca;
@@ -62,7 +63,6 @@ class PlayHelper {
       foreach ($ship as $rc) { $shipModel[] = [ "rc"=>$rc, "h"=>0 ]; }
       $fleetModel[] = [ "sm"=>$shipModel, "s"=>0 ];
     }
-    //self::makeFleetStat($fleetModel);
     return $fleetModel;
   }
   
@@ -88,8 +88,6 @@ class PlayHelper {
       }
     }
     for ($j=$i;$j>=0;$j--) { $stat["afloat"] += $h[$j]; }
-    //$fleetModel["largest"] = $stat["largest"];
-    //$fleetModel["afloat"] = $stat["afloat"];
     return ($stat);
   }
   
@@ -124,6 +122,7 @@ class PlayHelper {
     foreach ($fleetModel as $fleetUnit) {
       $r[]=self::unwrapShip($fleetUnit);
     }
+    if (empty($r)) throw new Exception("Failed to unwrap fleet from ".$fleetModel);
     return ($r);
   }
   
@@ -203,7 +202,6 @@ class PlayHelper {
   }
   
   static function decodeMove ($entry,&$count,&$side,&$rc,&$result,&$sunk) {
-    //$entry=susstr($entry, 1, strlen($entry)-2 );
     $arr=json_decode($entry);
     $count=$arr[0];
     $side=$arr[1];
@@ -214,6 +212,14 @@ class PlayHelper {
     else $sunk=null;
   }
   
+  /**
+   * Manages the moves handover.
+   * Supports two modes (Game::rulesSet::strikeRule).
+   * @param char $hit The result of latest strike
+   * @param object Game $g
+   ^ @param string $noteToNowActive output! a message to new active player
+   * @return string|boolean New active side A/B, false on no change
+   */
   static function defineActive ( $hit, Game $g, &$noteToNowActive ) {
     if ($hit=="f") {
       $noteToNowActive="<span class='win'>YOU HAVE WON !</span>";
@@ -222,7 +228,7 @@ class PlayHelper {
     $noteToNowActive="";
     $nowActive = $g->getActive();
     $newActive=$nowActive;
-    $strikeRule = json_decode( $g->rulesSet, true ) ["strikeRule"];
+    $strikeRule = $g->getRule("strikeRule");
     // add to clip ?
     if ( $strikeRule=="oe" && in_array($hit,["h","w"]) ) {
       //echo(" +1 move =".$g->getClip());
@@ -232,7 +238,7 @@ class PlayHelper {
     if ( $g->getClip() === 0 ) {
       $newActive = Game::getOtherSide( $nowActive );
       $noteToNowActive="Enemy is striking";
-      $g->setClip ( self::loadClip($newActive,$g) );
+      self::loadClip($newActive,$g,$strikeRule);
       $g->setActive ($newActive);
       return $newActive;
     }
@@ -244,9 +250,9 @@ class PlayHelper {
     return false;
   }
   
-  static function loadClip ( $newActive, Game $g ) {
-    $strikeRule = json_decode( $g->rulesSet, true ) ["strikeRule"];
-    $stats = json_decode( $g->stats, true );
+  static function loadClip ( $newActive, Game $g, $strikeRule=null ) {
+    if (!$strikeRule) $strikeRule = $g->getRule("strikeRule");
+    $stats = $g->getStats();
     if ( $strikeRule=="oe" ) { 
       $clip=1;
       //$note="Make your move";
@@ -257,10 +263,17 @@ class PlayHelper {
       //$note="Make your move";
     }
     else throw new Exception ("Wrong strikeRule:".$strikeRule."!");
-    //$g->clip = $clip;
+    $g->setClip($clip);
     return $clip;
   }
   
+  /**
+   * Provides all data for restarting game from any stage/state.
+   * Acts like a subcontroller.
+   * @param string $side
+   * @param object Game
+   * @return string JSON-encoded data or error note
+   */ 
   static function fullInfo($side,Game $g/*,&$stage,&$state*/) {
     $hc="HubHelper";
     if (!class_exists($hc)) throw new Exception ("Include all dependencies");
@@ -301,8 +314,7 @@ class PlayHelper {
       }
       if ($state=="confirmingShips" && $g->isActive($side) ) {
         $r = $hc::notePairs ($note, $g, ["state","players","picks","rulesSet"]);
-        $yourFleet = PlayHelper::unwrapFleet ( $g->ships[$side] );
-        if (!is_array($yourFleet)) throw new Exception ("Failed to unwrap ships from ".$g->ships[$side]);
+        $yourFleet = PlayHelper::unwrapFleet ( $g->getShips($side) );
         $yourFleetJson=json_encode($yourFleet);
         $r = $hc::appendToJson( $r, '"fleet":{"'.$side.'":'.$yourFleetJson.'}' );
         break;      
@@ -314,15 +326,13 @@ class PlayHelper {
       if ( $g->isActive($side) ) { $note="Make your move"; }
       else { $note="Enemy is striking"; }
       $r = $hc::notePairs ( $note, $g, [ "state", "players", "rulesSet", "moves", "stats", "activeSide", "clip"] );
-      $yourFleet = PlayHelper::unwrapFleet ( $g->ships[$side] );
-      if ( ! is_array($yourFleet) ) throw new Exception ("Failed to unwrap ships from ".$g->ships[$side]);
+      $yourFleet = PlayHelper::unwrapFleet ( $g->getShips($side) );
       $yourFleetJson=json_encode($yourFleet);
       $r = $hc::appendToJson( $r, '"fleet":{"'.$side.'":'.$yourFleetJson.'}' );
       break;
       
     case "finish":
     case "aborted":
-      //$r = $hc::noteState("Game is ".$stage."!",$state);
       $note="Game is ".$stage."ed !";
       $r = $hc::notePairs ( $note, $g, [ "state", "players", "rulesSet", "moves", "stats", "activeSide", "clip"] );
       if ($g->winner) $r = $hc::appendToJson( $r, $g->exportPair(["winner"]) );
@@ -338,7 +348,6 @@ class PlayHelper {
       $r = $hc::fail($err);
     }
     return ($r);
-  
-  }
-}
+  }// end fullInfo
+}// end PLayHelper
 ?>

@@ -1,6 +1,8 @@
 <?php
-
-
+/**
+ * Contains game parameters and proceedings, their accessor methods and batch export/import methods.
+ * Some fields are themselves JSON-encoded arrays.
+ */
 class Game {
 
   protected $id=null;
@@ -15,14 +17,13 @@ class Game {
   protected $stage="zero";
   protected $state="zero";
   protected $activeSide="";
-  protected $picks=["A"=>"{}","B"=>"{}"];
+  protected $picks=["A"=>"{}","B"=>"{}"];// array of JSONs
   protected $defaultPicks='{"firstMove":0,"forces":0,"strikeRule":0,"level":0}';
-  public $rulesSet="{}";
-  public $ships=["A"=>"[]","B"=>"[]"];
-  //public $moves=["A"=>"[]","B"=>"[]"];
-  public $moves="[]";
-  public $stats='{}';
-  protected $defaultStats='{"strikes":0,"hits":0,"afloat":0,"largest":0}';
+  public $rulesSet="{}";// JSON
+  protected $ships=["A"=>"[]","B"=>"[]"];// array of JSONs
+  protected $moves="[]";// JSON
+  protected $stats='{}';// JSON
+  protected $defaultStats='{"strikes":0,"hits":0,"afloat":0,"largest":0}';// JSON
   protected $clip=0;
   protected $total=0;
   public $winner="";
@@ -75,6 +76,47 @@ class Game {
     $this->players[$side] = $name;    
   }
   
+  function getStats() {
+    $s=json_decode($this->stats,true);
+    if (!is_array($s)) throw new Exception ("Failed to decode ststistics from ".$this->stats);
+    return $s;
+  }
+  
+  function setStats($statArr) {
+    if (!is_array($statArr)) throw new Exception ("Non-array argument ".$statArr);
+    $this->stats=json_encode($statArr);
+  }
+  
+  function getShips($side) {
+    if (! in_array($side,self::$sides) ) throw new Exception("Invalid side:".$side."!");
+    $s=json_decode($this->ships[$side],true);
+    if (!is_array($s)) throw new Exception ("Failed to decode fleetModel from ".$this->ships);
+    return $s;
+  }
+  
+  function setShips($side,$fleetModel) {
+    if (! in_array($side,self::$sides) ) throw new Exception("Invalid side:".$side."!");
+    if (!is_array($fleetModel)) throw new Exception ("Non-array argument ".$fleetModel);
+    $this->ships[$side] = json_encode($fleetModel);
+  }  
+  
+  function getMoves() {
+    $m=json_decode($this->moves,true);
+    if (!is_array($m)) throw new Exception ("Failed to decode moves from ".$this->moves);
+    return($m);  
+  }
+  
+  function addMove($next) {
+    $m=$this->moves;
+    $this->moves = HubHelper::appendToJson ( $m, $next );
+  }
+  
+  function getRule($key) {
+    $parsed=json_decode($this->rulesSet,true);
+    if (!isset($parsed[$key])) throw new Exception("Invalid key:".$key."!");
+    return($parsed[$key]);
+  }
+  
   function clearActive() { $this->activeSide=""; }
   
   function setActive($side) {
@@ -121,8 +163,6 @@ class Game {
     $r["rl"]=$this->rulesSet;
     $r["sA"]=$this->ships["A"];
     $r["sB"]=$this->ships["B"];
-    //$r["mA"]=$this->moves["A"];
-    //$r["mB"]=$this->moves["B"];
     $r["ms"]=$this->moves;
     $r["st"]=$this->stats;
     $r["cl"]=$this->clip;
@@ -148,8 +188,6 @@ class Game {
     $this->rulesSet=$r["rl"];
     $this->ships["A"]=$r["sA"];
     $this->ships["B"]=$r["sB"];
-    //$this->moves["A"]=$r["mA"];
-    //$this->moves["B"]=$r["mB"];
     $this->moves=$r["ms"];
     $this->stats=$r["st"];
     $this->clip=$r["cl"];
