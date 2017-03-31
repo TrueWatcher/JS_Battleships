@@ -36,6 +36,7 @@ function AsciiTheme() {
  */
 function ClassTheme(themedir,stylesheet) {
   var _allowed=[ "u","e","s","m","h","w","c","f" ];// private via closure
+  // "u":unknown,"e":empty,"s":ship,"m":miss,"h":hit,"w":wreck,"c":buoy
 
   this.put=function(what,row,col,idPrefix) {
     if (what=="n") return;
@@ -178,6 +179,20 @@ function Board(parentElm,command,prefix,fill,theme) {
     while ( rc=range.go() ) {
       this.put( basin.get(rc),rc );
     }
+  };
+  
+  this.showUnhit=function(cells) {
+    var cells2=[],cell=[];
+    if (!isArray(cells)) throw new Error("Board::showUnhit:Non-array argument "+(typeof cells));
+    for(var i=cells.length-1; i>=0; i--) {
+      if (typeof cells[i][0] == "undefined") cells2=[cells[i]];
+      else cells2=cells[i];
+      for(var j=cells2.length-1; j>=0; j--) {
+        cell=cells2[j];
+        if (typeof cell[0] == "undefined" || typeof cell[1] == "undefined" || typeof cell[0][0] !== "undefined") throw new Error("Board::showUnhit:invalid point #"+i+"/"+j);
+        if (this.get(cell)=="u") { this.put( "s",cell ); }
+      }      
+    }    
   };
 }// end Board
 

@@ -206,22 +206,135 @@ v.0.0.1 17.1.2016
 <script src="Basin.js" type="text/javascript"></script>
 <script src="Model.js" type="text/javascript"></script>
 <script src="Harvester.js" type="text/javascript"></script>
+
+<script src="tests/testUtils.js" type="text/javascript"></script>
 <script>
 
-/*tm.go("intro","playLocally");
-tm.go("rules","updPick","firstMove_1_A");
-tm.go("rules","updPick","forces_1_A");
-tm.go("rules","confirm");*/
-
   function cl(id) {
-    setTimeout(function(){ /*alert("Clicking on "+id);*/ $(id).click(); },200);
+    $(id).click();
   }
-  cl("localButton");
-  cl("level_2_A");
-  cl("forces_1_A");
-  cl("confirmButton");
   
-
+  /**
+   * Executes commands one by one with pause.
+   * Evals one and spawns a process of calling itself.
+   * @param {object CommandIterator} commandIterator
+   * @return void
+   */
+  function commandsRun(commandIterator) {
+    var now=commandIterator.go();
+    //alert("about to execute:"+now);
+    eval(now);
+    if (!commandIterator.stopped) {
+      setTimeout(
+        function() { commandsRun(commandIterator); }
+      ,500);
+    }
+  }
+  
+  /**
+   * 
+   * @constructor
+   */
+  function CommandIterator(lines) {
+    if (!(lines instanceof Array)) throw new Error ("Non-array argument "+(typeof lines));
+    var index=0, l=lines.length, rounds=0, maxRounds=300;
+    this.stopped=false;
+    this.looping=false;
+    
+    /**
+     * 
+     * @return string
+     */
+    this.go=function() {
+      var r="";
+      if (this.stopped) {
+        return("");
+      }
+      if (typeof lines[index] == "undefined" ) {
+        this.stop();
+        return("");
+      }
+      r=lines[index];
+      rounds+=1;
+      if ( rounds>maxRounds ) throw new Error ("Limit of "+maxRounds+" commands exceeded");
+      if (!this.looping) { index+=1; }
+      if ( index>=l ) {
+        this.stop();
+      }
+      return r;
+    };
+    
+    this.stop=function() {
+      console.log("CommandIterator finished");
+      this.stopped=1;
+    };
+    
+    this.inc=function() {
+      index+=1;
+      if ( index>=l ) { this.stop(); }
+    };
+  }
+  
+  var myRand=new Rand2d();
+  
+  var probe=[],p=[], k=0, s=0,h=0,aliveZero=0,area=20;
+    
+  var ship1={};
+  
+  var testScript=[
+  'cl("localButton");',
+  //'cl("level_2_A");',
+  //'cl("forces_1_A");',
+  'cl("confirmButton");',
+  'cl("autoShips");',
+  'cl("confirmShips");',
+  //'cl("confirmShips");',
+  'ship1=new ArrayIterator(model.enemyShips._ships[1]); \
+   aliveZero=model.enemyStat.shipsAlive; \
+   area=model.playerShips.countArea();',
+  // hit at an anemy ship
+  'probe=ship1.go(); \
+   cl("e"+probe[0]+probe[1]);',
+  // check hit result
+  'print(">page"); \
+   println("\\nHit\\n"); \
+   p=view2.tb.get(probe); \
+   assertTrue( "h"==p || "w"==p,"wrong result of hit:"+p,"first hit" ); \
+   assertEqualsPrim( 1, model.playerStat.strikes,"wrong Strikes","strikes=1" ); \
+   assertEqualsPrim( 1, model.playerStat.hits,"wrong Hits","hits=1" ); \
+   assertEqualsPrim( "p", global._active, "handover after hit","active==p");\
+  ',
+  // kill that ship
+  'ci.looping=1;',
+  //'print ("\\n!"+(k++));',
+  'if (ship1.go()!==false) { \
+     probe=ship1.getLatest(); \
+     cl("e"+probe[0]+probe[1]); \
+   } \
+   else { ci.inc(); };',
+   // check kill results
+  'println("\\nKill\\n"); \
+   assertEqualsPrim( "w", view2.tb.get(probe),"wrong result of kill","kill" ); \
+   assertEqualsPrim( model.playerStat.strikes, model.playerStat.hits,"wrong stats","kill stats" ); \
+   assertEqualsPrim( aliveZero-1, model.enemyStat.shipsAlive,"wrong shipsAlive","shipsAlive minus one" ); \
+   ci.inc();',
+  'if (global.getStage() == "fight") { \
+     probe=randomStrike(model.enemyBasin,myRand); \
+     cl("e"+probe[0]+probe[1]); \
+   } else { ci.inc(); };',
+  'view2.tb.showUnhit(model.enemyShips._ships); \
+   ci.inc();',
+  'println("\\nWinner\\n"); \
+   p=global._winner; \
+   assertEqualsPrim( p, global._active, "winner differs from active","winner==active=="+p);\
+   assertEqualsPrim( area, arbiter.getActiveSideObj()._stat.hits, "wrong winner hits","winner hits==area=="+area); \
+   ci.inc();'
+  ];
+  
+  var ci=new CommandIterator(testScript);
+  commandsRun(ci);
+  
+  
 </script>
 </body>
 </html>

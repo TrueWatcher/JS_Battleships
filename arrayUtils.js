@@ -258,6 +258,26 @@ function TapePlayer(tape) {
 }
 
 /**
+ * Returns array elements one by one, then false.
+ * @constructor
+ * @return mixed
+ */
+function ArrayIterator(arr) {
+  if (!(arr instanceof Array)) throw new Error ("Non-array argument "+(typeof arr));
+  var _i=0, l=arr.length, _r=[];
+  
+  this.go=function(){
+    if ( _i >= l ) return false;
+    _r=arr[_i];
+    _i+=1;
+    return _r;
+  }
+  
+  this.getLatest=function() { return _r; };
+  this.getIndex=function() { return _i; };
+}
+
+/**
  * Creates an array of the given length and fills it with the given value.
  * @param integer size
  * @param mixed value

@@ -88,6 +88,7 @@ function RulesLocal() {
     mes+="),<br />then press Done";
     view2.pm.put(mes);
     global.setStage("ships");
+    global.setState("ships");
     return;
   };
 }
@@ -171,6 +172,7 @@ function ShipsLocal() {
     if( typeof arbiter != "object" ) throw new Error("ShipsLocal::go: arbiter is not the global object!");
     
     global.setStage("fight");
+    global.setState("fight");
     
     enemy=new Enemy( model.enemyShips, model.enemyBasin, model.enemyStat, model.enemyClip, model.playerBasin, view2.em, global._enemyStriker );
     //alert("E_hi="+enemy.hi());
@@ -516,4 +518,6 @@ function Arbiter (aPlayer,aEnemy,game) {
       }
     }
   };// end checkout
+  
+  this.getActiveSideObj=function() { return(_source); };
 }
