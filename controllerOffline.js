@@ -41,8 +41,8 @@ function RulesLocal() {
       view1.putNote("rules","Done");
       global.pickStr=myPicks;
       global.setRules(myPicks);
-      global.setStage("ships");
-      //global.setState("draw");
+      //global.setStage("ships");
+      //global.setState("ships");
       this.initPage2();
       break;
     default:
@@ -55,8 +55,8 @@ function RulesLocal() {
     //alert("Running page 2");
     //g=g;//new Game();
     
-    if(typeof view2 !=="object") alert("onTransitToPage2: view2 is not the global object");
-    if(typeof model !=="object") alert("onTransitToPage2: model is not the global object");
+    if(typeof view2 !=="object") alert("initPage2: view2 is not the global object");
+    if(typeof model !=="object") alert("initPage2: model is not the global object");
     view2=new View(global);
     model=new Model();      
     
@@ -242,6 +242,7 @@ function FightLocal() {
 
     // fight finished
     displayElement("finish");
+    global.setState("finish");
     if (global._active=="p") {
       global._winner="p";
       view2.pm.put('<span class="'+"win"+'">YOU HAVE WON !');
@@ -278,6 +279,7 @@ function FinishLocal() {
       
     case "new":
       global=new Global();
+      global.allowHideControls=true;
       global.setStage("intro");
       global.setState("zero");
       if (global.allowHideControls) { 

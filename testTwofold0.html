@@ -1,16 +1,11 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ru" xml:lang="ru">
 <!--
-Battleships online version, working out JS+PHP micro-framework for onlain two-player game.
-by TrueWatcher
-v.0.0.1 17.1.2016
-0.0.2 18.1.2016 added processResponce as a View
-0.0.3 19.1.2016 decoupled HubManager from input and cookie, added trace, improved frontend
-2.0.1 21.1.2016 deep rewriting to MVC
+2.1.8 31 Mar 2017
 -->
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <title>The Battleships game, online and offline</title>
+  <title>The Battleships game, online and offline. Upper-level controller tests</title>
   <link rel="stylesheet" type="text/css" href="battleships.css" media="all" />
 </head>
 <body>
@@ -210,6 +205,12 @@ v.0.0.1 17.1.2016
 <script src="tests/testUtils.js" type="text/javascript"></script>
 <script>
 
+  function generateMiss(targetBasin,targetFleet,randGen) {
+    var probe=randGen.go();
+    while ( ! targetBasin.checkStrikable(probe) || targetFleet.checkHit(probe)!==false ) { probe=randGen.go(); }
+    return (probe);
+  }
+
   function cl(id) {
     $(id).click();
   }
@@ -276,34 +277,55 @@ v.0.0.1 17.1.2016
   }
   
   var myRand=new Rand2d();
+  var anotherRand=new Rand2d();// specially for generateMiss
   
-  var probe=[],p=[], k=0, s=0,h=0,aliveZero=0,area=20;
+  var probe=[],p=[],won="", k=0, s=0,h=0,aliveZero=0,area=20,area2=14;
     
   var ship1={};
   
   var testScript=[
+  'print(">page"); \
+   println("\\nSetup\\n"); \
+   assertEqualsPrim("intro",global.getStage(),"wrong stage","stage==intro");\
+   assertEqualsPrim("intro",global.getState(),"wrong state","state==intro");\
+   ',
   'cl("localButton");',
   //'cl("level_2_A");',
   //'cl("forces_1_A");',
   'cl("confirmButton");',
+  // check rules
+  'assertEqualsPrim("ships",global.getStage(),"wrong stage","stage==ships");\
+   assertEqualsPrim("ships",global.getState(),"wrong state","state==ships");\
+   assertEqualsPrim("oe",global._strikeRule,"wrong StrikeRule","StrikeRule==oe");',
   'cl("autoShips");',
   'cl("confirmShips");',
-  //'cl("confirmShips");',
-  'ship1=new ArrayIterator(model.enemyShips._ships[1]); \
+  'assertEqualsPrim("fight",global.getStage(),"wrong stage","stage==fight");\
+   assertEqualsPrim("fight",global.getState(),"wrong state","state==fight");\
+   ship1=new ArrayIterator(model.enemyShips._ships[1]); \
    aliveZero=model.enemyStat.shipsAlive; \
    area=model.playerShips.countArea();',
   // hit at an anemy ship
   'probe=ship1.go(); \
    cl("e"+probe[0]+probe[1]);',
   // check hit result
-  'print(">page"); \
-   println("\\nHit\\n"); \
+  'println("\\nHit\\n"); \
    p=view2.tb.get(probe); \
    assertTrue( "h"==p || "w"==p,"wrong result of hit:"+p,"first hit" ); \
-   assertEqualsPrim( 1, model.playerStat.strikes,"wrong Strikes","strikes=1" ); \
-   assertEqualsPrim( 1, model.playerStat.hits,"wrong Hits","hits=1" ); \
+   assertEqualsPrim( 1, model.playerStat.strikes,"wrong Strikes","strikes==1" ); \
+   assertEqualsPrim( 1, model.playerStat.hits,"wrong Hits","hits==1" ); \
+   assertEqualsPrim( 0, model.enemyStat.strikes,"enemy has had a strike","enemy is silent" ); \
    assertEqualsPrim( "p", global._active, "handover after hit","active==p");\
   ',
+  // make a miss
+  'probe=generateMiss(model.enemyBasin,model.enemyShips,anotherRand); \
+   cl("e"+probe[0]+probe[1]);',
+  // check results
+  'println("\\nMiss\\n"); \
+   assertEqualsPrim( "m", view2.tb.get(probe),"wrong result of miss","miss" ); \
+   assertEqualsPrim( 2, model.playerStat.strikes,"wrong Strikes","strikes==2" ); \
+   assertEqualsPrim( 1, model.playerStat.hits,"wrong Hits","hits==1" ); \
+   assertTrue( 0 < model.enemyStat.strikes,"enemy had not sriken","enemy had returned" ); \
+  ',  
   // kill that ship
   'ci.looping=1;',
   //'print ("\\n!"+(k++));',
@@ -315,24 +337,119 @@ v.0.0.1 17.1.2016
    // check kill results
   'println("\\nKill\\n"); \
    assertEqualsPrim( "w", view2.tb.get(probe),"wrong result of kill","kill" ); \
-   assertEqualsPrim( model.playerStat.strikes, model.playerStat.hits,"wrong stats","kill stats" ); \
+   assertEqualsPrim( model.playerStat.strikes, model.playerStat.hits+1,"wrong stats","kill stats" ); \
    assertEqualsPrim( aliveZero-1, model.enemyStat.shipsAlive,"wrong shipsAlive","shipsAlive minus one" ); \
    ci.inc();',
+  // fight untill the end
   'if (global.getStage() == "fight") { \
      probe=randomStrike(model.enemyBasin,myRand); \
      cl("e"+probe[0]+probe[1]); \
    } else { ci.inc(); };',
+  // check finish situation
+  'ci.looping=0;',
   'view2.tb.showUnhit(model.enemyShips._ships); \
-   ci.inc();',
+   ',
   'println("\\nWinner\\n"); \
-   p=global._winner; \
-   assertEqualsPrim( p, global._active, "winner differs from active","winner==active=="+p);\
+   assertEqualsPrim("finish",global.getState(),"wrong state","state==finish");\
+   won=global._winner; \
+   assertEqualsPrim( won, global._active, "winner differs from active","winner==active=="+won);\
    assertEqualsPrim( area, arbiter.getActiveSideObj()._stat.hits, "wrong winner hits","winner hits==area=="+area); \
-   ci.inc();'
+  ',
+  // go for another round with same settings
+  'cl("moreButton");',
+  'println("\\nOnce more\\n");\
+   assertEqualsPrim("ships",global.getStage(),"wrong stage","stage==ships");\
+   assertEqualsPrim("ships",global.getState(),"wrong state","state==ships");\
+   assertEqualsPrim("oe",global._strikeRule,"changed StrikeRule","StrikeRule==oe still");\
+  ',
+  'cl("autoShips");',  
+  'cl("confirmShips");',
+  'assertEqualsPrim(area,model.playerShips.countArea(),"changed forces", "forces=="+area+" still");\
+   assertEqualsPrim("fight",global.getStage(),"wrong stage","stage==fight");\
+   assertEqualsPrim("fight",global.getState(),"wrong state","state==fight");\
+   if (won=="p") assertEqualsPrim( 0, model.enemyStat.strikes, "enemy lose but has had a move","first move");\
+   else assertTrue( 0 < model.enemyStat.strikes,"enemy won but was silent","first move" ); \
+  ',
+  // try one strike
+  'probe=[1,1];\
+   cl("e"+probe[0]+probe[1]);\
+  ',
+  'p=view2.tb.get(probe);\
+   assertTrue( "h"==p||"m"==p||"w"==p,"wrong result of strike:"+p,"strike" ); \
+  ',
+  // drop that game and take a fresh start
+  'println("\\nNew setup\\n"); \
+   var nfl=new FinishLocal();\
+   nfl.go("new");',
+  'assertEqualsPrim("intro",global.getStage(),"wrong stage","stage==intro");\
+   assertEqualsPrim("zero",global.getState(),"wrong state","state==zero");\
+   ',
+  'cl("localButton");',
+  // new settings
+  'cl("strikeRule_1_A");',
+  'cl("forces_1_A");',
+  'cl("confirmButton");',
+  // check the new rules
+  'assertEqualsPrim("ships",global.getStage(),"wrong stage","stage==ships");\
+   assertEqualsPrim("ships",global.getState(),"wrong state","state==ships");\
+   assertEqualsPrim("bs",global._strikeRule,"wrong StrikeRule","StrikeRule==bs");\
+   assertEqualsVect(global.forces2,global.getForces(),"wrong forces","forces 2nd option");\
+  ',
+  'cl("autoShips");',
+  'cl("confirmShips");',
+  'assertEqualsPrim("fight",global.getStage(),"wrong stage","stage==fight");\
+   assertEqualsPrim("fight",global.getState(),"wrong state","state==fight");\
+   area2=model.playerShips.countArea();\
+   assertTrue(area2 != area,"area not changed","forces=="+area2);\
+   aliveZero=model.enemyStat.shipsAlive; \
+  ',
+  // make 4 random strikes expecting no enemy moves
+  'println("\\n4 strikes, no handover\\n"); \
+   probe=randomStrike(model.enemyBasin,myRand); \
+   cl("e"+probe[0]+probe[1]);',
+  'probe=randomStrike(model.enemyBasin,myRand); \
+   cl("e"+probe[0]+probe[1]);',
+  'probe=randomStrike(model.enemyBasin,myRand); \
+   cl("e"+probe[0]+probe[1]);',
+  'probe=randomStrike(model.enemyBasin,myRand); \
+   cl("e"+probe[0]+probe[1]);',
+  'assertEqualsPrim( 4, model.playerStat.strikes,"wrong Strikes","strikes==4" ); \
+   assertEqualsPrim( 0, model.enemyStat.strikes,"enemy must wait","enemy was silent" ); \
+  ',
+  // make 5th strike expecting enemy to backfire
+  'println("\\nOne more strike, handover\\n"); \
+   probe=randomStrike(model.enemyBasin,myRand); \
+   cl("e"+probe[0]+probe[1]);',
+  // wait
+  '',
+  '',
+  'assertEqualsPrim( model.playerStat.strikes, model.enemyStat.strikes,"enemy must backfire","enemy responded" ); \
+  ',
+  // kill enemy's biggest ship expecting weaker response
+  'println("\\nKill the biggest ship and measure reasponse\\n"); \
+   ship1=new ArrayIterator(model.enemyShips._ships[0]); \
+   ci.looping=1;',
+  'if (ship1.go()!==false) { \
+     probe=ship1.getLatest(); \
+     cl("e"+probe[0]+probe[1]); \
+   } \
+   else { ci.inc(); };',
+  // wait
+   'ci.looping=0;',
+   '',
+  // check stats and response
+  'assertEqualsPrim( 10, model.playerStat.strikes,"wrong strikes count","my strikes==10" ); \
+   assertTrue( 5 <= model.playerStat.hits,"wrong hits count","my hits>=5" ); \
+   assertEqualsPrim( 4, model.enemyStat.biggestShip,"wrong enemy biggestShip","enemy biggestShip==4" ); \
+   assertEqualsPrim( aliveZero-1, model.enemyStat.shipsAlive,"wrong shipsAlive","shipsAlive minus one" ); \
+   assertEqualsPrim( 9, model.enemyStat.strikes,"wrong enemy response","enemy strikes==9 not 10" ); \
+  ',   
   ];
   
   var ci=new CommandIterator(testScript);
   commandsRun(ci);
+  
+
   
   
 </script>

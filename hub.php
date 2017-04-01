@@ -150,7 +150,7 @@ class HubHelper {
         }
       }
       else if ( ! self::readCookie($cookie,$name,$side,$id) ) {
-        $r = self::fail("Please, register");
+        $r = self::noteState("Please, register","intro");
         exit($r);
       }
     
