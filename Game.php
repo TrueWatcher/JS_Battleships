@@ -239,6 +239,9 @@ class Game {
     $s1=self::$sides[1];
     $p0=$this->getPick($s0);
     $p1=$this->getPick($s1);
+    // remove all spaces before compare
+    $p0=str_replace(" ","",$p0);
+    $p1=str_replace(" ","",$p1);
     // JSON strings are equal and contain all keys
     if ( $p0 === $p1 && substr_count( $p0, ":" ) == substr_count( $this->defaultPicks, ":" ) ) return true;
     return false;

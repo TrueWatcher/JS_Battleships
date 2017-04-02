@@ -63,8 +63,10 @@ class Intro extends DetachableController {
           $g->setStage("intro");
           $g->setActive("A");
           $newId = $db->saveGame($g);
-          $hc::setCookie($cookie,$pn,"A",$newId);
-          $r = '{'.$g->exportPair( ["stage","state","players"] ).'}';
+          if (!isset($input["reqId"])) {
+            $hc::setCookie($cookie,$pn,"A",$newId);
+          }
+          $r = '{'.$g->exportPair( [/*"stage",*/"state","players"] ).'}';// stage is always added
           break;
         }
       }
@@ -87,8 +89,10 @@ class Intro extends DetachableController {
         else $g->setState("picking");
         $g->setStage("rules");
         $db->saveGame($g,true);
-        $hc::setCookie($cookie,$input["playerName"],"B",$g->getId());
-        $r = '{'.$g->exportPair( ["stage","state","players"] ).'}';
+        if (!isset($input["reqId"])) {
+          $hc::setCookie($cookie,$input["playerName"],"B",$g->getId());
+        }
+        $r = '{'.$g->exportPair( [/*"stage",*/"state","players"] ).'}';// stage is always added
         break;
       }
 
@@ -219,7 +223,8 @@ class Rules extends DetachableController {
         $g->setActive($side);
         $state=$g->setState("confirming");
         $db->saveGame($g,true);
-        $r = '{'.$g->exportPair(["state"]).'}';
+        //$r = '{'.$g->exportPair(["state"]).'}';
+        $r = $hc::noteState("Wait for you opponent",$state);
         break;
       }
       if ( $state=="confirming" ) {

@@ -118,3 +118,74 @@ function translateArray(arr) {
   }
   return res;
 }
+
+  /**
+   * Executes commands one by one with pause.
+   * Evals one and spawns a process of calling itself.
+   * @param {object CommandIterator} commandIterator
+   * @return void
+   */
+  function commandsRun(commandIterator) {
+    var now=commandIterator.go();
+    //alert("about to execute:"+now);
+    eval(now);
+    if (!commandIterator.isStopped()) {
+      setTimeout(
+        function() { commandsRun(commandIterator); }
+      ,500);
+    }
+  }
+  
+  /**
+   * 
+   * @constructor
+   */
+  function CommandIterator(lines) {
+    if (!(lines instanceof Array)) throw new Error ("Non-array argument "+(typeof lines));
+    var index=0, l=lines.length, rounds=0, maxRounds=300;
+    var stopped=false;
+    var looping=false;
+    
+    /**
+     * 
+     * @return string
+     */
+    this.go=function() {
+      var r="";
+      if (stopped) {
+        return("");
+      }
+      if (typeof lines[index] == "undefined" ) {
+        this.stop();
+        return("");
+      }
+      r=lines[index];
+      rounds+=1;
+      if ( rounds>maxRounds ) throw new Error ("Limit of "+maxRounds+" commands exceeded");
+      if (!looping) { index+=1; }
+      if ( index>=l ) {
+        this.stop();
+      }
+      return r;
+    };
+    
+    this.loop=function() { looping=true; };
+    
+    this.noLoop=function() { looping=false; };
+    
+    this.stop=function() {
+      console.log("CommandIterator finished");
+      stopped=1;
+    };
+    
+    this.isStopped=function() { return stopped; };
+    
+    this.inc=function() {
+      if (looping) index+=1;
+      if ( index>=l ) { this.stop(); }
+    };
+  }
+  
+  function cl(id) {
+    document.getElementById(id).click();
+  }

@@ -132,6 +132,7 @@ function TopManager() {
   function onRegistration(responseObj) {    
     global.pSide=readCookie("side");
     global.pName=readCookie("name");
+    global.dealId=readCookie("dealId");
     global.eSide=global.otherSide(global.pSide);
     //alert("cookies side="+global.pSide+", name="+nglobal.pName+".");
     if ( responseObj["players"] ) {
@@ -485,17 +486,17 @@ function FinishOnline() {
 // timer "event"
 function onPoll() { 
   //alert ("poll, stage="+global.getStage());
-  var divisors={intro:3,rules:0,ships:1,fight:0,finish:3};
-  if ( typeof this._i == undefined ) this._i=0;
+  var divisors={intro:3,rules:0,ships:1,fight:0,finish:3};// fires on divisor+1'th time 
+  if ( typeof onPoll._i == "undefined" ) onPoll._i=0;
   var stage=global.getStage();
   var state=global.getState();
   
   if ( divisors[stage]<0 ) return;
-  if ( this._i < divisors[stage] ) {
-    this._i +=1;
+  if ( onPoll._i < divisors[stage] ) {
+    onPoll._i +=1;
     return;
   }
-  this._i = 0;
+  onPoll._i = 0;
   
   if ( stage=="intro" && state=="connecting" ) {
     tm.go("intro","queryStage");
@@ -520,5 +521,20 @@ function onPoll() {
 }
 
 // AJAX response ready "event"
-function onAjaxReceived(responseText) { tm.pull(responseText); }
+function onAjaxReceived(responseText) {
+  // allows response interception
+  if ((typeof otherId !== "undefined") && (typeof otherResp !== "undefined")) {
+    if (otherReqActive) {
+      otherReqActive=0;
+      //alert("Other's response: "+responseText);
+      println("Other's response: "+responseText);
+      try { otherResp=JSON.parse(responseText); }
+      catch (err) { alert ("failed to parse response:"+responseText); }
+      //if (typeof otherResp["stage"] == "undefined") throw new Error ("missing stage field");
+      return;
+    }
+  }
+  // normal flow
+  tm.pull(responseText);
+}
 

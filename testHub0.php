@@ -45,10 +45,12 @@ page($i1,$c1);
 //register BBB
 $c2=[];
 $i2=["intro"=>"register","playerName"=>"BBB","enemyName"=>"AAA"];
+//$i2=["intro"=>"register","playerName"=>"BBB","enemyName"=>"AAA","reqId"=>"BBB_B_1"];
 page($i2,$c2);
 
 //AAA queryAll
 $i1=["intro"=>"queryAll"];
+//$i1=["intro"=>"queryStage"];
 page($i1,$c1);
 
 //BBB rules confirm, expecting state converged>confirming

@@ -12,6 +12,7 @@ function Global() {
   var _stagesAllowed=["zero", "intro", "rules", "ships", "fight", "finish","aborted"];
   var _statesAllowed=["zero", "intro", "connecting", "picking", "converged", "confirming",  "ships", "confirmingShips", "fight", "cycling", "cyclingReq", "cyclingOk", "leaving", "aborted", "finish"];
   var _state="zero";
+  this.dealId=0;
   this.pSide="";// A or B
   this.pName="";
   this.eSide="";// A or B
