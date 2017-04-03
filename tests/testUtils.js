@@ -140,9 +140,10 @@ function translateArray(arr) {
    * 
    * @constructor
    */
-  function CommandIterator(lines) {
+  function CommandIterator(lines,maxRounds) {
     if (!(lines instanceof Array)) throw new Error ("Non-array argument "+(typeof lines));
-    var index=0, l=lines.length, rounds=0, maxRounds=300;
+    var index=0, l=lines.length, rounds=0;
+    if (typeof maxRounds == "undefined") maxRounds=300;
     var stopped=false;
     var looping=false;
     

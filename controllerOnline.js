@@ -58,6 +58,7 @@ function TopManager() {
    */
   this.pull=function(responseText) {
     var responseObj={};
+    var st={};
     stage=global.getStage();
     $("tech").innerHTML=" full response:<br />"+responseText;
     try { 
@@ -71,6 +72,12 @@ function TopManager() {
     if ( responseObj["activeSide"] ) global.setActive(responseObj["activeSide"]);
     view1.consumeServerResponse(responseObj);
     if ( stage=="ships" || stage=="fight" || stage=="finish" ) {
+      if ( responseObj["stats"] ) {
+        st=responseObj["stats"];
+        //if ( !( st["A"] instanceof Object ) || !( st["B"] instanceof Object ) ) throw new Error ("No valid index A and B in r::stats");
+        model.playerStat.import(st[global.pSide]);
+        model.enemyStat.import(st[global.eSide]);
+      }
       view2.consumeServerResponse(responseObj,model);
     }
   };
@@ -186,15 +193,8 @@ function TopManager() {
 
   function onFinish(r) {
     displayElement("finish");
+    if ( typeof r["winner"] != "undefined") { global._winner=r["winner"]; }
     return;
-//     if (!r["activeSide"]) alert ("No activeSide value in Finish stage");
-//     if (r["activeSide"]==global.eSide) {
-//       view2.em.put('<span class="'+"lose"+'">ENEMY HAS WON !');
-//     }
-//     if (r["activeSide"]==global.pSide) {
-//       view2.pm.put('<span class="'+"win"+'">YOU HAVE WON !');
-//     }
-    //poller.stop();// there will be one last call
   }
   
   function onReIntro() {
@@ -522,18 +522,6 @@ function onPoll() {
 
 // AJAX response ready "event"
 function onAjaxReceived(responseText) {
-  // allows response interception
-  if ((typeof otherId !== "undefined") && (typeof otherResp !== "undefined")) {
-    if (otherReqActive) {
-      otherReqActive=0;
-      //alert("Other's response: "+responseText);
-      println("Other's response: "+responseText);
-      try { otherResp=JSON.parse(responseText); }
-      catch (err) { alert ("failed to parse response:"+responseText); }
-      //if (typeof otherResp["stage"] == "undefined") throw new Error ("missing stage field");
-      return;
-    }
-  }
   // normal flow
   tm.pull(responseText);
 }

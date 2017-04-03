@@ -584,7 +584,9 @@ class Finish extends DetachableController {
         //echo (" added ".$g->winner);
         $r=PlayHelper::fullInfo($side,$ng);
         $newId = $db->saveGame($ng,false);
-        $hc::setCookie($cookie,$ng->getName($side),$side,$newId);
+        if (!isset($input["reqId"])) {
+          $hc::setCookie($cookie,$ng->getName($side),$side,$newId);
+        }
         $g->setState("cyclingOk");
         $db->saveGame($g,true);
         $g->setStage($ng->getStage());
@@ -600,7 +602,9 @@ class Finish extends DetachableController {
         $ng = new Game;
         $ng->import($ngArr);
         $r=PlayHelper::fullInfo($side,$ng);
-        $hc::setCookie($cookie,$ng->getName($side),$side,$newId);
+        if (!isset($input["reqId"])) {
+          $hc::setCookie($cookie,$ng->getName($side),$side,$newId);
+        }
         $g->setStage($ng->getStage());
         break;
       }
@@ -669,11 +673,11 @@ class Adm extends DetachableController {
   
     $name=$side=$id=$otherSide="";
     $state="*";
-    $r=null;
+    $r="{}";
     $err=null;
     $note="";
 
-    list($db,$name,$side,$otherSide,$state,$g) = $hc::init($cookie,$input,"finish",$act);
+    list($db,$name,$side,$otherSide,$state,$g) = $hc::init($cookie,$input,"adm",$act);
     $this->inState=$state;
     
     require_once("PlayHelper.php");
@@ -686,6 +690,26 @@ class Adm extends DetachableController {
       print_r ($shA);
       print("<br />\n".$g->getName("B")."<br />\n");
       print_r ($shB);
+      break;
+      
+    case "dumpPage":
+      echo("cookie:");
+      print_r($cookie);
+      echo("<br />name=".$name." side=".$side." otherSide=".$otherSide." state=".$state);
+      echo("<br />game:");
+      print_r($g->export());
+      break;
+    
+    case "rmDb":
+      $dbfile="game.db";
+      if (!file_exists($dbfile)) {
+        $r = $hc::fail("Db not found:".$dbfile."!", $state);
+      }
+      else {
+        try { $db->destroy(); } catch (Exception $err) { echo("No connection found\n"); }
+        unlink($dbfile);
+        echo($dbfile." deleted");
+      }
       break;
     
     default:

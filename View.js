@@ -417,12 +417,11 @@ function View(game) {
     }
     
     if ( r["stats"] ) {
-      st=r["stats"];
-      if ( !( st["A"] instanceof Object ) || !( st["B"] instanceof Object ) ) throw new Error ("No valid index A and B in r::stats");
-      this.ps.showStrikesHits( st[global.pSide]["strikes"], st[global.pSide]["hits"] );
-      this.es.showStrikesHits( st[global.eSide]["strikes"], st[global.eSide]["hits"] );
-      this.ps.showStat( st[global.pSide]["afloat"], st[global.pSide]["largest"], "" );
-      this.es.showStat( st[global.eSide]["afloat"], st[global.eSide]["largest"], "" );
+      // statistics has been already imported in tm.pull
+      this.ps.showStrikesHits( model.playerStat["strikes"], model.playerStat["hits"] );
+      this.es.showStrikesHits( model.enemyStat["strikes"], model.enemyStat["hits"] );
+      this.ps.showStat( model.playerStat["shipsAlive"], model.playerStat["biggestShip"], "" );
+      this.es.showStat( model.enemyStat["shipsAlive"],model.enemyStat["biggestShip"], "" );
     }
   };
   
@@ -458,7 +457,7 @@ function View(game) {
     if ( parsed.count <= global.getTotal() ) {
       // this move has been already received -- wrong but sometimes happens
       //alert("Received move #"+parsed.count+", but Total="+global.getTotal() );
-      console.log("Received move #"+parsed.count+", but Total="+global.getTotal() );
+      console.log("View: received move #"+parsed.count+", but Total="+global.getTotal() );
       return;
     }
     if (parsed.side == global.eSide) { // if e strikes, target is p

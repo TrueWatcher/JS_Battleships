@@ -25,6 +25,10 @@ table#general {
   text-align: center;
 }
 
+td#primary, td#tracking {
+  width: 50%;
+}
+
 table.boardLike td,table.listLike td {
   border: 1px solid;
   

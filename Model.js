@@ -319,6 +319,15 @@ function Stat() {
     }
     return;
   };
+  
+  this.import=function(statObj) {
+    if (!( statObj instanceof Object ) ) throw new Error ("Non-object argument");
+    if (typeof statObj["strikes"] != "undefined") this.strikes=statObj["strikes"];
+    if (typeof statObj["hits"] != "undefined") this.hits=statObj["hits"];
+    if (typeof statObj["afloat"] != "undefined") this.shipsAlive=statObj["afloat"];
+    if (typeof statObj["largest"] != "undefined") this.biggestShip=statObj["largest"];
+  };
+  
 }// end Stat
 
 /**

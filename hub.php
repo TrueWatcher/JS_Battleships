@@ -135,7 +135,7 @@ class HubHelper {
     $side=$otherSide="";
     $id="";
     $pair=$aStage."=".$command;
-    $unregistered=["intro=register"];
+    $unregistered=["intro=register","adm=rmDb"];
     $state="*";
     $gameObj=null;
     $allowAuthByInput=1;
