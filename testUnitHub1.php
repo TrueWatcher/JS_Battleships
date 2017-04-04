@@ -374,6 +374,7 @@ class Test_Hub_basic extends PHPUnit_Framework_TestCase {
     $this->assertEquals ( "A", $r["activeSide"], "wrong ActiveSide");
     $this->assertTrue ( isset($r["fleet"]["B"]) && !isset($r["fleet"]["A"]), "wrong Fleet side" );
     $this->assertEquals ( implodePlus($ships1), implodePlus($r["fleet"]), "wrong FleetB");
+    $this->assertEquals ( "0,0,3,2,0,0,3,2", implodePlus($r["stats"]), "wrong Stats");
     
     echo("\nAA strike,expecting miss clip=1\n");
     $i1=["fight"=>"strike", "thisMove"=>"1", "rc"=>"[5,5]" ];

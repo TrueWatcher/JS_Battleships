@@ -201,7 +201,7 @@ function Board(parentElm,command,prefix,fill,theme) {
  * @constructor
  * @see toggleElement
  */
-function DrawControls() {
+function DrawButtons() {
   
   $("confirmShips").onclick=function(){ tm.go("ships","cs"); return false; };
   $("removeShips").onclick=function(){ tm.go("ships","rs"); return false; };
@@ -305,21 +305,21 @@ StatPanel.prototype.showClearHistogram=function(histogram,id) {
 function View(game) {
   //if (game) this.rf=new RulesForm(game);// View() is used in unit tests that don't need rulesForm
 
-  this.dc=new DrawControls();
+  this.drawButtons=new DrawButtons();
 
-  this.ps=new StatPanel( "playerStat","p" );
-  this.es=new StatPanel( "enemyStat","e" );
+  this.pStat=new StatPanel( "playerStat","p" );
+  this.eStat=new StatPanel( "enemyStat","e" );
 
-  this.pm=new MessagePanel("playerMsg");
-  this.em=new MessagePanel("enemyMsg");
+  this.pMessage=new MessagePanel("playerMsg");
+  this.eMessage=new MessagePanel("enemyMsg");
 
   this.setBoards=function(theme) {
     var myTheme={};
     if (theme && theme=="icons1") myTheme=new ClassTheme("classTheme1/","classTheme1.css");
     else myTheme=new AsciiTheme();
 
-    this.pb=new Board( "primary","set","p","e",myTheme );
-    this.tb=new Board( "tracking","strike","e","u",myTheme );
+    this.pBoard=new Board( "primary","set","p","e",myTheme );
+    this.eBoard=new Board( "tracking","strike","e","u",myTheme );
   };
   
   if (!game) this.setBoards("ascii");// View() is used in unit tests
@@ -369,17 +369,17 @@ function View(game) {
     }
     if (message || true) {
       if ( game.getState() != "fight" ) {
-        this.pm.put(message); 
-        this.em.put(" ");
+        this.pMessage.put(message); 
+        this.eMessage.put(" ");
       }
       else {
         if (  game.getActive() == game.pSide ) {
-          this.pm.put(message);
-          this.em.put(" ");
+          this.pMessage.put(message);
+          this.eMessage.put(" ");
         }
         else if ( game.getActive() == game.eSide ) {
-          this.em.put(message);
-          this.pm.put(" ");
+          this.eMessage.put(message);
+          this.pMessage.put(" ");
         }
         else throw new Error ("Invalid active side:"+game.getActive()+"!");
       }
@@ -398,11 +398,11 @@ function View(game) {
       if ( !( sh["A"] instanceof Array ) && ! ( sh["B"] instanceof Array ) ) throw new Error ("No valid index A or B in r::ships");
       if ( sh[global.pSide] ) {
         model.playerBasin.takeShips(sh[global.pSide]);
-        this.pb.fromBasin(model.playerBasin);
+        this.pBoard.fromBasin(model.playerBasin);
       }
       if ( sh[global.eSide] ) {
         model.enemyBasin.takeShips(sh[global.eSide]);
-        this.tb.fromBasin(model.enemyBasin);
+        this.eBoard.fromBasin(model.enemyBasin);
       }
     }
     
@@ -418,10 +418,10 @@ function View(game) {
     
     if ( r["stats"] ) {
       // statistics has been already imported in tm.pull
-      this.ps.showStrikesHits( model.playerStat["strikes"], model.playerStat["hits"] );
-      this.es.showStrikesHits( model.enemyStat["strikes"], model.enemyStat["hits"] );
-      this.ps.showStat( model.playerStat["shipsAlive"], model.playerStat["biggestShip"], "" );
-      this.es.showStat( model.enemyStat["shipsAlive"],model.enemyStat["biggestShip"], "" );
+      this.pStat.showStrikesHits( model.playerStat["strikes"], model.playerStat["hits"] );
+      this.eStat.showStrikesHits( model.enemyStat["strikes"], model.enemyStat["hits"] );
+      this.pStat.showStat( model.playerStat["shipsAlive"], model.playerStat["biggestShip"], "" );
+      this.eStat.showStat( model.enemyStat["shipsAlive"],model.enemyStat["biggestShip"], "" );
     }
   };
   
@@ -462,11 +462,11 @@ function View(game) {
     }
     if (parsed.side == global.eSide) { // if e strikes, target is p
       targetBasin=model.playerBasin;
-      targetBoard=this.pb;
+      targetBoard=this.pBoard;
     }
     else if (parsed.side == global.pSide) {
       targetBasin=model.enemyBasin;
-      targetBoard=this.tb;
+      targetBoard=this.eBoard;
     } 
     else {
       throw new Error ("Invalid r::moves side:"+parsed.side+"!");  

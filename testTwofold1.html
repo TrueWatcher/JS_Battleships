@@ -267,7 +267,7 @@
   var rand=new Rand2d();
   var anotherRand=new Rand2d();// specially for generateMiss
   var probe=[], p=[], won="", k=0, s=0, h=0, he=0; aliveZero=0, area=20, area2=14;    
-  var shipE0=[],shipP0=[], ship1=[];
+  var shipE0=[],shipP0=[],shipP1=[], ship1=[];
   var moveCount=0;
   var pollNeeded=0;
   var pko={};
@@ -366,6 +366,10 @@
   'println("\\nFight\\n"); \
    assertEqualsPrim("fight",global.getStage(),"wrong stage","stage==fight");\
    assertEqualsPrim("fight",global.getState(),"wrong state","state==fight");\
+   var sa=(model.playerStat.shipsAlive == model.enemyStat.shipsAlive);\
+   sa=sa&&(model.playerStat.shipsAlive > 0);\
+   assertTrue(sa,"wrong stats at fight start","stats present");\
+   assertEqualsPrim("none",$("prPanel").style.display,"drawButtons are visible","drawButtons hidden");\
   ',
   // other queryStage expecting > fight active=A
   'otr("ships=queryStage",otherId)',
@@ -380,7 +384,7 @@
    cl("e"+probe[0]+probe[1]);', 
   // check hit result   
   'println("\\nHit\\n"); \
-   p=view2.tb.get(probe); \
+   p=view2.eBoard.get(probe); \
    assertTrue( "h"==p || "w"==p,"wrong result of hit:"+p,"first hit" ); \
    assertEqualsPrim( 1, model.playerStat.strikes,"wrong Strikes","strikes==1" ); \
    assertEqualsPrim( 1, model.playerStat.hits,"wrong Hits","hits==1" ); \
@@ -394,7 +398,7 @@
    probe=generateMiss(model.enemyBasin,model.enemyShips,anotherRand); \
    cl("e"+probe[0]+probe[1]);',
   // check results
-  'assertEqualsPrim( "m", view2.tb.get(probe),"wrong result of miss","miss" ); \
+  'assertEqualsPrim( "m", view2.eBoard.get(probe),"wrong result of miss","miss" ); \
    assertEqualsPrim( 2, model.playerStat.strikes,"wrong Strikes","strikes==2" ); \
    assertEqualsPrim( 1, model.playerStat.hits,"wrong Hits","hits==1" ); \
    assertEqualsPrim( 0, model.enemyStat.strikes,"improper enemy Strikes","enemy strikes==0" ); \
@@ -438,6 +442,7 @@
    assertEqualsPrim("A",global.pSide,"wrong side","side==A");\
    assertEqualsPrim(moveCount,global.getTotal(),"wrong counter","moves counter");\
    assertEqualsPrim( 2, model.playerStat.strikes,"wrong Strikes","strikes==2" ); \   assertEqualsPrim( "A", global.getActive(), "wrong activeSide","active==A");\
+   assertEqualsPrim("none",$("prPanel").style.display,"drawButtons are visible","drawButtons hidden");\
   ',
   // kill the enemy's 0th ship
   'ci.loop();',
@@ -448,11 +453,16 @@
    else { ci.inc(); };',
    // check kill results
   'println("\\nKill\\n"); \
-   assertEqualsPrim( "w", view2.tb.get(probe),"wrong result of kill","kill" ); \
+   assertEqualsPrim( "w", view2.eBoard.get(probe),"wrong result of kill","kill" ); \
    assertEqualsPrim( model.playerStat.strikes, model.playerStat.hits+1,"wrong stats","kill stats" ); \
    assertEqualsPrim( aliveZero-1, model.enemyStat.shipsAlive,"wrong shipsAlive","shipsAlive minus one" ); \
    assertEqualsPrim( "A", global.getActive(), "wrong activeSide","active==A");\
-   ci.inc();',    
+   ci.inc();',
+  // help enemy
+  'shipP0=new ArrayIterator(model.playerShips._ships[0]);\
+   shipP1=new ArrayIterator(model.playerShips._ships[1]);\
+   ci.inc();\
+  ', 
   // fight until the end
   'println("\\nMortal fight\\n");\
    ci.inc();',
@@ -465,7 +475,7 @@
        cl("e"+probe[0]+probe[1]); \
      } else { \
        moveCount=global.getTotal()+1;\
-       probe=randomStrike(model.playerBasin,rand); \     otr("fight=strike&thisMove="+moveCount+"&rc=["+probe.join()+"]",otherId); \
+       probe = shipP0.go() || shipP1.go() || randomStrike(model.playerBasin,rand); \     otr("fight=strike&thisMove="+moveCount+"&rc=["+probe.join()+"]",otherId); \
        /*onPoll(); race condition! mixed up responses */ pollNeeded=1;\
      }\
    } else { ci.inc(); };',    
@@ -521,15 +531,15 @@
      cl("e"+probe[0]+probe[1]);\
    } else {\
      otr("fight=strike&thisMove="+"1"+"&rc=["+probe.join()+"]",otherId); \
-     onPoll();\
    }\
   ',
+  'onPoll();',
   'if (won=="A") {\
-     p=view2.tb.get(probe);\
-     assertTrue( "h"==p||"m"==p||"w"==p,"wrong result of strike:"+p,"strike" ); \
+     p=view2.eBoard.get(probe);\
+     assertTrue( "h"==p||"m"==p||"w"==p,"wrong result of strike:"+p,"strike=="+p ); \
    } else {\
-     p=view2.pb.get(probe);\
-     assertTrue( "h"==p||"m"==p||"w"==p,"wrong result of strike:"+p,"strike" ); \
+     p=view2.pBoard.get(probe);\
+     assertTrue( "h"==p||"m"==p||"w"==p,"wrong result of strike:"+p,"strike"+p ); \
    }\
   ',
   // drop that game and take a fresh start

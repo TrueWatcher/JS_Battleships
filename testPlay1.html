@@ -234,6 +234,10 @@
   'cl("confirmShips");',
   'assertEqualsPrim("fight",global.getStage(),"wrong stage","stage==fight");\
    assertEqualsPrim("fight",global.getState(),"wrong state","state==fight");\
+   var sa=(model.playerStat.shipsAlive == model.enemyStat.shipsAlive);\
+   sa=sa&&(model.playerStat.shipsAlive > 0);\
+   assertTrue(sa,"wrong stats at fight start","stats present");\
+   assertEqualsPrim("none",$("prPanel").style.display,"drawButtons are visible","drawButtons hidden");\
    ship1=new ArrayIterator(model.enemyShips._ships[1]); \
    aliveZero=model.enemyStat.shipsAlive; \
    area=model.playerShips.countArea();',
@@ -242,7 +246,7 @@
    cl("e"+probe[0]+probe[1]);',
   // check hit result
   'println("\\nHit\\n"); \
-   p=view2.tb.get(probe); \
+   p=view2.eBoard.get(probe); \
    assertTrue( "h"==p || "w"==p,"wrong result of hit:"+p,"first hit" ); \
    assertEqualsPrim( 1, model.playerStat.strikes,"wrong Strikes","strikes==1" ); \
    assertEqualsPrim( 1, model.playerStat.hits,"wrong Hits","hits==1" ); \
@@ -254,7 +258,7 @@
    cl("e"+probe[0]+probe[1]);',
   // check results
   'println("\\nMiss\\n"); \
-   assertEqualsPrim( "m", view2.tb.get(probe),"wrong result of miss","miss" ); \
+   assertEqualsPrim( "m", view2.eBoard.get(probe),"wrong result of miss","miss" ); \
    assertEqualsPrim( 2, model.playerStat.strikes,"wrong Strikes","strikes==2" ); \
    assertEqualsPrim( 1, model.playerStat.hits,"wrong Hits","hits==1" ); \
    assertTrue( 0 < model.enemyStat.strikes,"enemy had not sriken","enemy had returned" ); \
@@ -269,7 +273,7 @@
    else { ci.inc(); };',
    // check kill results
   'println("\\nKill\\n"); \
-   assertEqualsPrim( "w", view2.tb.get(probe),"wrong result of kill","kill" ); \
+   assertEqualsPrim( "w", view2.eBoard.get(probe),"wrong result of kill","kill" ); \
    assertEqualsPrim( model.playerStat.strikes, model.playerStat.hits+1,"wrong stats","kill stats" ); \
    assertEqualsPrim( aliveZero-1, model.enemyStat.shipsAlive,"wrong shipsAlive","shipsAlive minus one" ); \
    ci.inc();',
@@ -280,7 +284,7 @@
    } else { ci.inc(); };',
   // check finish situation
   'ci.noLoop();',
-  'view2.tb.showUnhit(model.enemyShips._ships); \
+  'view2.eBoard.showUnhit(model.enemyShips._ships); \
    ',
   'println("\\nWinner\\n"); \
    assertEqualsPrim("finish",global.getState(),"wrong state","state==finish");\
@@ -300,6 +304,9 @@
   'assertEqualsPrim(area,model.playerShips.countArea(),"changed forces", "forces=="+area+" still");\
    assertEqualsPrim("fight",global.getStage(),"wrong stage","stage==fight");\
    assertEqualsPrim("fight",global.getState(),"wrong state","state==fight");\
+   var bs=(model.playerStat.biggestShip == model.enemyStat.biggestShip);\
+   bs=bs&&(model.playerStat.biggestShip > 0);\
+   assertTrue(bs,"wrong stats at fight start","stats present");\
    if (won=="p") assertEqualsPrim( 0, model.enemyStat.strikes, "enemy lose but has had a move","first move");\
    else assertTrue( 0 < model.enemyStat.strikes,"enemy won but was silent","first move" ); \
   ',
@@ -307,7 +314,7 @@
   'probe=[1,1];\
    cl("e"+probe[0]+probe[1]);\
   ',
-  'p=view2.tb.get(probe);\
+  'p=view2.eBoard.get(probe);\
    assertTrue( "h"==p||"m"==p||"w"==p,"wrong result of strike:"+p,"strike" ); \
   ',
   // drop that game and take a fresh start

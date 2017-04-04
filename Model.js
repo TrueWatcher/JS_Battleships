@@ -143,7 +143,7 @@ function Fleet() {
       case "fromPrimaryBy1":
         range=new Seq2d();
         while ( rc=range.go() ) {
-          if ( view2.pb.get(rc[0],rc[1])=="s" ) {
+          if ( view2.pBoard.get(rc[0],rc[1])=="s" ) {
             ship=[ rc ]; // one square
             this._ships.push(ship);
           }
@@ -153,7 +153,7 @@ function Fleet() {
         sy=new ShipYard(plan);
         this.take(sy.buildAll());
         if (!this.checkMargins()) throw ("Fleet::build: margins check failed");
-        //this.show(view2.tb); // DEBUG
+        //this.show(view2.eBoard); // DEBUG
         break;
     }// end switch
   };// end build()

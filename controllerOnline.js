@@ -78,6 +78,11 @@ function TopManager() {
         model.playerStat.import(st[global.pSide]);
         model.enemyStat.import(st[global.eSide]);
       }
+      if ( (typeof responseObj["fleet"] != "undefined") && responseObj["fleet"][global.pSide] ) {
+        //alert (JSON.stringify(responseObj["fleet"][global.pSide]));
+        model.playerShips = new Fleet();
+        model.playerShips.take(responseObj["fleet"][global.pSide]);
+      }
       view2.consumeServerResponse(responseObj,model);
     }
   };
@@ -118,6 +123,7 @@ function TopManager() {
     }
     if ( stage == "fight" && prevStage == "intro" ) {
       initPage2();
+      onInitFight();
       return;
     }
     if ( stage == "fight" && prevStage == "ships" ) {
@@ -177,22 +183,22 @@ function TopManager() {
       hideElement("finish");
     }
     displayElement("main");
-    view2.dc.display();
+    view2.drawButtons.display();
 
-    view2.em.put(" ");
+    view2.eMessage.put(" ");
     if (global.getStage()=="ships") {
       global.setTotal(0);
       var mes="Draw your ships (";
-      mes+=view2.ps.showClearHistogram( global.getForces(),"return" );
+      mes+=view2.pStat.showClearHistogram( global.getForces(),"return" );
       mes+="),<br />then press Done";
-      view2.pm.put(mes);
+      view2.pMessage.put(mes);
     }
     return;
   }
   
   function onInitFight() {
     if (global.allowHideControls) { 
-      view2.dc.hide();
+      view2.drawButtons.hide();
     }    
   }
 
@@ -360,7 +366,7 @@ function ShipsOnline() {
   this.go=function(command,data) {
     var parsed=[],qs="",c="",sy,ps,h,hs,cm;
     
-    view2.pm.put("");
+    view2.pMessage.put("");
     
     switch(command) {
       
@@ -372,13 +378,13 @@ function ShipsOnline() {
         if ( model.playerBasin.get(parsed.row,parsed.col) != "s" ) c="s";
         else c="e";
         model.playerBasin.put(c,parsed.row,parsed.col);
-        view2.pb.put(c,parsed.row,parsed.col);
+        view2.pBoard.put(c,parsed.row,parsed.col);
       }
       break;
       
     case "rs": // remove all ships
       model.playerBasin.clear();
-      view2.pb.fromBasin(model.playerBasin);
+      view2.pBoard.fromBasin(model.playerBasin);
       break;
 
     case "as": // automatically draw ships
@@ -386,19 +392,19 @@ function ShipsOnline() {
       ps=sy.buildAll();
       model.playerBasin.clear();
       model.playerBasin.takeShips(ps);
-      view2.pb.fromBasin(model.playerBasin);
+      view2.pBoard.fromBasin(model.playerBasin);
       break;
       
     case "cs": // check up and go playing
       h=new Harvester(model.playerBasin);
       h.search();
       model.playerBasin.cleanUp();
-      view2.pb.fromBasin(model.playerBasin);
+      view2.pBoard.fromBasin(model.playerBasin);
       hs=h.yield();
       model.playerShips = new Fleet();
       model.playerShips.take(hs);
       if ( ! model.playerShips.checkMargins() ) {
-        view2.pm.put("Ships must be straight<br /> and not to touch each other. <br />Try new ones");
+        view2.pMessage.put("Ships must be straight<br /> and not to touch each other. <br />Try new ones");
         model.playerShips.clear();
         return;
       }
@@ -435,7 +441,7 @@ function FightOnline() {
       //alert ( "cell : "+parsed.prefix+"_"+parsed.row+"_"+parsed.col );
       if ( parsed.prefix == "e" ) {
         c="f";
-        view2.tb.put(c,parsed.row,parsed.col);
+        view2.eBoard.put(c,parsed.row,parsed.col);
         //global.incTotal(); // moves are counted in View::putMove
         qs="fight=strike&rc=["+parsed.row+","+parsed.col+"]&thisMove="+(global.getTotal()+1);
         //alert("qs="+qs);

@@ -62,8 +62,8 @@ function RulesLocal() {
     
     view2.setBoards(global._theme);
     view2.putNames();
-    view2.pm.put("");
-    view2.em.put("");
+    view2.pMessage.put("");
+    view2.eMessage.put("");
     
     if (global.allowHideControls) { 
       hideElement("intro");
@@ -71,22 +71,22 @@ function RulesLocal() {
       hideElement("finish");
     }
     displayElement("main");
-    view2.dc.display();
+    view2.drawButtons.display();
 
     model.enemyShips=new Fleet();
     model.enemyShips.build("byWarrant",global.getForces());
     var eh=model.enemyShips.makeHistogram();
-    view2.es.showClearHistogram(eh);
+    view2.eStat.showClearHistogram(eh);
     model.enemyStat.setShips(eh);
-    view2.es.showStat(model.enemyStat.shipsAlive,model.enemyStat.biggestShip,model.enemyStat.shipsSunk);
+    view2.eStat.showStat(model.enemyStat.shipsAlive,model.enemyStat.biggestShip,model.enemyStat.shipsSunk);
     if (global._previewEnemyShips) {
-      model.enemyShips.show(view2.tb);
+      model.enemyShips.show(view2.eBoard);
     }
 
     var mes="Draw your ships (";
-    mes+=view2.ps.showClearHistogram( global.getForces(),"return" );
+    mes+=view2.pStat.showClearHistogram( global.getForces(),"return" );
     mes+="),<br />then press Done";
-    view2.pm.put(mes);
+    view2.pMessage.put(mes);
     global.setStage("ships");
     global.setState("ships");
     return;
@@ -104,7 +104,7 @@ function ShipsLocal() {
     var parsed={};
     //alert(command+"+"+data);
     
-    if ( command=="cs" || command=="as" ) view2.pm.put("");
+    if ( command=="cs" || command=="as" ) view2.pMessage.put("");
     
     if ( command=="cell" && data ) { // set a square to ship or empty
       parsed = view2.parseGridId(data);
@@ -113,13 +113,13 @@ function ShipsLocal() {
         if ( model.playerBasin.get(parsed.row,parsed.col) != "s" ) c="s";
         else c="e";
         model.playerBasin.put(c,parsed.row,parsed.col);
-        view2.pb.put(c,parsed.row,parsed.col);
+        view2.pBoard.put(c,parsed.row,parsed.col);
       }
     }
 
     if (command=="rs") { // remove all ships
       model.playerBasin.clear();
-      view2.pb.fromBasin(model.playerBasin);
+      view2.pBoard.fromBasin(model.playerBasin);
     }
 
     if (command=="as") { // automatically draw ships
@@ -127,19 +127,19 @@ function ShipsLocal() {
       ps=sy.buildAll();
       model.playerBasin.clear();
       model.playerBasin.takeShips(ps);
-      view2.pb.fromBasin(model.playerBasin);
+      view2.pBoard.fromBasin(model.playerBasin);
     }
 
     if (command=="cs") { // check up and go playing
       h=new Harvester(model.playerBasin);
       h.search();
       model.playerBasin.cleanUp();
-      view2.pb.fromBasin(model.playerBasin);
+      view2.pBoard.fromBasin(model.playerBasin);
       hs=h.yield();
       model.playerShips = new Fleet();
       model.playerShips.take(hs);
       if ( ! model.playerShips.checkMargins() ) {
-        view2.pm.put("Ships must be straight<br /> and not to touch each other. <br />Try new ones");
+        view2.pMessage.put("Ships must be straight<br /> and not to touch each other. <br />Try new ones");
         model.playerShips.clear();
         return;
       }
@@ -147,10 +147,10 @@ function ShipsLocal() {
       warrantHistogram=global.getForces();
       if ( pHistogram.join() != warrantHistogram.join() ) {
         mes="The rules require <br />(squares:ships): ";
-        mes+=view2.ps.showClearHistogram(warrantHistogram,"return");
+        mes+=view2.pStat.showClearHistogram(warrantHistogram,"return");
         mes+='<br />Your ships do not comply';
         if ( global._demandEqualForces ) mes+="<br />Try new ones";
-        view2.pm.put( mes );
+        view2.pMessage.put( mes );
         if ( global._demandEqualForces ) {
           model.playerShips.clear();
           return;
@@ -158,9 +158,9 @@ function ShipsLocal() {
       }
 
       model.playerStat.setShips(pHistogram);
-      view2.ps.showStat(model.playerStat.shipsAlive,model.playerStat.biggestShip,model.playerStat.shipsSunk);
-      view2.ps.showClearHistogram(pHistogram);
-      if (global.allowHideControls) { view2.dc.hide(); }
+      view2.pStat.showStat(model.playerStat.shipsAlive,model.playerStat.biggestShip,model.playerStat.shipsSunk);
+      view2.pStat.showClearHistogram(pHistogram);
+      if (global.allowHideControls) { view2.drawButtons.hide(); }
       initFight();
     }
     return;
@@ -174,9 +174,9 @@ function ShipsLocal() {
     global.setStage("fight");
     global.setState("fight");
     
-    enemy=new Enemy( model.enemyShips, model.enemyBasin, model.enemyStat, model.enemyClip, model.playerBasin, view2.em, global._enemyStriker );
+    enemy=new Enemy( model.enemyShips, model.enemyBasin, model.enemyStat, model.enemyClip, model.playerBasin, view2.eMessage, global._enemyStriker );
     //alert("E_hi="+enemy.hi());
-    player=new PlayerAssistant( model.playerShips, model.playerBasin, model.playerStat, model.playerClip, view2.pm );
+    player=new PlayerAssistant( model.playerShips, model.playerBasin, model.playerStat, model.playerClip, view2.pMessage );
     arbiter=new Arbiter(player,enemy,global);
     if (global._strikeRule=="bs") {
       player._clip.load();
@@ -184,11 +184,11 @@ function ShipsLocal() {
     }
     
     if (global._active=="p") {
-      view2.pm.add("<br />Make your move!"); 
+      view2.pMessage.add("<br />Make your move!"); 
       arbiter.setPlayer();
     }
     else if (global._active=="e" ) { 
-      view2.em.add("Enemy has first move");
+      view2.eMessage.add("Enemy has first move");
       arbiter.setEnemy();
       enemy.strike();
     } 
@@ -206,8 +206,8 @@ function FightLocal() {
     var hit;
     var parsed={};
 
-    view2.pm.put("");
-    view2.em.put("");
+    view2.pMessage.put("");
+    view2.eMessage.put("");
     
     // player's strike
     if( global._active=="p" && command=="cell" && data ) {
@@ -216,8 +216,8 @@ function FightLocal() {
       hit=enemy.respond([parsed.row,parsed.col]);
       //alert(">"+hit);
       player.reflect(hit);
-      view2.ps.showStrikesHits(model.playerStat.strikes,model.playerStat.hits);
-      displayResponce( hit, [parsed.row,parsed.col], view2.tb, model.enemyBasin, view2.es, model.enemyStat, view2.pm );// enemy.display
+      view2.pStat.showStrikesHits(model.playerStat.strikes,model.playerStat.hits);
+      displayResponce( hit, [parsed.row,parsed.col], view2.eBoard, model.enemyBasin, view2.eStat, model.enemyStat, view2.pMessage );// enemy.display
       if ( arbiter.checkout(hit) ) return;
       // fall-through
     }
@@ -226,8 +226,8 @@ function FightLocal() {
     if ( global._active=="e" && command=="enemyStrike" && data.length==2 ) {
       hit=player.respond(data);
       enemy.reflect(hit);
-      view2.es.showStrikesHits(model.enemyStat.strikes,model.enemyStat.hits);
-      displayResponce( hit, data, view2.pb, model.playerBasin, view2.ps, model.playerStat, view2.em );//player.display
+      view2.eStat.showStrikesHits(model.enemyStat.strikes,model.enemyStat.hits);
+      displayResponce( hit, data, view2.pBoard, model.playerBasin, view2.pStat, model.playerStat, view2.eMessage );//player.display
       if (hit=="n")
         console.log( "Enemy repeats itself on "+data+" that is "+model.playerBasin.get(data[0],data[1]) );// this is not to happen
       if ( arbiter.checkout(hit) ) return;
@@ -245,11 +245,11 @@ function FightLocal() {
     global.setState("finish");
     if (global._active=="p") {
       global._winner="p";
-      view2.pm.put('<span class="'+"win"+'">YOU HAVE WON !');
+      view2.pMessage.put('<span class="'+"win"+'">YOU HAVE WON !');
     }
     else {
       global._winner="e";
-      view2.em.put('<span class="'+"lose"+'">ENEMY HAS WON !');
+      view2.eMessage.put('<span class="'+"lose"+'">ENEMY HAS WON !');
     }
     return;    
   };
@@ -393,7 +393,7 @@ function Enemy (fleet,ownBasin,stat,clip,targetBasin,mesPanel,strikeMode) {
   this.strike=function() {
     //var probe=randomStrike(this._targetBasin,this._rand);
     var probe=_this._striker.move();
-    view2.pb.put("f",probe[0],probe[1]);
+    view2.pBoard.put("f",probe[0],probe[1]);
     var t=window.setTimeout( function(){
       //alert("Enemy is striking");
       tm.go("fight","enemyStrike",probe);

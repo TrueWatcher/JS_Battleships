@@ -1,8 +1,8 @@
 "use strict";
 
 var view2=[];
-view2.tb=[];
-view2.tb.put=function(){}
+view2.eBoard=[];
+view2.eBoard.put=function(){}
 //var global={};
 var plan=[0,4,3,2,1,0,0,0,0,0,0];
 //global.getForces=function() { return plan; };

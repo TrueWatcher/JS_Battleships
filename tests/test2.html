@@ -73,7 +73,7 @@ try{
   f._ships.push(testShip2);
   b.markShip(testShip1);
   b.markShip(testShip2);
-  view2.pb.fromBasin(b);  
+  view2.pBoard.fromBasin(b);  
   var s=new Stat();
   var h=f.makeHistogram();
   assertEqualsVect([0,0,0,1,1,0,0,0,0,0,0],h,"Wromg histogram","histogram")
@@ -98,7 +98,7 @@ try{
   assertEqualsPrim("h",r,"Wrong responce on hit","hit");
   r=strikeResponce( [ testShip2[j][0], testShip2[j][1] ] ,f,b,s );
   assertEqualsPrim("f",r,"Wrong responce on finishing hit","finishing hit");
-  view2.pb.fromBasin(b);
+  view2.pBoard.fromBasin(b);
   
   //throw ("Finished");  
   //b.clear();
@@ -134,7 +134,7 @@ try{
     this._clip= new Clip(s);
     this._clip._rounds=100;
     
-    this._mesPanel=view2.pm;
+    this._mesPanel=view2.pMessage;
   }
   
   function E() { // substitute for Enemy class
@@ -167,7 +167,7 @@ try{
     this._clip= new Clip(s);
     //this._clip._rounds=4;
     
-    this._mesPanel=view2.pm;
+    this._mesPanel=view2.pMessage;
   }
   var e=new E();
   var p=new P();
@@ -178,9 +178,9 @@ try{
   while ( probe=striker.go() ) {
     hit=e.respond(probe);
     e.reflect(hit);
-    view2.ps.showStrikesHits(e._stat.strikes,e._stat.hits);
-    displayResponce( hit, probe, view2.pb, b, view2.es, s, view2.pm );
-    view2.pb.fromBasin(b);
+//     view2.pStat.showStrikesHits(e._stat.strikes,e._stat.hits);
+    displayResponce( hit, probe, view2.pBoard, b, view2.eStat, s, view2.pMessage );
+    view2.pBoard.fromBasin(b);
     checkout=arbiter.checkout(hit);
     
     step=striker.getIndex()-1;
@@ -200,7 +200,7 @@ try{
   global._active="e";
   global._strikeRule="bs";
   b.cleanUp();
-  view2.pb.fromBasin(b);
+  view2.pBoard.fromBasin(b);
   var aa=new Arbiter(p,e,global);
   s.setShips(h);
   e._stat.strikes=0;
@@ -216,9 +216,9 @@ try{
   while ( probe=striker.go() ) {
     hit=e.respond(probe);
     e.reflect(hit);
-    view2.ps.showStrikesHits(e._stat.strikes,e._stat.hits);
-    displayResponce( hit, probe, view2.pb, b, view2.es, s, view2.pm );
-    view2.pb.fromBasin(b);
+    view2.pStat.showStrikesHits(e._stat.strikes,e._stat.hits);
+    displayResponce( hit, probe, view2.pBoard, b, view2.eStat, s, view2.pMessage );
+    view2.pBoard.fromBasin(b);
     checkout=arbiter.checkout(hit);
     
     step=striker.getIndex()-1;
