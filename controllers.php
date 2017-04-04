@@ -355,7 +355,7 @@ class Ships extends DetachableController {
       else if ($state=="fight") {
         if ($side == $g->getActive()) $note="Make your move";
         else $note="Enemy is striking first";
-        $r = $hc::notePairs($note, $g, ["activeSide","state"] );
+        $r = $hc::notePairs($note, $g, ["activeSide","state","stats"] );
         break;      
       }
       else { throw new Exception ("Something is wrong with stage/state/active"); }
@@ -364,7 +364,7 @@ class Ships extends DetachableController {
       if ($state=="fight") {
         if ($side == $g->getActive()) $note="Make your move";
         else $note="Enemy is striking first";
-        $r = $hc::notePairs($note, $g, ["activeSide","state"] );
+        $r = $hc::notePairs($note, $g, ["activeSide","state","stats"] );
         break;
       }
       else if ($state=="ships") {
@@ -708,7 +708,7 @@ class Adm extends DetachableController {
       else {
         try { $db->destroy(); } catch (Exception $err) { echo("No connection found\n"); }
         unlink($dbfile);
-        echo($dbfile." deleted");
+        $r = $hc::noteState($dbfile." deleted", $state);
       }
       break;
     

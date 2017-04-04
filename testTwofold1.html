@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ru" xml:lang="ru">
 <!--
-2.1.8 31 Mar 2017
+2.1.12 4 Apr 2017 first full run
 -->
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -217,6 +217,24 @@
     sendRequestOther(qs);
   }
   
+  function reset() {
+    var fl=new FinishLocal();
+    fl.go("new");
+  }
+  
+  function putShips(fleet) {
+    var fi=new ArrayIterator(fleet);
+    var ship=[];
+    var rc=[];
+    while(ship=fi.go()) {
+      var si=new ArrayIterator(ship);
+      while (rc=si.go()) {
+        //alert("p"+rc[0]+rc[1]);
+        cl("p"+rc[0]+rc[1]);
+      }
+    }
+  }
+  
   function sendRequestOther(queryString) {
     if (typeof view1 != "undefined") indicator=view1.ap;
     if (!queryString) throw new Error ("sendRequest: empty query string");
@@ -249,26 +267,37 @@
   var rand=new Rand2d();
   var anotherRand=new Rand2d();// specially for generateMiss
   var probe=[], p=[], won="", k=0, s=0, h=0, he=0; aliveZero=0, area=20, area2=14;    
-  var shipE0=[], ship1=[];
+  var shipE0=[],shipP0=[], ship1=[];
   var moveCount=0;
   var pollNeeded=0;
+  var pko={};
   var otherId="noNameYet", otherResp="", otherReqActive=0, orp={};
   var picks1='{"firstMove":0,"forces":1,"strikeRule":0,"level":0}';
+  var picks2='{"firstMove":0,"forces":0,"strikeRule":1,"level":0}';
   var rules1='{"firstActiveAB":"A","forces":[0,0,1,1,1,1,0,0,0,0,0],"strikeRule":"oe","demandEqualForces":1,"previewEnemyShips":0}';// no spaces !
+  var rules2='{"firstActiveAB":"A","forces":[0,4,3,2,1,0,0,0,0,0,0],"strikeRule":"bs","demandEqualForces":1,"previewEnemyShips":0}';// no spaces !
   var ships1=[
   [[1,0],[1,1],[1,2],[1,3],[1,4]],
   [[3,1],[3,2],[3,3],[3,4]],
   [[8,9],[7,9],[6,9]],
   [[6,6],[6,7]]
   ];
+  var ships2=[
+  [[1,0],[1,1],[1,2],[1,3]],
+  [[3,1],[3,2],[3,3]], [[8,9],[7,9],[6,9]],
+  [[6,6],[6,7]], [[1,8],[1,9]], [[3,9],[4,9]],
+  [[8,1]], [[8,3]], [[9,7]], [[9,5]],
+  ];
   
-  var testScript=[
+  print(">page");
+  
+  var testScript1=[
   // connect as playerA
-  'print(">page"); \
-   println("\\nConnect\\n"); \
-   //assertEqualsPrim("intro",global.getStage(),"wrong stage","stage==intro");\
-   //assertEqualsPrim("intro",global.getState(),"wrong state","state==intro");\
+  'println("\\nConnect\\n"); \
+   s=global.getState();\
+   assertTrue("intro"==s||"zero"==s,"wrong state","state=="+s);\
   ',
+  //   assertEqualsPrim("intro",global.getStage(),"wrong stage","stage==intro");\
   '$("playerName").value="playerA";\
    $("enemyName").value="enemyB";\
    cl("connectButton");\
@@ -301,6 +330,17 @@
   'cl("forces_1_A");',
   'assertEqualsPrim("converged",global.getState(),"wrong state","state==converged");\
   ',
+  // reload
+  'println("\\nReload\\n"); \
+   reset();\
+   tm.go("intro","queryAll");',
+  'poller.stop();\
+   assertEqualsPrim("converged",global.getState(),"wrong state","state==converged");\
+   assertEqualsPrim("A",global.pSide,"wrong side","side==A");\
+   pko=JSON.parse(view1.readPicks(global.pSide));\
+   assertEqualsPrim(1,pko["forces"],"wrong picks","picks regenerated");\
+  ',
+  //    alert( JSON.stringify( view1.readPicks(global.pSide) ) );\
   // confirm, expecting wait note >confirming
   'cl("confirmButton");',
   'assertEqualsPrim("confirming",global.getState(),"wrong state","state==confirming");\
@@ -389,6 +429,16 @@
    moveCount=global.getTotal();\
    assertTrue(3 <= moveCount,"wrong total","moves=="+moveCount);\
   ',
+  // reload
+  'println("\\nReload 2\\n"); \
+   reset();\
+   tm.go("intro","queryAll");',
+  'poller.stop();\
+   assertEqualsPrim("fight",global.getState(),"wrong state","state==fight");\
+   assertEqualsPrim("A",global.pSide,"wrong side","side==A");\
+   assertEqualsPrim(moveCount,global.getTotal(),"wrong counter","moves counter");\
+   assertEqualsPrim( 2, model.playerStat.strikes,"wrong Strikes","strikes==2" ); \   assertEqualsPrim( "A", global.getActive(), "wrong activeSide","active==A");\
+  ',
   // kill the enemy's 0th ship
   'ci.loop();',
   'if (shipE0.go()!==false) { \
@@ -453,93 +503,159 @@
   'cl("confirmShips");',
   'assertEqualsPrim(area2,model.playerShips.countArea(),"changed forces", "forces=="+area2+" still");\
   ',
-  'ci.stop();',
-  
-
-  
-  'assertEqualsPrim("fight",global.getStage(),"wrong stage","stage==fight");\
+  // enemyB confirms ships expecting >fight
+  'otherId="enemyB_B_"+global.dealId;\
+   otr("ships=confirmShips&fleet="+JSON.stringify(ships1),otherId);',
+  'assertEqualsPrim("fight",otherResp["state"],"wrong other state","other state==fight");\
+  ',
+  // check player side
+  'onPoll();onPoll();',
+  'println("\\nFight one strike\\n");\
+   assertEqualsPrim("fight",global.getStage(),"wrong stage","stage==fight");\
    assertEqualsPrim("fight",global.getState(),"wrong state","state==fight");\
-   if (won=="p") assertEqualsPrim( 0, model.enemyStat.strikes, "enemy lose but has had a move","first move");\
-   else assertTrue( 0 < model.enemyStat.strikes,"enemy won but was silent","first move" ); \
+   assertEqualsPrim( won, global.getActive(), "first active != winner","first move");\
   ',
   // try one strike
   'probe=[1,1];\
-   cl("e"+probe[0]+probe[1]);\
+   if (won=="A") {\
+     cl("e"+probe[0]+probe[1]);\
+   } else {\
+     otr("fight=strike&thisMove="+"1"+"&rc=["+probe.join()+"]",otherId); \
+     onPoll();\
+   }\
   ',
-  'p=view2.tb.get(probe);\
-   assertTrue( "h"==p||"m"==p||"w"==p,"wrong result of strike:"+p,"strike" ); \
+  'if (won=="A") {\
+     p=view2.tb.get(probe);\
+     assertTrue( "h"==p||"m"==p||"w"==p,"wrong result of strike:"+p,"strike" ); \
+   } else {\
+     p=view2.pb.get(probe);\
+     assertTrue( "h"==p||"m"==p||"w"==p,"wrong result of strike:"+p,"strike" ); \
+   }\
   ',
   // drop that game and take a fresh start
-  'println("\\nNew setup\\n"); \
-   var nfl=new FinishLocal();\
-   nfl.go("new");',
+  'println("\\nAbort and new setup\\n"); \
+   cl("resetButton2");',
   'assertEqualsPrim("intro",global.getStage(),"wrong stage","stage==intro");\
-   assertEqualsPrim("zero",global.getState(),"wrong state","state==zero");\
-   ',
-  'cl("localButton");',
-  // new settings
+   s=global.getState();\
+   assertTrue("intro"==s||"zero"==s,"wrong state","state=="+s);\
+  ',/*
+  ];
+  var testScript2=[*/
+  // reconnect
+  '$("playerName").value="playerA";\
+   $("enemyName").value="enemyB";\
+   cl("connectButton");\
+  ',
+  'assertEqualsPrim("connecting",global.getState(),"wrong state","state==connecting");\
+   assertEqualsPrim("playerA",global.pName,"wrong player name","playerA");\
+   assertEqualsPrim("A",global.pSide,"wrong player side","player is A");\
+   assertEqualsPrim("enemyB",global.eName,"wrong player name","enemyB");\
+   poller.stop();\
+   otherId=global.eName+"_"+global.eSide+"_"+global.dealId;\
+   /*console.log("otherId="+otherId);*/\
+  ',
+  // connect as enemyB
+  'otr("intro=register&playerName=enemyB&enemyName=playerA",otherId)',
+  'assertEqualsPrim("rules",otherResp["stage"],"wrong other stage","other stage==rules");\
+  ',
+  // get new stage=rules
+  'onPoll();onPoll();onPoll();onPoll();',
+  // submit new rules
   'cl("strikeRule_1_A");',
-  'cl("forces_1_A");',
+  'cl("forces_0_A");',
+  'otr("rules=updPick&pick="+picks2,otherId)',
+  'assertEqualsPrim("converged",otherResp["state"],"wrong other state","other state==converged");\
+  ',
+  'otr("rules=confirm&rulesSet="+rules2,otherId)',
+  'println("\\nShips\\n"); \
+   assertEqualsPrim("confirming",otherResp["state"],"wrong other state","other state==confirming");\
+  ', 
+  // get new state=confirming
+  'onPoll();onPoll();onPoll();onPoll();',
   'cl("confirmButton");',
   // check the new rules
   'assertEqualsPrim("ships",global.getStage(),"wrong stage","stage==ships");\
    assertEqualsPrim("ships",global.getState(),"wrong state","state==ships");\
    assertEqualsPrim("bs",global._strikeRule,"wrong StrikeRule","StrikeRule==bs");\
-   assertEqualsVect(global.forces2,global.getForces(),"wrong forces","forces 2nd option");\
+   assertEqualsVect(global.forces1,global.getForces(),"wrong forces","forces 1st option");\
   ',
-  'cl("autoShips");',
+  
+  'putShips(ships2);',
+  //'cl("autoShips");',
   'cl("confirmShips");',
+  'assertEqualsPrim("confirmingShips",global.getState(),"wrong state","state==confirmingShips");',
+  'otr("ships=confirmShips&fleet="+JSON.stringify(ships2),otherId)',
+  'assertEqualsPrim("fight",otherResp["state"],"wrong other state","other state==fight");\
+  ',
+  // get new state=fight
+  'onPoll();onPoll();onPoll();onPoll();',
   'assertEqualsPrim("fight",global.getStage(),"wrong stage","stage==fight");\
    assertEqualsPrim("fight",global.getState(),"wrong state","state==fight");\
-   area2=model.playerShips.countArea();\
-   assertTrue(area2 != area,"area not changed","forces=="+area2);\
    aliveZero=model.enemyStat.shipsAlive; \
+   assertTrue(aliveZero > 0, "wrong stats","shipsAlive=="+aliveZero);\
+   assertEqualsPrim("A",global.getActive(),"wrong first active","first==A");\
   ',
-  // make 4 random strikes expecting no enemy moves
-  'println("\\n4 strikes, no handover\\n"); \
-   probe=randomStrike(model.enemyBasin,myRand); \
+  // make 3 random strikes expecting no enemy moves
+  'println("\\n3 strikes, no handover\\n"); \
+   probe=randomStrike(model.enemyBasin,rand); \
    cl("e"+probe[0]+probe[1]);',
-  'probe=randomStrike(model.enemyBasin,myRand); \
+  'assertEqualsPrim("A",global.getActive(),"wrong first active","active==A");\
+   probe=randomStrike(model.enemyBasin,rand); \
    cl("e"+probe[0]+probe[1]);',
-  'probe=randomStrike(model.enemyBasin,myRand); \
+  'assertEqualsPrim("A",global.getActive(),"wrong first active","active==A");\
+   probe=randomStrike(model.enemyBasin,rand); \
    cl("e"+probe[0]+probe[1]);',
-  'probe=randomStrike(model.enemyBasin,myRand); \
-   cl("e"+probe[0]+probe[1]);',
-  'assertEqualsPrim( 4, model.playerStat.strikes,"wrong Strikes","strikes==4" ); \
-   assertEqualsPrim( 0, model.enemyStat.strikes,"enemy must wait","enemy was silent" ); \
-  ',
-  // make 5th strike expecting enemy to backfire
+  'assertEqualsPrim( 3, model.playerStat.strikes,"wrong Strikes","strikes==3" ); \
+   assertEqualsPrim("A",global.getActive(),"wrong first active","active==A");\
+  ',  
+  // make 4th strike expecting enemy to backfire
   'println("\\nOne more strike, handover\\n"); \
-   probe=randomStrike(model.enemyBasin,myRand); \
+   probe=randomStrike(model.enemyBasin,rand); \
    cl("e"+probe[0]+probe[1]);',
-  // wait
-  '',
-  '',
-  'assertEqualsPrim( model.playerStat.strikes, model.enemyStat.strikes,"enemy must backfire","enemy responded" ); \
+  'assertEqualsPrim("B",global.getActive(),"wrong first active","next==B");\
   ',
-  // kill enemy's biggest ship expecting weaker response
-  'println("\\nKill the biggest ship and measure reasponse\\n"); \
-   ship1=new ArrayIterator(model.enemyShips._ships[0]); \
+  // enemy strikes back
+  'println("\\nBackfire\\n"); \
+   shipP0=new ArrayIterator(ships2[0]);\
+   moveCount=global.getTotal();\
    ci.loop();',
-  'if (ship1.go()!==false) { \
-     probe=ship1.getLatest(); \
-     cl("e"+probe[0]+probe[1]); \
-   } \
-   else { ci.inc(); };',
-  // wait
-   'ci.noLoop();',
-   '',
-  // check stats and response
-  'assertEqualsPrim( 10, model.playerStat.strikes,"wrong strikes count","my strikes==10" ); \
-   assertTrue( 5 <= model.playerStat.hits,"wrong hits count","my hits>=5" ); \
-   assertEqualsPrim( 4, model.enemyStat.biggestShip,"wrong enemy biggestShip","enemy biggestShip==4" ); \
-   assertEqualsPrim( aliveZero-1, model.enemyStat.shipsAlive,"wrong shipsAlive","shipsAlive minus one" ); \
-   assertEqualsPrim( 9, model.enemyStat.strikes,"wrong enemy response","enemy strikes==9 not 10" ); \
-  ',   
+  'probe=shipP0.go();\
+   if (probe) {\
+     moveCount++;\
+     otr("fight=strike&thisMove="+moveCount+"&rc=["+probe.join()+"]",otherId); \
+   } else {\
+     ci.inc();\
+   }\
+  ',
+  'ci.noLoop();',
+  'assertEqualsPrim("w",otherResp["move"][4],"ship not killed","ship #0 killed");\
+   assertEqualsPrim("A",otherResp["activeSide"],"no handover","handover");\
+   assertEqualsPrim("3",otherResp["clip"],"wrong clip","A clip==3");\
+  ',
+  'onPoll();',
+  'assertEqualsPrim("A",global.getActive(),"wrong active","active==A");\
+   assertEqualsPrim( aliveZero-1, model.playerStat.shipsAlive,"wrong shipsAlive","shipsAlive minus one" ); \
+   assertEqualsPrim( model.enemyStat.hits, model.enemyStat.strikes,"enemy hits != strikes","enemy hits==strikes=="+model.enemyStat.hits ); \
+  ',
+  // make 3 random strikes expecting handover
+  'println("\\n3 strikes, handover\\n"); \
+   probe=randomStrike(model.enemyBasin,rand); \
+   cl("e"+probe[0]+probe[1]);',
+  'assertEqualsPrim("A",global.getActive(),"wrong first active","active==A");\
+   probe=randomStrike(model.enemyBasin,rand); \
+   cl("e"+probe[0]+probe[1]);',
+  'assertEqualsPrim("A",global.getActive(),"wrong first active","active==A");\
+   probe=randomStrike(model.enemyBasin,rand); \
+   cl("e"+probe[0]+probe[1]);',
+  'assertEqualsPrim( 7, model.playerStat.strikes,"wrong Strikes","strikes==7" ); \
+   assertEqualsPrim("B",global.getActive(),"wrong handover","active==B");\
+  ', 
+  //'ci.stop();',
   ];
   
-  var ci=new CommandIterator(testScript,600);
+  var ci=new CommandIterator(testScript1,600);
   commandsRun(ci);
+  // no commands here !
   
 </script>
 </body>

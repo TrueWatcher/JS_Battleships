@@ -139,6 +139,10 @@ function View1() {
     }
   };
 
+  /**
+   * 
+   * @return object assocArray
+   */
   this.parsePickId=function(tdId) {
     var parts=[];
     if ( !tdId || !tdId.length ) throw new Error ("parsePickId: empty argument");
@@ -147,6 +151,10 @@ function View1() {
     return ( { itemName : parts[0], row: parts[1], side: parts[2] } );
   };
   
+  /**
+   * 
+   * @return string
+   */
   this.readPicks=function (side) {
     var ti=new TdIterator($("picksTable"));
     var td, parts={}, res=[], pair='"key":val', json="{}";

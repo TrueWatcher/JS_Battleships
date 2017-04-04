@@ -134,6 +134,11 @@ function TopManager() {
       onFinish(responseObj);
       return;
     }
+    if ( stage == "aborted" || state == "aborted" ) {
+      onAbort(responseObj);
+      return;
+    }    
+    
   }
   
   function onRegistration(responseObj) {    
@@ -206,6 +211,11 @@ function TopManager() {
     }
     displayElement("intro");
     displayElement("rules");
+  }
+  
+  function onAbort() {
+    var nfl=new FinishLocal();
+    nfl.go("new");
   }
 }// end TopManager
 
