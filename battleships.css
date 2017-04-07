@@ -42,6 +42,6 @@ table.boardLike td,table.listLike td {
   background-color: gray;
 }
 
-#ajaxPanel td {
-  padding: 0.7em 0.7em;
+#ajaxPanel  {
+  padding: 0.5em 0.5em;
 }

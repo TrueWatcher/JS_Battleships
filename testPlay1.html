@@ -9,6 +9,13 @@
   <link rel="stylesheet" type="text/css" href="battleships.css" media="all" />
 </head>
 <body>
+<div id="ajaxPanel" style="text-align:left;">
+  &nbsp;&nbsp;
+  <span id="led" class="ledOff">&nbsp;</span>&nbsp;&nbsp;
+  <button type="button"  id="detailsButton">↴</button>&nbsp;&nbsp;
+  <button type="button"  id="resetButton2">Reset</button>
+  <p id="tech" style="display:none;"></p>
+</div>
 <div id="intro">
   <table id="introTable" class="listLike">
     <tr>
@@ -122,12 +129,6 @@
     </tr>
   </table> 
 </div>
-<div id="ajaxPanel" style="text-align:left;">
-      &nbsp;&nbsp;<span id="led" class="ledOff">&nbsp;</span>&nbsp;&nbsp;
-      <button type="button"  id="detailsButton">↴</button>&nbsp;&nbsp;
-      <button type="button"  id="resetButton2">Reset</button>
-  <p id="tech" style="display:none;"></p>
-</div>
 <div id="main">
   <!--<p>Here comes Page2</p>-->
   <table id="general">
@@ -168,12 +169,15 @@
     <button id="quitButton" type="button">Quit</button>
   </p>
 </div>
+
 <script src="arrayUtils.js" type="text/javascript"></script>
 <script src="htmlUtils.js" type="text/javascript"></script>
 <script src="Global.js" type="text/javascript"></script>
 <script src="controllerOffline.js" type="text/javascript"></script>
 <script src="controllerOnline.js" type="text/javascript"></script>
 <script src="View1.js" type="text/javascript"></script>
+<script src="Model.js" type="text/javascript"></script>
+<script src="Basin.js" type="text/javascript"></script>
 <script type="text/javascript">
 //MAIN ----------------------------
   const DIM=10;
@@ -187,8 +191,8 @@
   view1.setClickHandlers();
   var poller=new Poll(2000);
   
-  var view2={};//=new View
-  var model={};//=new Model();
+  var view2={};//=new View2
+  var model=new Model();
   var enemy={},player={},arbiter={};
   
   var tm=new TopManager();
@@ -197,14 +201,12 @@
   view1.clearNote( global.getStage() );
   if ( window.location.hostname ) tm.go("intro","queryAll");// not called when run from filesystem
 </script>
-<script src="View.js" type="text/javascript"></script>
-<script src="Basin.js" type="text/javascript"></script>
-<script src="Model.js" type="text/javascript"></script>
+<script src="View2.js" type="text/javascript"></script>
 <script src="Harvester.js" type="text/javascript"></script>
 
 <script src="tests/testUtils.js" type="text/javascript"></script>
-<script>
 
+<script type="text/javascript">
   function generateMiss(targetBasin,targetFleet,randGen) {
     var probe=randGen.go();
     while ( ! targetBasin.checkStrikable(probe) || targetFleet.checkHit(probe)!==false ) { probe=randGen.go(); }

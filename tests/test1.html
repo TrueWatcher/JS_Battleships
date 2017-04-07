@@ -43,7 +43,7 @@
 <script src="testUtils.js"></script>
 <script src="../arrayUtils.js"></script>
 <script src="../htmlUtils.js"></script>
-<script src="../View.js"></script>
+<script src="../View2.js"></script>
 <script src="../Basin.js"></script>
 <script src="../Model.js"></script>
 <script src="../Harvester.js"></script>
@@ -53,7 +53,7 @@
 <script>
 "use strict";
 try{
-  var view2=new View();
+  var view2=new View2();
   //view2.setBoards();
   var b=new Basin();
 
@@ -65,7 +65,7 @@ try{
   var testShip2=[ [3,0],[3,1],[3,2],[3,3] ];
   f._ships.push(testShip2);
   b.markShip(testShip1);
-  view2.pb.fromBasin(b);
+  view2.pBoard.fromBasin(b);
   
   print(">page");
   //print(">console");
@@ -100,7 +100,7 @@ try{
   b.markAround(rrr);  
   rr=b.get(0,1);
   assertEqualsPrim("c",rr,"wrong markSunk on clearance","markSunk-clearance");
-  view2.pb.fromBasin(b);
+  view2.pBoard.fromBasin(b);
   b.cleanUp();
   rr=b.get(1,2);
   assertEqualsPrim("s",rr,"wreck not cleaned","cleanUp-wreck");  
@@ -117,11 +117,11 @@ try{
   //print(">console");
   println("\nFleet+Basin+Harvester\n");
 
-  view2.pb.fromBasin(b);
+  view2.pBoard.fromBasin(b);
   var ta1=[ [0,0,0,0,0,0,0,1,1,1], [1,1,1,1,1,0,0,0,0,0], createArray(10,0), [0,1,1,1,0,0,0,0,1,0], [0,0,0,0,0,0,0,0,1,0], [0,0,0,0,1,0,0,0,1,0], [0,0,0,0,1,0,1,0,1,0] ];
   ta1=translateArray(ta1);
   b._arr=ta1;
-  view2.pb.fromBasin(b);
+  view2.pBoard.fromBasin(b);
 
   var h=new Harvester(b);
   h.search();
@@ -130,7 +130,7 @@ try{
   //alert ("found ships:"+h.yield().length );
   //for(var i=0;i<sh.length;i++) {
   //  b.markShip(sh[i]);
-  //  view2.pb.fromBasin(b);
+  //  view2.pBoard.fromBasin(b);
   //  alert("number "+i);
   //}
   
@@ -145,10 +145,10 @@ try{
   
   b.cleanUp();
   b.put("s",4,0);
-  view2.pb.fromBasin(b);
+  view2.pBoard.fromBasin(b);
   //h.reset();
   h.search();
-  //view2.pb.fromBasin(b);
+  //view2.pBoard.fromBasin(b);
   assertEqualsPrim(7,h.yield().length,"wrong count on diagonal contact","diagonal-count");
   f.take(h.yield());
   r=f.checkMargins();
@@ -156,7 +156,7 @@ try{
   b.cleanUp();
   b.put("s",4,1);
   b.put("s",4,2);
-  view2.pb.fromBasin(b);
+  view2.pBoard.fromBasin(b);
   //h.reset();
   h.search();
   var sh=h.yield();
@@ -165,7 +165,7 @@ try{
   //alert ("found ships:"+h.yield().length );
   //for(var i=0;i<sh.length;i++) {
   //  b.markShip(sh[i]);
-  //  view2.pb.fromBasin(b);
+  //  view2.pBoard.fromBasin(b);
   //  alert("number "+i);
   //}
   
@@ -199,7 +199,7 @@ try{
     for (var j=0;j<newFleet.length;j++) {
       b.markShip(newFleet[j]);
     }
-    view2.pb.fromBasin(b);
+    view2.pBoard.fromBasin(b);
     //alert("look at this");
     h.search();
     sh=h.yield();
@@ -207,7 +207,7 @@ try{
     /*alert ("found ships:"+sh.length );
     for(var ii=0;ii<sh.length;ii++) {
       b.markShip(sh[ii]);
-      view2.pb.fromBasin(b);
+      view2.pBoard.fromBasin(b);
       alert("number "+ii);
     }*/
   }
@@ -217,7 +217,7 @@ try{
   
   println("\nShipYard+Basin+Harvester quirks mode\n");
   b.clear();
-  view2.pb.fromBasin(b);
+  view2.pBoard.fromBasin(b);
   f=new Fleet();
   var newFleet,sy,f,ar;
   var syTrySailOrig;
@@ -236,7 +236,7 @@ try{
     for (var j=0;j<newFleet.length;j++) {
       b.markShip(newFleet[j]);
     }
-    view2.pb.fromBasin(b);
+    view2.pBoard.fromBasin(b);
     //alert("look at this");
     h.search();
     f.take(h.yield());
@@ -245,7 +245,7 @@ try{
     /*alert ("found ships:"+sh.length );
     for(var ii=0;ii<sh.length;ii++) {
       b.markShip(sh[ii]);
-      view2.pb.fromBasin(b);
+      view2.pBoard.fromBasin(b);
       alert("number "+ii);
     }*/
     f.clear();

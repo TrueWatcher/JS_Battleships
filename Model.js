@@ -12,6 +12,26 @@ function Model() {
 
   this.playerClip=new Clip(this.playerStat);
   this.enemyClip=new Clip(this.enemyStat);
+  
+  this.consumeStats=function(responseObj,pSide) {
+    var st={};
+    if (pSide != "A" && pSide !="B") throw new Error ("Wrong side:"+pSide);
+    if ( responseObj["stats"] ) {
+      st=responseObj["stats"];
+      //if ( !( st["A"] instanceof Object ) || !( st["B"] instanceof Object ) ) throw new Error ("No valid index A and B in r::stats");
+      this.playerStat.import(st[pSide]);
+      this.enemyStat.import(st[global.eSide]);
+    }
+  };
+  
+  this.consumeFleet=function(responseObj,pSide) {
+    if (pSide != "A" && pSide !="B") throw new Error ("Wrong side:"+pSide);
+    if ( (typeof responseObj["fleet"] != "undefined") && responseObj["fleet"][pSide] ) {
+      //alert (JSON.stringify(responseObj["fleet"][pSide]));
+      this.playerShips = new Fleet();
+      this.playerShips.take(responseObj["fleet"][pSide]);
+    }
+  };
 }
 
 /**

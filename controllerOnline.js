@@ -52,13 +52,13 @@ function TopManager() {
   
   /**
    * Processes the server response when playing online.
-   * Designed to be as passive as possible, decisions were made in subcontrollers and on server. But still has to make some controller'd job. Uses custom events for that. 
+   * Designed to be as passive as possible, decisions were made in subcontrollers and on server. But still has to make some controller's job. Uses custom events pattern for that. Very sensitive to the order of calling lower-level routines.
    * @param string responseText response to AJAX HTTP request, normally JSON-encoded object
    * @return void
    */
   this.pull=function(responseText) {
     var responseObj={};
-    var st={};
+    var stateChanged;
     stage=global.getStage();
     $("tech").innerHTML=" full response:<br />"+responseText;
     try { 
@@ -69,23 +69,21 @@ function TopManager() {
     }
     var stateChanged=adoptState(responseObj);
     if (stateChanged) onStateChange(responseObj,currentStage,stage,currentState,state);
-    if ( responseObj["activeSide"] ) global.setActive(responseObj["activeSide"]);
-    view1.consumeServerResponse(responseObj);
-    if ( stage=="ships" || stage=="fight" || stage=="finish" ) {
-      if ( responseObj["stats"] ) {
-        st=responseObj["stats"];
-        //if ( !( st["A"] instanceof Object ) || !( st["B"] instanceof Object ) ) throw new Error ("No valid index A and B in r::stats");
-        model.playerStat.import(st[global.pSide]);
-        model.enemyStat.import(st[global.eSide]);
-      }
-      if ( (typeof responseObj["fleet"] != "undefined") && responseObj["fleet"][global.pSide] ) {
-        //alert (JSON.stringify(responseObj["fleet"][global.pSide]));
-        model.playerShips = new Fleet();
-        model.playerShips.take(responseObj["fleet"][global.pSide]);
-      }
-      view2.consumeServerResponse(responseObj,model);
-    }
+    if ( isPage1() ) { view1.consumeServerResponse(responseObj); }
+    else if ( isPage2() ) {
+      view2.consumeServerResponse(responseObj,model,global.pSide);
+    } else {}
   };
+  
+  function isPage1() {
+    var r=(stage=="zero" || stage=="intro" || stage=="rules");
+    return (r);
+  }
+  
+  function isPage2() {
+    var r=(stage=="ships" || stage=="fight" || stage=="finish");
+    return (r);
+  }
   
   var stage,state,currentStage,currentState;// output vars of adoptState()
   
@@ -93,10 +91,11 @@ function TopManager() {
     stage=currentStage=global.getStage();
     state=currentState=global.getState();
     //alert("in Stage="+global.getStage());
-    if ( responseObj["stage"] ) { 
+    if ( responseObj.hasOwnProperty("activeSide") ) global.setActive(responseObj["activeSide"]);
+    if ( responseObj.hasOwnProperty("stage") ) { 
       stage=responseObj["stage"];
     }
-    if ( responseObj["state"] ) { 
+    if ( responseObj.hasOwnProperty("state") ) { 
       state=responseObj["state"];
     }
     if ( stage != currentStage || state != currentState ) {
@@ -105,16 +104,23 @@ function TopManager() {
       //alert("out stage="+global.getStage());
       return (true);
     }
-    else return false;
+    else { return false; }
   };
   
-  // Handlers for custom events fired by TopManager::pull
+  /**
+   * Dispatches particular "events", triggered by stage/state change.
+   * Must call them in their logical order, so is very sensitive.
+   * @return void
+   */
   function onStateChange(responseObj,prevStage,stage,prevState,state) {
     if ( responseObj["players"] ) onRegistration(responseObj);
     if ( responseObj["rulesSet"] ) global.importRules( responseObj["rulesSet"] );
-    if ( (prevStage == "intro" || prevStage == "zero") && stage == "rules" ) { 
-      view1.clearNote("intro");
-      view1.initPicks();
+    
+    if (stage=="ships" || stage=="fight") {
+      model.consumeFleet(responseObj,global.pSide);// requires pSide < onRegistration
+    }
+    if ( (prevStage == "intro" || prevStage == "zero") && stage == "rules" ) {
+      onIntro2Rules();
       return;
     }
     if ( stage == "ships" && prevStage!=stage ) { 
@@ -144,8 +150,9 @@ function TopManager() {
       onAbort(responseObj);
       return;
     }    
-    
   }
+      
+  // Handlers for custom events fired by TopManager::pull
   
   function onRegistration(responseObj) {    
     global.pSide=readCookie("side");
@@ -161,8 +168,20 @@ function TopManager() {
     view1.ticks[global.eSide]="x";
     global._theme = view1.applyTheme();
     poller.start();
+    if (global.allowHideControls) { displayElement("ajaxPanel"); } 
     //view1.initPicks();// makes problems
     view1.putNote("intro"," connected ");
+  }
+  
+  function onIntro2Rules() {
+    //alert("onIntro2Rules");
+    view1.clearNote("intro");
+    view1.initPicks();
+    if (global.allowHideControls) { 
+      hideElement("intro");
+      displayElement("rules");
+      //hideElement("finish");
+    }
   }
   
   function initPage2() {
@@ -171,9 +190,8 @@ function TopManager() {
     
     if(typeof view2 !=="object") throw new Error("view2 is not the global object");
     if(typeof model !=="object") throw new Error("model is not the global object");
-    view2=new View(global);
+    view2=new View2(global);
     //alert ("theme:"+global._theme);
-    model=new Model();      
     view2.setBoards(global._theme);
     view2.putNames();
 
@@ -186,7 +204,7 @@ function TopManager() {
     view2.drawButtons.display();
 
     view2.eMessage.put(" ");
-    if (global.getStage()=="ships") {
+    if (global.getStage()=="ships") { // as it may be called also to init "fight"
       global.setTotal(0);
       var mes="Draw your ships (";
       mes+=view2.pStat.showClearHistogram( global.getForces(),"return" );
@@ -197,6 +215,10 @@ function TopManager() {
   }
   
   function onInitFight() {
+    var myHist=model.playerShips.makeHistogram();
+    view2.pStat.showClearHistogram(myHist);
+    if (global._demandEqualForces) { view2.eStat.showClearHistogram(myHist); }
+    
     if (global.allowHideControls) { 
       view2.drawButtons.hide();
     }    
@@ -209,14 +231,15 @@ function TopManager() {
   }
   
   function onReIntro() {
-    global = new Global();
+    global=new Global();
+    model=new Model();
     global.allowHideControls=true;
     if (global.allowHideControls) { 
       hideElement("main");
       hideElement("finish");
     }
     displayElement("intro");
-    displayElement("rules");
+    //displayElement("rules");
   }
   
   function onAbort() {
@@ -286,6 +309,11 @@ function Intro() {
       global.setStage("rules");
       view1.initPicks();
       global.setState("converged");
+      if (global.allowHideControls) {
+        displayElement("rules");
+        hideElement("intro");
+        hideElement("ajaxPanel");
+      }
       view1.putNote("intro","Playing locally");
       view1.putNote("rules","Playing locally");
       break;
@@ -526,7 +554,7 @@ function onPoll() {
     tm.go("ships","queryStage");
     return;
   }
-  if ( stage=="fight" && ( global.getActive() != global.pSide ) ) {
+  if ( stage=="fight" && ( global.isActive(global.eSide) ) ) {
     tm.go("fight","queryMoves");
     return;
   }

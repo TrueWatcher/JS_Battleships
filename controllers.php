@@ -502,8 +502,9 @@ class Fight extends DetachableController {
       }
       if ( $latest == $now ) {
         if ( $side == $g->getActive() ) {
-          $r = $hc::fail("Your are expected of strikes, not queries");
-          break;         
+          // it may happen that queryMoves is sent in wrong turn
+          $r = $hc::notePairs("Your are expected of strikes, not queries", $g, ["activeSide","state"] );
+          break;
         } 
         //$r = '{'.$g->exportPair(["state","activeAB","clip"]).'}';
         $r = $hc::noteState($g->getName($g->getActive())." is thinking",$state);

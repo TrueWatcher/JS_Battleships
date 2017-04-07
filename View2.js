@@ -302,7 +302,7 @@ StatPanel.prototype.showClearHistogram=function(histogram,id) {
  * @constructor
  * @param {object Global} game
  */
-function View(game) {
+function View2(game) {
   //if (game) this.rf=new RulesForm(game);// View() is used in unit tests that don't need rulesForm
 
   this.drawButtons=new DrawButtons();
@@ -350,12 +350,15 @@ function View(game) {
    * @param object Model m
    * @return void
    */
-  this.consumeServerResponse = function(r,m) {
+  this.consumeServerResponse = function(r,m,pSide) {
     var parsed={};
     var rp,sh,st;
     var both=[];
+    var eSide=game.otherSide(pSide);
+    var playerIsActive=global.isActive(pSide);
+    //alert(pSide+"#"+global.getActive()+"*"+playerIsActive+"@"+global.getStage());
     
-    if ( typeof r !== "object" ) throw new Error ("View::consumeServerResponse : non-object argument");
+    if ( typeof r !== "object" ) throw new Error ("View2::consumeServerResponse : non-object argument");
     
     var message="";
     if ( r["error"] ) {
@@ -367,41 +370,34 @@ function View(game) {
     else {
       message=" ";
     }
-    if (message || true) {
-      if ( game.getState() != "fight" ) {
-        this.pMessage.put(message); 
-        this.eMessage.put(" ");
-      }
-      else {
-        if (  game.getActive() == game.pSide ) {
-          this.pMessage.put(message);
-          this.eMessage.put(" ");
-        }
-        else if ( game.getActive() == game.eSide ) {
-          this.eMessage.put(message);
-          this.pMessage.put(" ");
-        }
-        else throw new Error ("Invalid active side:"+game.getActive()+"!");
-      }
+
+    if ( game.getState() != "fight" || playerIsActive ) {
+      this.pMessage.put(message);
+      this.eMessage.put(" ");
     }
+    else {
+      this.eMessage.put(message);
+      this.pMessage.put(" ");
+    }
+
     message="";
         
     if ( r["players"] ) {
       rp=r["players"];
-      putToElement(rp[global.pSide],"playerLabel");
-      putToElement(rp[global.eSide],"enemyLabel");
+      putToElement(rp[pSide],"playerLabel");
+      putToElement(rp[eSide],"enemyLabel");
     }
     
     if ( r["fleet"] ) {
       //alert("fleet");
       sh=r["fleet"];
       if ( !( sh["A"] instanceof Array ) && ! ( sh["B"] instanceof Array ) ) throw new Error ("No valid index A or B in r::ships");
-      if ( sh[global.pSide] ) {
-        model.playerBasin.takeShips(sh[global.pSide]);
+      if ( sh[pSide] ) {
+        model.playerBasin.takeShips(sh[pSide]);
         this.pBoard.fromBasin(model.playerBasin);
       }
-      if ( sh[global.eSide] ) {
-        model.enemyBasin.takeShips(sh[global.eSide]);
+      if ( sh[eSide] ) {
+        model.enemyBasin.takeShips(sh[eSide]);
         this.eBoard.fromBasin(model.enemyBasin);
       }
     }
@@ -417,7 +413,7 @@ function View(game) {
     }
     
     if ( r["stats"] ) {
-      // statistics has been already imported in tm.pull
+      model.consumeStats(r,pSide);
       this.pStat.showStrikesHits( model.playerStat["strikes"], model.playerStat["hits"] );
       this.eStat.showStrikesHits( model.enemyStat["strikes"], model.enemyStat["hits"] );
       this.pStat.showStat( model.playerStat["shipsAlive"], model.playerStat["biggestShip"], "" );

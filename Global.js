@@ -89,8 +89,13 @@ function Global() {
   this.getActive=function() { return (this._activeAB); };
   
   this.setActive=function(ab) {
-    if (ab!="A" && ab!="B") throw new Error ("Invalid new active side:"+ab+"!");
+    if (ab != "A" && ab != "B") throw new Error ("Invalid new active side:"+ab+"!");
     this._activeAB=ab;
+  };
+  
+  this.isActive=function(ab) {
+    if (ab != "A" && ab != "B") throw new Error ("Invalid side:"+ab+"!");
+    return (this._activeAB == ab);
   };
   
   this.incTotal=function() { _total+=1; };

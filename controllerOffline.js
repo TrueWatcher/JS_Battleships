@@ -26,7 +26,6 @@ function RulesLocal() {
         view1.drawPicks("B",myPicks,view1.ticks["B"]);
       }
       //alert("myPicks:"+myPicks);
-      // global.setState("converged");
       break;
     case "queryPick":
       alert("Command queryPick while playing locally");
@@ -41,8 +40,6 @@ function RulesLocal() {
       view1.putNote("rules","Done");
       global.pickStr=myPicks;
       global.setRules(myPicks);
-      //global.setStage("ships");
-      //global.setState("ships");
       this.initPage2();
       break;
     default:
@@ -52,13 +49,11 @@ function RulesLocal() {
   
   this.initPage2=function() {
     view1.putNote("rules","Loading page 2");
-    //alert("Running page 2");
-    //g=g;//new Game();
     
     if(typeof view2 !=="object") alert("initPage2: view2 is not the global object");
     if(typeof model !=="object") alert("initPage2: model is not the global object");
-    view2=new View(global);
-    model=new Model();      
+    view2=new View2(global);
+    model=new Model(); // different from the parallel online !
     
     view2.setBoards(global._theme);
     view2.putNames();
@@ -279,6 +274,7 @@ function FinishLocal() {
       
     case "new":
       global=new Global();
+      model=new Model();
       global.allowHideControls=true;
       global.setStage("intro");
       global.setState("zero");
@@ -287,7 +283,7 @@ function FinishLocal() {
         hideElement("finish");
       }
       displayElement("intro");
-      displayElement("rules");
+      //displayElement("rules");
       break;
     }
   };  

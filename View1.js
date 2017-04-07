@@ -211,7 +211,10 @@ function View1() {
       }
     }
   };
-      
+  
+  // adjust visibility
+  if (global.allowHideControls) { hideElement("rules"); }
+       
   //----- event handlers -----
   this.setClickHandlers=function() {
     // select theme
@@ -318,11 +321,13 @@ function AjaxPanel(container) {
   }
   
   this.techEl=$("tech");
+  
   this.toggleTech=function() {
     toggleElement(_this.techEl);
-    global.allowHideControls=false;
+    //global.allowHideControls=false;
   }
   
   $("detailsButton").onclick=_this.toggleTech;
+  
   $("resetButton2").onclick=function() { tm.go("intro","abort"); return false; };
 }
