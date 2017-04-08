@@ -56,11 +56,13 @@ function View1() {
   var myTheme=new DummyTheme;
   
   this.applyTheme=function() {
+    var urlOffset="";
+    if (typeof URLOFFSET != "undefined") urlOffset=URLOFFSET;
     this.readTheme();
     //global._theme=this._theme; delegated to controller
     //alert("applying "+myTheme.label+"/"+this._theme);
     if (this._theme=="icons1") { 
-      myTheme=new ClassThemeV1 ( "classTheme1/", "classTheme1.css", $("picksTable"), this, global.pSide, global.eSide );
+      myTheme=new ClassThemeV1 ( urlOffset+"classTheme1/", "classTheme1.css", $("picksTable"), this, global.pSide, global.eSide );
       myTheme.apply();
       return this._theme;
     }

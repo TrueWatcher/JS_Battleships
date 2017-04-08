@@ -193,14 +193,16 @@ function sendRequest (queryString,indicator) {
   
   if (!queryString) throw new Error ("sendRequest: empty query string");
   var responderUrl="hub.php";
-
-  //alert("Request to be sent to "+responderUrl+"?"+queryString);
+  var urlOffset="";
+  if (typeof URLOFFSET != "undefined") urlOffset=URLOFFSET;
+  //alert("Request to be sent to "+urlOffset+responderUrl+"?"+queryString);
   //return false;
   
   var req=new XMLHttpRequest();
   
   //req.open("GET",responderUrl+"?"+queryBase+"&"+queryString); // GET
-  req.open("POST",responderUrl,true); // POST
+  //req.open("POST",responderUrl,true); // POST
+  req.open("POST",urlOffset+responderUrl,true); // POST
   
   req.setRequestHeader("Content-Type","application/x-www-form-urlencoded");// for POST; should go _after_ req.open!
   

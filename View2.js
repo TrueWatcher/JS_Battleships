@@ -314,8 +314,10 @@ function View2(game) {
   this.eMessage=new MessagePanel("enemyMsg");
 
   this.setBoards=function(theme) {
+    var urlOffset="";
+    if (typeof URLOFFSET != "undefined") urlOffset=URLOFFSET;
     var myTheme={};
-    if (theme && theme=="icons1") myTheme=new ClassTheme("classTheme1/","classTheme1.css");
+    if (theme && theme=="icons1") myTheme=new ClassTheme(urlOffset+"classTheme1/", "classTheme1.css");
     else myTheme=new AsciiTheme();
 
     this.pBoard=new Board( "primary","set","p","e",myTheme );
