@@ -8,7 +8,5 @@ as of v.2.1.6 22 Mar 2017:
 - allows cheat mode when you can see enemy's ships (offline only)
 
 TODOs:
-- more tests
 - code cleanup
-- user interface refinement
 

@@ -17,19 +17,17 @@ function Global() {
   this.pName="";
   this.eSide="";// A or B
   this.eName="";
-  this.namesPE={};// {p:Player,e:Enemy}
   this.namesAB={};// {A:White,B:Black}
   this.picks={};
   this.defaultPicks={"firstMove":0,"forces":0,"strikeRule":0,"level":0};
   //this.picksStr="";
-  this.page2loaded=0;
+  //this.page2loaded=0;
   var _total=0;
   this.allowHideControls=false;
   
-  this._active="p";// p or e
-  this._activeAB="A";// A or B
+  var _activeAB="A";// A or B
   this._firstActiveAB="A";
-  this._winner;
+  var _winner;
   this.forces1=[0,4,3,2,1,0,0,0,0,0,0];// public, used by RulesForm
   this.forces2=[0,0,1,1,1,1,0,0,0,0,0];// public, used by RulesForm
   var _forces=this.forces1;
@@ -68,12 +66,9 @@ function Global() {
     if (!pn || !en || pn==en) throw new Error("Global::setNames: empty or equal argument(s)");
     this.pName=pn;
     this.eName=en;
-    this.namesPE={"p":pn,"e":en};
   };
   
   this.getName=function(side) {
-    if (side=="p") return this.pName;
-    if (side=="e") return this.eName;
     if ( side == this.pSide ) return this.pName;
     if ( side == this.eSide ) return this.eName;
     throw new Error ("getName: unknown side:"+side+"!");
@@ -86,16 +81,17 @@ function Global() {
   
   this.getForces=function() { return(_forces); };
   
-  this.getActive=function() { return (this._activeAB); };
+  this.getActive=function() { return (_activeAB); };
   
   this.setActive=function(ab) {
     if (ab != "A" && ab != "B") throw new Error ("Invalid new active side:"+ab+"!");
-    this._activeAB=ab;
+    //alert("Global : active set to "+ab);
+    _activeAB=ab;
   };
   
   this.isActive=function(ab) {
     if (ab != "A" && ab != "B") throw new Error ("Invalid side:"+ab+"!");
-    return (this._activeAB == ab);
+    return (_activeAB == ab);
   };
   
   this.incTotal=function() { _total+=1; };
@@ -103,6 +99,13 @@ function Global() {
   this.getTotal=function() { return(_total); };
   
   this.setTotal=function(v) { _total=v; };
+  
+  this.setWinner=function(ab) {
+    if (ab != "A" && ab != "B") throw new Error ("Invalid new active side:"+ab+"!");
+    _winner=ab;    
+  };
+  
+  this.getWinner=function() { return _winner; };
   
   /**
    * Deals with player-defined settings.
@@ -116,12 +119,10 @@ function Global() {
     if ( true !== ck ) throw new Error("setRules: "+ck);
     
     if ( picks.firstMove == 0 ) {
-      this._active="p";
       this.setActive("A");
       this._firstActiveAB="A";      
     }
     else if ( picks.firstMove == 1 ) {
-      this._active="e";
       this.setActive("B");
       this._firstActiveAB="B"; 
     }

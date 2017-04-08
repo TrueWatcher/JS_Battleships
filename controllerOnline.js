@@ -69,7 +69,9 @@ function TopManager() {
     }
     var stateChanged=adoptState(responseObj);
     if (stateChanged) onStateChange(responseObj,currentStage,stage,currentState,state);
-    if ( isPage1() ) { view1.consumeServerResponse(responseObj); }
+    if ( isPage1() ) {
+      view1.consumeServerResponse(responseObj);
+    }
     else if ( isPage2() ) {
       view2.consumeServerResponse(responseObj,model,global.pSide);
     } else {}
@@ -91,7 +93,9 @@ function TopManager() {
     stage=currentStage=global.getStage();
     state=currentState=global.getState();
     //alert("in Stage="+global.getStage());
-    if ( responseObj.hasOwnProperty("activeSide") ) global.setActive(responseObj["activeSide"]);
+    if ( responseObj.hasOwnProperty("activeSide") ) { 
+      global.setActive(responseObj["activeSide"]);
+    }
     if ( responseObj.hasOwnProperty("stage") ) { 
       stage=responseObj["stage"];
     }
@@ -115,12 +119,18 @@ function TopManager() {
   function onStateChange(responseObj,prevStage,stage,prevState,state) {
     if ( responseObj["players"] ) onRegistration(responseObj);
     if ( responseObj["rulesSet"] ) global.importRules( responseObj["rulesSet"] );
+    if ( responseObj["activeSide"] ) global.setActive(responseObj["activeSide"]); // duplicated from adoptState() because importRules sets active to firstActive
     
     if (stage=="ships" || stage=="fight") {
       model.consumeFleet(responseObj,global.pSide);// requires pSide < onRegistration
     }
     if ( (prevStage == "intro" || prevStage == "zero") && stage == "rules" ) {
       onIntro2Rules();
+      return;
+    }
+    if ( stage == "ships" && prevStage == "finish" ) { 
+      model=new Model();
+      initPage2();
       return;
     }
     if ( stage == "ships" && prevStage!=stage ) { 
@@ -190,6 +200,7 @@ function TopManager() {
     
     if(typeof view2 !=="object") throw new Error("view2 is not the global object");
     if(typeof model !=="object") throw new Error("model is not the global object");
+    //model=new Model();// erases fleet read in onStateChange - conflicts with makeHistogram
     view2=new View2(global);
     //alert ("theme:"+global._theme);
     view2.setBoards(global._theme);
@@ -464,6 +475,7 @@ function FightOnline() {
     switch(command) {
       
     case "cell":
+      //alert("active="+global.getActive());
       if (global.getActive()!==global.pSide) break;
       parsed = view2.parseGridId(data);
       //alert ( "cell : "+parsed.prefix+"_"+parsed.row+"_"+parsed.col );

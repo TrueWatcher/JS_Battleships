@@ -253,7 +253,7 @@
    assertEqualsPrim( 1, model.playerStat.strikes,"wrong Strikes","strikes==1" ); \
    assertEqualsPrim( 1, model.playerStat.hits,"wrong Hits","hits==1" ); \
    assertEqualsPrim( 0, model.enemyStat.strikes,"enemy has had a strike","enemy is silent" ); \
-   assertEqualsPrim( "p", global._active, "handover after hit","active==p");\
+   assertEqualsPrim( "A", global.getActive(), "handover after hit","active==p");\
   ',
   // make a miss
   'probe=generateMiss(model.enemyBasin,model.enemyShips,anotherRand); \
@@ -290,8 +290,8 @@
    ',
   'println("\\nWinner\\n"); \
    assertEqualsPrim("finish",global.getState(),"wrong state","state==finish");\
-   won=global._winner; \
-   assertEqualsPrim( won, global._active, "winner differs from active","winner==active=="+won);\
+   won=global.getWinner(); \
+   assertEqualsPrim( won, global.getActive(), "winner differs from active","winner==active=="+won);\
    assertEqualsPrim( area, arbiter.getActiveSideObj()._stat.hits, "wrong winner hits","winner hits==area=="+area); \
   ',
   // go for another round with same settings
@@ -309,7 +309,7 @@
    var bs=(model.playerStat.biggestShip == model.enemyStat.biggestShip);\
    bs=bs&&(model.playerStat.biggestShip > 0);\
    assertTrue(bs,"wrong stats at fight start","stats present");\
-   if (won=="p") assertEqualsPrim( 0, model.enemyStat.strikes, "enemy lose but has had a move","first move");\
+   if (won=="A") assertEqualsPrim( 0, model.enemyStat.strikes, "enemy lose but has had a move","first move");\
    else assertTrue( 0 < model.enemyStat.strikes,"enemy won but was silent","first move" ); \
   ',
   // try one strike

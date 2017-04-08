@@ -178,16 +178,15 @@ function ShipsLocal() {
       enemy._clip.load();
     }
     
-    if (global._active=="p") {
+    if ( global.isActive("A") ) {
       view2.pMessage.add("<br />Make your move!"); 
       arbiter.setPlayer();
     }
-    else if (global._active=="e" ) { 
+    else {
       view2.eMessage.add("Enemy has first move");
       arbiter.setEnemy();
       enemy.strike();
-    } 
-    else throw new Error ("Invalid active side:"+global._active+"!");    
+    }   
   }
 }
 
@@ -205,7 +204,7 @@ function FightLocal() {
     view2.eMessage.put("");
     
     // player's strike
-    if( global._active=="p" && command=="cell" && data ) {
+    if( global.isActive("A") && command=="cell" && data ) {
       parsed = view2.parseGridId(data);
       if ( parsed.prefix != "e" ) return;
       hit=enemy.respond([parsed.row,parsed.col]);
@@ -218,7 +217,7 @@ function FightLocal() {
     }
     
     // LocalScript's strike
-    if ( global._active=="e" && command=="enemyStrike" && data.length==2 ) {
+    if ( global.isActive("B") && command=="enemyStrike" && data.length==2 ) {
       hit=player.respond(data);
       enemy.reflect(hit);
       view2.eStat.showStrikesHits(model.enemyStat.strikes,model.enemyStat.hits);
@@ -230,7 +229,7 @@ function FightLocal() {
     }
     
     if ( global.getStage()!="finish" ) { // some command out of order
-      console.log( "Out of order: player="+global._active+" command="+command+" data="+data+" stage="+global.getStage() );
+      console.log( "Out of order: player="+global.getActive()+" command="+command+" data="+data+" stage="+global.getStage() );
       return;
     }
     // fall-through
@@ -238,12 +237,12 @@ function FightLocal() {
     // fight finished
     displayElement("finish");
     global.setState("finish");
-    if (global._active=="p") {
-      global._winner="p";
+    if ( global.isActive("A") ) {
+      global.setWinner("A");
       view2.pMessage.put('<span class="'+"win"+'">YOU HAVE WON !');
     }
     else {
-      global._winner="e";
+      global.setWinner("B");
       view2.eMessage.put('<span class="'+"lose"+'">ENEMY HAS WON !');
     }
     return;    
@@ -266,7 +265,7 @@ function FinishLocal() {
       break;
       
     case "more":
-      //alert("global._active="+global._active);
+      //alert("global._active="+global.getActive());
       // Active::swap leaves global._active equal to the winning side
       var rl=new RulesLocal();
       rl.initPage2();// call existing subcontroller's init routine
@@ -283,7 +282,6 @@ function FinishLocal() {
         hideElement("finish");
       }
       displayElement("intro");
-      //displayElement("rules");
       break;
     }
   };  
@@ -377,7 +375,6 @@ function Enemy (fleet,ownBasin,stat,clip,targetBasin,mesPanel,strikeMode) {
   this._clip=clip;
   this._mesPanel=mesPanel;
   this._striker={};// must have methods: move, reflect
-  //this._mode=mode;
 
   if (strikeMode=="harvester") this._striker=new Harvester(targetBasin);
   else { // construct a random striker
@@ -445,23 +442,23 @@ function PlayerAssistant (fleet,ownBasin,stat,clip,mesPanel) {
 function Arbiter (aPlayer,aEnemy,game) {
   var _source=aPlayer;
   //var _game=game;
-  var _letter=game._active;
+  var _letter=game.getActive();
 
   this.setPlayer=function() {
-    _letter="p";
+    _letter="A";
     _source=aPlayer;
   };
 
   this.setEnemy=function() {
-    _letter="e";
+    _letter="B";
     _source=aEnemy;
   };
 
   this.swap=function() {
-    if (_letter=="p") this.setEnemy();
-    else if (_letter=="e") this.setPlayer();
-    else throw new Error("Active::swap: wrong letter");
-    game._active=_letter;
+    if (_letter=="A") this.setEnemy();
+    else if (_letter=="B") this.setPlayer();
+    else throw new Error("Active::swap: wrong letter:"+_letter+"!");
+    game.setActive(_letter);
   };
 
   /**
@@ -508,7 +505,7 @@ function Arbiter (aPlayer,aEnemy,game) {
       }
       if ( hit=="h" || hit=="w" ) {
         //alert (this._letter+" has an extra move");
-        if (_letter=="p") mes="You've hit the enemy. Make an ";
+        if (_letter=="A") mes="You've hit the enemy. Make an ";
         else mes="Enemy has an ";
         _source._mesPanel.add ( mes+"extra move" );
         _source.strike();
