@@ -9,9 +9,6 @@
 //   2.1.6 fully functional with some unit tests
 //   2.1.7 added reqId test feature, refactoring
 
-class CommandException extends Exception {}
-class AuthException extends Exception {}
-
 require_once("Game.php");
 /**
  * Allows for calling controller with mock input and cookie arrays.
@@ -32,7 +29,7 @@ abstract class DetachableController {
     $this->helperClass = $hc;
   }
   
-  abstract function go($action,Array $context=[]);
+  abstract function go($action);
 }
 
 /**
@@ -45,168 +42,7 @@ class HubManager extends DetachableController {
   public $trace="";
   public $act="";
   
-  protected $allowAuthByInput=1;
-  
-  /**
-   * Array of subcontroller constructors.
-   */
-  protected static $stageClasses=["intro"=>"Intro", "rules"=>"Rules", "ships"=>"Ships", "fight"=>"Fight", "finish"=>"Finish", "adm"=>"Adm"];
-  
-  /**
-   * Defines commands allowed without registration (most important registration itself).
-   */
-  protected $nonRegistered=[ "intro=register", "adm=rmDb" ];
-  
-  /**
-   * Lets some commands to be executed when game is already in next stage.
-   * And makes possible to ban all other mismatches.
-   */
-  protected $allowedStageMismatches=[ "intro=queryStage", "intro=queryAll", "intro=abort", "rules=queryPick", "rules=confirm", "ships=confirmShips", "ships=queryStage", "fight=queryMoves", "finish=new", "finish=queryStage", "adm=dumpPage" ];
-
-  /**
-   * Main controller entry point.
-   * Very sensitive to the logical order of operations.
-   * @param dummy
-   * @param dummy
-   * @return string JSON-encoded response
-   */
-  public function go($act="",Array $context=[]) {
-    $input=$this->input;
-    $cookie = & $this->cookie;
-    $hc=$this->helperClass;
-    
-    $act=""; 
-    $aStage="*";
-    $stage="zero"; $state="zero";
-    $context=["db"=>null,"name"=>"*","side"=>"*","id"=>"*","otherSide"=>"*","gameObj"=>null,"stage"=>"zero","state"=>"zero"];
-    $credentials=[];
-    $r="{}";// normally JSON string
-    $inState=$outState=$inStage=$outStage="*";// in trace reads as "unknown, probably same as prior to this action"
-
-    try {
-      list($act,$aStage)=$this->readCommandStage($input);// throws excCommand
-
-      $credentials=$this->readCredentials($cookie,$input);// does not throw excAuth, just returns error message
-      if ( ! is_array($credentials) ) {
-        $context=$this->nonRegContext($act,$aStage,$credentials);// throws ExcAuth
-      } 
-      else {
-        $context=$this->getGame($credentials);// throws excAuth
-      }
-      $inState=$context["state"];
-      $stage=$this->checkStage($act,$aStage,$context["stage"]);// throws excCommand on stage mismatch
-      $stageController=$this->getStageController($aStage,$input,$cookie,$hc); // by aStage from input, not by actual stage of gameObj
-      $stageController->inState = $inState;
-      
-      $r=$stageController->go($act,$context);
-      
-      $inState = $stageController->inState;
-      $outStage = $stageController->outStage;
-      $r = $hc::appendToJson( $r, '"stage":"'.$outStage.'"' );
-      $outState = $stageController->outState;
-    } 
-    catch (AuthException $ae) {
-      $r = $hc::noteState($ae->getMessage(),"intro");
-      if($context["db"]) { $context["db"]->destroy(); }
-      exit($r);// minimal information
-    }
-    catch (CommandException $ce) { 
-    // subcontroller not run, stage and state are taken from init
-      $r = $hc::noteState($ce->getMessage(),$context["state"]);
-      $r = $hc::appendToJson( $r, '"stage":"'.$context["stage"].'"' );
-      // go on -- add trace etc.
-    }
-    
-    if($context["db"]) { $context["db"]->destroy(); }
-    $this->track( [ $aStage, $inState, $act, $outState, $hc::collectKeys2($r) ] );
-    $r=$hc::appendToJson($r,'"trace":"'.$this->trace.'"');
-    return($r); 
-  }// end go
-  
-  /**
-   * Finds and parses pair stage=command from an input.
-   * @param array $input
-   * @return array [command,stage]
-   * @throws CommandException
-   */
-  protected function readCommandStage(Array $input) {
-    $stage=$this->detectStage($input);
-    if ( isset($input[$stage]) ) {
-      $command = $input[$stage];
-    }
-    else { throw new CommandException("Empty command"); }
-    return ([$command,$stage]);
-  }
-  
-  /**
-   * Finds stage in input.
-   * @param array $input
-   * @return string stage if found
-   * @throws CommandException
-   */
-  protected function detectStage(Array $input) {
-    //$lookup=["intro","rules","ships","fight","finish","adm"];
-    $lookup=array_keys(self::$stageClasses);
-    foreach($lookup as $k) {
-      if (array_key_exists($k,$input)) return $k;
-    }
-    throw new CommandException("Empty or invalid input");
-    //return false;
-  }
-  
-  protected function readCredentials($cookie,$input) {
-    $hc=$this->helperClass;
-    $name=$side=$id='';
-    if ($this->allowAuthByInput && isset($input["reqId"]) ) { 
-      if ( ! $hc::readReqId($input["reqId"],$name,$side,$id) ) {
-        return("Failed to parse reqId=".$input["reqId"]);     
-      }
-    }
-    else if ( ! $hc::readCookie($cookie,$name,$side,$id) ) {
-      return("Please, register");
-    }
-    //return (["name"=>$name,"side"=>$side,"id"=>$id]);
-    return ([$name,$side,$id]);
-  }
-  
-  protected function nonregContext($command,$aStage,$errorMsg) {
-    $pair=$aStage."=".$command;
-    if ( ! in_array($pair,$this->nonRegistered) ) { throw new AuthException($errorMsg); }
-    $db=new RelaySqlt(true);
-    return(["db"=>$db,"name"=>"*","side"=>"*","id"=>"*","otherSide"=>"*","gameObj"=>null,"stage"=>"*","state"=>"*"]);
-  }
-  
-  protected function getGame($sideNameId) {
-    $hc=$this->helperClass;
-    if (! is_array($sideNameId)) throw new Exception ("Non-array argument:".$sideNameId);
-    list($name,$side,$id)=$sideNameId;
-    
-    $otherSide=Game::getOtherSide($side);
-    $db=new RelaySqlt(true);
-    try {
-      $gameObj=$hc::findRecord($db,$name,$side,$id);
-    }
-    catch (Exception $e) { throw new AuthException($e->getMessage()); }
-    $state=$gameObj->getState();
-    $gStage=$gameObj->getStage();
-    return(["db"=>$db,"name"=>$name,"side"=>$side,"id"=>$id, "otherSide"=>$otherSide,"gameObj"=>$gameObj,"stage"=>$gStage,"state"=>$state]);
-  }
-  
-  protected function checkStage($command,$aStage,$gStage) {
-    if ($gStage===$aStage) return ($aStage);
-    if ($gStage==="*")  return ($aStage);// authentication was legally bypassed
-    $pair=$aStage."=".$command;
-    if ( in_array($pair,$this->allowedStageMismatches) ) return ($aStage);
-    throw new CommandException("Out-of-order command/stage:".$command."/".$aStage." while in stage ".$gStage);
-  }
-  
-  protected function getStageController($aStage,&$input,&$cookie,$hc) {
-   $Sc = self::$stageClasses [$aStage];
-   $stageController = new  $Sc($input,$cookie,$hc);
-   return ($stageController);
-  }
-      
-  protected function track($subj) {
+  function track($subj) {
     $separator=">";
     if (!is_array($subj)) $subj=[$subj];
     foreach ($subj as $str) {
@@ -215,22 +51,52 @@ class HubManager extends DetachableController {
       $this->trace.=$separator.$str;
     }
   }
+
+  public static $stageClasses=["intro"=>"Intro", "rules"=>"Rules", "ships"=>"Ships", "fight"=>"Fight", "finish"=>"Finish", "adm"=>"Adm"];
   
+  function go($action) {
+    $input=$this->input;
+    $cookie = & $this->cookie;
+    $hc=$this->helperClass;
+  
+    $name=$side=$id="";
+    $stage="";
+    $state="*";
+    $r=null;
+    
+    $stage=$hc::detectStage($input);
+    if ( !$stage ) {
+      $r=$hc::fail("Invalid input","zero");
+      $this->track( [ $state, $state, $hc::collectKeys2($r) ] );
+      $r=$hc::appendToJson($r,'"trace":"'.$this->trace.'"');
+      return($r);
+    }
+    $sc = self::$stageClasses [$stage];
+    $stageController = new  $sc($input,$cookie,$hc);
+    if ( isset($input[$stage]) ) {
+      $this->act = $input[$stage];
+    }
+    
+    $r = $stageController->go($this->act);
+    
+    //$r=$hc::appendToJson($r,'"stage":"'.$this->stage.'"');
+    $this->track( [ $stage, $stageController->inState, $this->act, $stageController->outState, $hc::collectKeys2($r) ] );
+    $r=$hc::appendToJson($r,'"trace":"'.$this->trace.'"');
+    return($r);    
+  }
 }// end HubManager
 
 require_once("controllers.php");
     
 class HubHelper {
 
-  static function importContext(Array $c, &$db,&$name,&$side,&$id,&$otherSide,&$g,&$stage,&$state) {
-    $db=$c["db"];
-    $name=$c["name"];
-    $side=$c["side"];
-    $id=$c["id"];
-    $otherSide=$c["otherSide"];
-    $g=$c["gameObj"];
-    $stage=$c["stage"];
-    $state=$c["state"];
+  static function detectStage($input) {
+    //$lookup=["intro","rules","ships","fight","finish","adm"];
+    $lookup=array_keys(HubManager::$stageClasses);
+    foreach($lookup as $k) {
+      if (array_key_exists($k,$input)) return $k;
+    }
+    return false;
   }
 
   static function readCookie($cookie,&$name,&$side,&$dealId) {
@@ -262,6 +128,38 @@ class HubHelper {
     $side=$details[1];
     $dealId=$details[2];
     return true;
+  }
+  
+  static function init($cookie,$input,$aStage,$command,$dbClass="RelaySqlt") {
+    $name="";
+    $side=$otherSide="";
+    $id="";
+    $pair=$aStage."=".$command;
+    $unregistered=["intro=register","adm=rmDb"];
+    $state="*";
+    $gameObj=null;
+    $allowAuthByInput=1;
+    
+    $db=new $dbClass(true);
+    
+    if ( ! in_array($pair,$unregistered) ) {
+      if ($allowAuthByInput && isset($input["reqId"]) ) { 
+        if ( ! self::readReqId($input["reqId"],$name,$side,$id) ) {
+          $r = self::fail("Failed to parse reqId=".$input["reqId"]);
+          exit($r);      
+        }
+      }
+      else if ( ! self::readCookie($cookie,$name,$side,$id) ) {
+        $r = self::noteState("Please, register","intro");
+        exit($r);
+      }
+    
+      $otherSide=Game::getOtherSide($side);
+      $gameObj=self::findRecord($db,$name,$side,$id);
+      $state=$gameObj->getState();
+    }
+    else {}
+    return ([$db,$name,$side,$otherSide,$state,$gameObj]);
   }
   
   static function clearCookies(&$cookie) {
@@ -407,7 +305,7 @@ class RelaySqlt extends RelayDb {
   function __construct($allowCreate=false,$tableName=null) {
     $relayName="game";
     $path="";
-    if (defined("URLOFFSET")) $path=URLOFFSET;
+    if (URLOFFSET) $path=URLOFFSET;
     $relayDbFile=$path.$relayName.".db";
     if( !empty($tableName) ) self::$table=$tableName;
 
@@ -545,7 +443,7 @@ class RelaySqlt extends RelayDb {
 // MAIN
 
 $controller=new HubManager();
-$ret=$controller->go();
+$ret=$controller->go(null);
 //echo("Trace:".$controller->trace);
 print($ret);
 

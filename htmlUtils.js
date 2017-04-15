@@ -147,8 +147,9 @@ function readCookie(name) {
 /**
  * Removes cookies from browser's cookies store (limited by domain).
  */
-function deleteAllCookies() {
+function _deleteAllCookies() {
 // http://stackoverflow.com/questions/179355/clearing-all-cookies-with-javascript
+// did not work in FireFox
   var cookies = document.cookie.split(";");
 
   for (var i = 0; i < cookies.length; i++) {
@@ -157,6 +158,38 @@ function deleteAllCookies() {
       var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
       document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
   }
+}
+
+function deleteAllCookies(showLog) {
+// http://stackoverflow.com/questions/179355/clearing-all-cookies-with-javascript (end)  
+    var arrCookies = document.cookie.split(';'),
+        arrPaths = location.pathname.replace(/^\//, '').split('/'), //  remove leading '/' and split any existing paths
+        arrTemplate = [ 'expires=Thu, 01-Jan-1970 00:00:01 GMT', 'path={path}', 'domain=' + window.location.host, 'secure=' ];  //  array of cookie settings in order tested and found most useful in establishing a "delete"
+    for (var i in arrCookies) {
+        var strCookie = arrCookies[i];
+        if (typeof strCookie == 'string' && strCookie.indexOf('=') >= 0) {
+            var strName = strCookie.split('=')[0];  //  the cookie name
+            for (var j=1;j<=arrTemplate.length;j++) {
+                if (document.cookie.indexOf(strName) < 0) break; // if this is true, then the cookie no longer exist
+                else {
+                    var strValue = strName + '=; ' + arrTemplate.slice(0, j).join('; ') + ';';  //  made using the temp array of settings, putting it together piece by piece as loop rolls on
+                    if (j == 1) document.cookie = strValue;
+                    else {
+                        for (var k=0;k<=arrPaths.length;k++) {
+                            if (document.cookie.indexOf(strName) < 0) break; // if this is true, then the cookie no longer exist
+                            else {
+                                var strPath = arrPaths.slice(0, k).join('/') + '/'; //  builds path line 
+                                strValue = strValue.replace('{path}', strPath);
+                                document.cookie = strValue;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    showLog && window['console'] && console.info && console.info("\n\tCookies Have Been Deleted!\n\tdocument.cookie = \"" + document.cookie + "\"\n");
+    return document.cookie;
 }
 
 /**

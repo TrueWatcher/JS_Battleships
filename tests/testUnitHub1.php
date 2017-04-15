@@ -1,8 +1,8 @@
 <?php
-$offset="../";
-unlink($offset."game.db");
+define("URLOFFSET", "../");// used also by RelaySqlt::_construct
+unlink(URLOFFSET."game.db");
 
-require($offset."hub.php");
+require(URLOFFSET."hub.php");
 RelaySqlt::destroy();
 unset($controller);
 
@@ -10,7 +10,7 @@ function respond($input,&$cookie) {
   //print("\n----------\n");
   //print("Input  : ".implode("+",$input)."\n");
   $controller=new HubManager($input,$cookie,"DetachedHubHelper");
-  $ret=$controller->go(null);
+  $ret=$controller->go();
   //print("Reply  : ".$ret."\n");
   //print("Cookie : ".implode("+",$cookie)."\n");
   print("Trace  : ".$controller->trace."\n");
@@ -71,6 +71,8 @@ class Test_Hub_basic extends PHPUnit_Framework_TestCase {
     $this->assertEquals ( "AAA,A,1", implode(",",$c1), "wrong cookie" );
     $this->assertEquals ( "AAA,BBB", implodePlus($r["players"]), "wrong Players" );
     $this->assertEquals ( "zero>connecting", parseTrace($r,$is,$os), "wrong states" );
+    //$t=parseTrace($r,$is,$os);
+    //$this->assertTrue ( "zero>connecting"==$t || "*>connecting"==$t, "wrong states ".$t );
     $this->assertEquals ( "intro", $r["stage"], "wrong Stage");
     $this->assertEquals ( "connecting", $r["state"], "wrong State");
 
@@ -81,6 +83,8 @@ class Test_Hub_basic extends PHPUnit_Framework_TestCase {
     $this->assertEquals ( "BBB,B,1", implode(",",$c2), "wrong cookie" );
     $this->assertEquals ( "AAA,BBB", implodePlus($r["players"]), "wrong Players" );
     $this->assertEquals ( "connecting>converged", parseTrace($r,$is,$os), "wrong states" );
+    //$t=parseTrace($r,$is,$os);
+    //$this->assertTrue ( "connecting>converged"==$t || "*>converged"==$t, "wrong states ".$t );
     $this->assertEquals ( "rules", $r["stage"], "wrong Stage");
     $this->assertEquals ( "converged", $r["state"], "wrong State");
     
@@ -112,7 +116,13 @@ class Test_Hub_basic extends PHPUnit_Framework_TestCase {
     $this->assertEquals ( "picking>converged", parseTrace($r,$is,$os), "wrong states" );
     $this->assertEquals ( "converged", $r["state"], "wrong State" );
     $this->assertEquals ( implodePlus($picks1), implode(",",$r["picks"]["A"]), "wrong PicksA" );
-
+    
+    echo("\nBBB fight strike, expecting error note \n");
+    $i2=["fight"=>"strike", "thisMove"=>"1", "rc"=>"[5,5]" ];
+    $r=respond($i2,$c2);
+    $this->assertEquals ( "converged", $r["state"], "wrong state" );
+    $this->assertContains ( "Out-of-order", $r["note"], "wrong note" );
+    
     echo("\nAAA rules confirm, expecting state converged>confirming\n");
     $i1=["rules"=>"confirm", "rulesSet"=>$rules1];
     $r=respond($i1,$c1);
@@ -310,6 +320,8 @@ class Test_Hub_basic extends PHPUnit_Framework_TestCase {
     $this->assertEquals ( "AA", $r["players"]["A"], "wrong PlayersA" );
     $this->assertEquals ( "BB", $r["players"]["B"], "wrong PlayersB" );
     $this->assertEquals ( "zero>connecting", parseTrace($r,$is,$os), "wrong states" );
+    //$t=parseTrace($r,$is,$os);
+    //$this->assertTrue ( "zero>connecting"==$t || "*>connecting"==$t, "wrong states ".$t );
 
     echo("\nregister BB\n");
     $c2=[];
@@ -320,6 +332,8 @@ class Test_Hub_basic extends PHPUnit_Framework_TestCase {
     $this->assertEquals ( "AA", $r["players"]["A"], "wrong PlayersA" );
     $this->assertEquals ( "BB", $r["players"]["B"], "wrong PlayersB" );
     $this->assertEquals ( "connecting>converged", parseTrace($r,$is,$os), "wrong states" );
+    //$t=parseTrace($r,$is,$os);
+    //$this->assertTrue ( "connecting>converged"==$t || "*>converged"==$t, "wrong states ".$t );
 
     echo("\nAA updPick, expecting Ok\n");
     $i1=[ "rules"=>"updPick", "pick"=>$picks2 ];
@@ -330,7 +344,7 @@ class Test_Hub_basic extends PHPUnit_Framework_TestCase {
     $i2=[ "rules"=>"updPick", "pick"=>$picks2 ];
     $r=respond($i2,$c2);
     $this->assertEquals ( "picking>converged", parseTrace($r,$is,$os), "wrong states" );
-
+    
     echo("\nAA confirm, expecting Ok\n");
     $i1=["rules"=>"confirm", "rulesSet"=>$rules2];
     $r=respond($i1,$c1);

@@ -5,10 +5,10 @@
 <body>
 <pre>
 <?php
-$offset="../";
-unlink($offset."game.db");
+define("URLOFFSET", "../");// used also by RelaySqlt::_construct
+unlink(URLOFFSET."game.db");
 
-require($offset."hub.php");
+require(URLOFFSET."hub.php");
 RelaySqlt::destroy();
 unset($controller);
 
@@ -16,7 +16,7 @@ function page($input,&$cookie) {
   print("\n----------\n");
   print("Input  : ".implode("+",$input)."\n");
   $controller=new HubManager($input,$cookie,"DetachedHubHelper");
-  $ret=$controller->go(null);
+  $ret=$controller->go();
   print("Reply  : ".$ret."\n");
   print("Cookie : ".implode("+",$cookie)."\n");
   print("Trace  : ".$controller->trace."\n");
@@ -67,6 +67,10 @@ page($i1,$c1);
 //BBB rules updPick,expecting state picking>converged
 $i2=[ "rules"=>"updPick", "pick"=>$picks1 ];
 page($i2,$c2);
+
+//BBB fight strike, expecting error note  
+$i2=["fight"=>"strike", "thisMove"=>"1", "rc"=>"[5,5]" ];
+$r=page($i2,$c2);
 
 //AAA rules confirm,expecting state converged>confirming
 $i1=["rules"=>"confirm", "rulesSet"=>$rules1];

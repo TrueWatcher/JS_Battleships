@@ -2,15 +2,17 @@
 
 class Intro extends DetachableController {
   
-  function go($act,Array $context=[]) {
+  function go($act) {
     $input=$this->input;
     $cookie = & $this->cookie;
     $hc=$this->helperClass;
-    
-    //print_r($context);
-    $hc::importContext($context,$db,$name,$side,$id,$otherSide,$g,$stage,$state);
-    $r="{}";
+  
+    $name=$side=$id=$otherSide="";
+    $state="*";
+    $r=null;
 
+    list($db,$name,$side,$otherSide,$state,$g) = $hc::init($cookie,$input,"intro",$act);
+    
     switch ($act) {
 
     case "register":
@@ -41,11 +43,9 @@ class Intro extends DetachableController {
           if ( !$arr ) {
             throw new Exception ("Something is wrong with record #".$open."!");
           }
-          // register again to the already active game
           $g=new Game();
           $g->import($arr);
           $hc::setCookie($cookie,$input["playerName"],$side,$g->getId());
-          //echo ("cookie was set");
           // reply like to queryAll
           require_once("PlayHelper.php");
           $r = PlayHelper::fullInfo($side,$g);
@@ -53,7 +53,6 @@ class Intro extends DetachableController {
         }
         else {
           // new game
-          //echo(" new game ");
           $g=new Game();
           $this->inState = "zero";
           $pn=$input["playerName"];
@@ -66,13 +65,12 @@ class Intro extends DetachableController {
           $newId = $db->saveGame($g);
           if (!isset($input["reqId"])) {
             $hc::setCookie($cookie,$pn,"A",$newId);
-            //echo ("cookie was set"); print_r ($cookie);
           }
           $r = '{'.$g->exportPair( [/*"stage",*/"state","players"] ).'}';// stage is always added
           break;
         }
       }
-      else {// open game found, fresh registration as the other side player
+      else {// open game found
         $arr = $db->readGame($open);
         if ( !$arr ) {
           throw new Exception ("Something is wrong with record #".$open."!");
@@ -101,7 +99,7 @@ class Intro extends DetachableController {
       throw new Exception ("Wrong state/command ".$state."/".$act."!");
       
     case "queryStage":
-      //$this->inState=$state;
+      $this->inState=$state;
       if ($state=="connecting") {
         $r=$hc::noteState("Waiting for ".$g->getName($g->getOtherSide($g->getActive())),$state);
         break;
@@ -110,7 +108,7 @@ class Intro extends DetachableController {
       break;
       
     case "abort":
-      //$this->inState=$state;
+      $this->inState=$state;
       if ( in_array ( $state, ["zero","finish"] ) ) {
         $r = '{"note":"No state change, only clearing cookie"}';
         break;
@@ -127,7 +125,7 @@ class Intro extends DetachableController {
       break;
 
     case "queryAll":
-      //$this->inState=$state;
+      $this->inState=$state;
       require_once ("PlayHelper.php");
       $r = PlayHelper::fullInfo($side,$g);
       break;
@@ -138,24 +136,30 @@ class Intro extends DetachableController {
     }// end switch
     
     //var_dump($g);
-    if (isset($g) && is_object($g)) {
-      $this->outStage=$g->getStage();
-      $this->outState=$g->getState();
-    }  
+    $db->destroy();
+    if (isset($g) && is_object($g)) $resStage=$g->getStage();
+    else $resStage="intro";
+    $r = $hc::appendToJson( $r, '"stage":"'.$resStage.'"' );
+    if (isset($g) && is_object($g)) $resState=$g->getState();
+    else $resState="?";
+    $this->outState=$resState;
     return $r;
   }
 }
 
 class Rules extends DetachableController {
    
-  function go($act,Array $context=[]) {
+  function go($act) {
     $input=$this->input;
     $cookie = & $this->cookie;
     $hc=$this->helperClass;
-
-    //print_r($context);
-    $hc::importContext($context,$db,$name,$side,$id,$otherSide,$g,$stage,$state);
-    $r="{}";
+  
+    $name=$side=$id=$otherSide="";
+    $state="*";
+    $r=null;
+    
+    list($db,$name,$side,$otherSide,$state,$g) = $hc::init($cookie,$input,"rules",$act);
+    $this->inState=$state;
     
     switch ($act) {
       
@@ -266,23 +270,30 @@ class Rules extends DetachableController {
       break;
     }// end switch
     
-    if (isset($g) && is_object($g)) {
-      $this->outStage=$g->getStage();
-      $this->outState=$g->getState();
-    } 
+    $db->destroy();
+    if (isset($g) && is_object($g)) $resStage=$g->getStage();
+    else $resStage="?";
+    $r = $hc::appendToJson( $r, '"stage":"'.$resStage.'"' );
+    if (isset($g) && is_object($g)) $resState=$g->getState();
+    else $resState="?";
+    $this->outState=$resState;
     return $r;
   }
 }
 
 class Ships extends DetachableController {
    
-  function go($act,Array $context=[]) {
+  function go($act) {
     $input=$this->input;
     $cookie = & $this->cookie;
     $hc=$this->helperClass;
+  
+    $name=$side=$id=$otherSide="";
+    $state="*";
+    $r=null;
     
-    $hc::importContext($context,$db,$name,$side,$id,$otherSide,$g,$stage,$state);
-    $r="{}";
+    list($db,$name,$side,$otherSide,$state,$g) = $hc::init($cookie,$input,"ships",$act);
+    $this->inState=$state;
     
     switch ($act) {
     case "confirmShips":
@@ -377,28 +388,36 @@ class Ships extends DetachableController {
       break;
     }// end switch
     
-    if (isset($g) && is_object($g)) {
-      $this->outStage=$g->getStage();
-      $this->outState=$g->getState();
-    } 
+    $db->destroy();
+    if (isset($g) && is_object($g)) $resStage=$g->getStage();
+    else $resStage="?";
+    $r = $hc::appendToJson( $r, '"stage":"'.$resStage.'"' );
+    if (isset($g) && is_object($g)) $resState=$g->getState();
+    else $resState="?";
+    $this->outState=$resState;
     return $r;
   }  
 }// end class Ships
 
 class Fight extends DetachableController {
    
-  function go($act,Array $context=[]) {
+  function go($act) {
     $input=$this->input;
     $cookie = & $this->cookie;
     $hc=$this->helperClass;
+  
+    $name=$side=$id=$otherSide="";
+    $state="*";
+    $r=null;
+    $err=null;
+    $note="";
     
-    $hc::importContext($context,$db,$name,$side,$id,$otherSide,$g,$stage,$state);
-    $r="{}";
+    list($db,$name,$side,$otherSide,$state,$g) = $hc::init($cookie,$input,"rules",$act);
+    $this->inState=$state;
     
     require_once("PlayHelper.php");
     
     switch ($act) {
-    
     case "strike":
     
       // check inputs
@@ -428,7 +447,7 @@ class Fight extends DetachableController {
       $hit = PlayHelper::checkHit($point,$fleetModel);
       
       if (is_array($hit)) {
-        $sunk = $hit;
+        $sunk = $hit;//$sunk = json_encode($hit);
         $hit="w";
         if ( PlayHelper::checkAllSunk($fleetModel) ) { 
           $hit="f";
@@ -487,6 +506,7 @@ class Fight extends DetachableController {
           $r = $hc::notePairs("Your are expected of strikes, not queries", $g, ["activeSide","state"] );
           break;
         } 
+        //$r = '{'.$g->exportPair(["state","activeAB","clip"]).'}';
         $r = $hc::noteState($g->getName($g->getActive())." is thinking",$state);
         break;
       }
@@ -518,28 +538,36 @@ class Fight extends DetachableController {
       break;
     }// end switch
     
-    if (isset($g) && is_object($g)) {
-      $this->outStage=$g->getStage();
-      $this->outState=$g->getState();
-    } 
+    $db->destroy();
+    if (isset($g) && is_object($g)) $resStage=$g->getStage();
+    else $resStage="?";
+    $r = $hc::appendToJson( $r, '"stage":"'.$resStage.'"' );
+    if (isset($g) && is_object($g)) $resState=$g->getState();
+    else $resState="?";
+    $this->outState=$resState;
     return $r;
   }
 }// end class Fight
 
 class Finish extends DetachableController {
    
-  function go($act,Array $context=[]) {
+  function go($act) {
     $input=$this->input;
     $cookie = & $this->cookie;
     $hc=$this->helperClass;
-
-    $hc::importContext($context,$db,$name,$side,$id,$otherSide,$g,$stage,$state);
-    $r="{}";
+  
+    $name=$side=$id=$otherSide="";
+    $state="*";
+    $r=null;
+    $err=null;
+    $note="";
+    
+    list($db,$name,$side,$otherSide,$state,$g) = $hc::init($cookie,$input,"finish",$act);
+    $this->inState=$state;
     
     require_once("PlayHelper.php");
     
     switch ($act) {
-    
     case "more":
       if ($state == "finish") {
       $state = $g->setState("cyclingReq");
@@ -626,23 +654,32 @@ class Finish extends DetachableController {
       break;
     }// end switch
     
-    if (isset($g) && is_object($g)) {
-      $this->outStage=$g->getStage();
-      $this->outState=$g->getState();
-    } 
+    $db->destroy();
+    if (isset($g) && is_object($g)) $resStage=$g->getStage();
+    else $resStage="?";
+    $r = $hc::appendToJson( $r, '"stage":"'.$resStage.'"' );
+    if (isset($g) && is_object($g)) $resState=$g->getState();
+    else $resState="?";
+    $this->outState=$resState;
     return $r;
   }
 }// end class Finish
 
 class Adm extends DetachableController {
    
-  function go($act,Array $context=[]) {
+  function go($act) {
     $input=$this->input;
     $cookie = & $this->cookie;
     $hc=$this->helperClass;
-
-    $hc::importContext($context,$db,$name,$side,$id,$otherSide,$g,$stage,$state);
+  
+    $name=$side=$id=$otherSide="";
+    $state="*";
     $r="{}";
+    $err=null;
+    $note="";
+
+    list($db,$name,$side,$otherSide,$state,$g) = $hc::init($cookie,$input,"adm",$act);
+    $this->inState=$state;
     
     require_once("PlayHelper.php");
     
@@ -681,10 +718,12 @@ class Adm extends DetachableController {
       break;
     }// end switch
     
-    if (isset($g) && is_object($g)) {
-      $this->outStage=$g->getStage();
-      $this->outState=$g->getState();
-    } 
+    if (isset($g) && is_object($g)) $resStage=$g->getStage();
+    else $resStage="?";
+    $r = $hc::appendToJson( $r, '"stage":"'.$resStage.'"' );
+    if (isset($g) && is_object($g)) $resState=$g->getState();
+    else $resState="?";
+    $this->outState=$resState;
     return $r;
   }
 }// end class Adm    
