@@ -57,9 +57,10 @@ function TopManager() {
    * @return void
    */
   this.pull=function(responseText) {
+    //global.allowHideControls=0;// DEBUG!!!
     var responseObj={};
-    var stateChanged;
-    stage=global.getStage();
+    var changed;
+    var stage=global.getStage();
     $("tech").innerHTML=" full response:<br />"+responseText;
     try { 
       responseObj=JSON.parse(responseText); 
@@ -67,29 +68,34 @@ function TopManager() {
     catch (err) {
       alert ("Unparsable server response:"+responseText);
     }
-    var stateChanged=adoptState(responseObj);
-    if (stateChanged) onStateChange(responseObj,currentStage,stage,currentState,state);
-    if ( isPage1() ) {
+    changed=adoptState(responseObj);
+    if (changed) { 
+      stage=changed.stage;
+      this.stateOperator.go(responseObj,changed);
+    }
+    if (changed.stageChanged) this.arrangePanels (changed,true);
+    if ( isPage1(stage) ) {
       view1.consumeServerResponse(responseObj);
     }
-    else if ( isPage2() ) {
+    else if ( isPage2(stage) ) {
       view2.consumeServerResponse(responseObj,model,global.pSide);
     } else {}
   };
   
-  function isPage1() {
+  function isPage1(stage) {
     var r=(stage=="zero" || stage=="intro" || stage=="rules");
     return (r);
   }
   
-  function isPage2() {
+  function isPage2(stage) {
     var r=(stage=="ships" || stage=="fight" || stage=="finish");
     return (r);
   }
-  
-  var stage,state,currentStage,currentState;// output vars of adoptState()
-  
+
   function adoptState(responseObj) {
+    var changesMap={};
+    var stateChanged,stageChanged;
+    var stage,currentStage,state,currentState;
     stage=currentStage=global.getStage();
     state=currentState=global.getState();
     //alert("in Stage="+global.getStage());
@@ -102,21 +108,88 @@ function TopManager() {
     if ( responseObj.hasOwnProperty("state") ) { 
       state=responseObj["state"];
     }
-    if ( stage != currentStage || state != currentState ) {
+    stageChanged = (stage != currentStage);
+    stateChanged = (state != currentState);
+    if ( stageChanged || stateChanged ) {
       global.setStage(stage);
       global.setState(state);
       //alert("out stage="+global.getStage());
-      return (true);
+      changesMap={
+        stage:stage,state:state,currentStage:currentStage,currentState:currentState,
+        stageChanged:stageChanged,stateChanged:stateChanged
+      };
+      return (changesMap);
     }
     else { return false; }
   };
+  
+  this.stateOperator=new StateOperator();
+  
+  this.arrangePanels = function (changesMap,online) {
+    var stage=changesMap.stage;
+    var prevStage=changesMap.currentStage;
+    
+    if (!global.allowHideControls) return;
+    if (typeof view1.ap == "object" ) {
+      if (online) { view1.ap.display(); }
+      else { view1.ap.hide(); }
+    }
+    if ( stage=="intro" || stage=="rules" ) {
+      if (prevStage=="finish" && stage=="intro") {
+        view2.panels.page2.hide();
+        view1.panels[stage].display();
+      }
+      else if ( ( prevStage=="intro" && stage=="rules" ) ) {
+        view1.panels[stage].display();
+        view1.panels[prevStage].hide();
+      }
+      else if ( stage=="intro" ) {
+        view1.panels[stage].display();
+        view1.panels.rules.hide();
+      }
+      else throw new Error("Unknown stage/prevStage "+stage+"/"+prevStage);
+    } 
+    else if ( stage=="ships" || stage=="fight" || stage=="finish" ) {
+      if (prevStage=="rules" && stage=="ships") {
+        view1.panels[prevStage].hide();
+        view2.panels.page2.display();
+        view2.panels[stage].display();
+      }
+      else if ( ( prevStage=="ships" && stage=="fight" ) || ( prevStage=="fight" && stage=="finish" ) || ( prevStage=="finish" && stage=="ships" ) ) {
+        view2.panels[stage].display();
+        view2.panels[prevStage].hide();
+      }
+      else if ( prevStage=="intro" ) { // page reload
+        view1.panels.page1.hide();
+        view2.panels.page2.display();
+        if (stage !="ships") view2.panels.ships.hide();
+        if (stage !="finish") view2.panels.finish.hide();
+        view2.panels[stage].display();
+      }
+      else throw new Error("Unknown stage/prevStage "+stage+"/"+prevStage);      
+    }
+    else if (stage=="aborted") {}
+    else throw new Error ("Wrong stage:"+stage);
+  };
+}// end TopManager
+
+/**
+ * Performs initializations of View and Model units when stage/state changes.
+ * @constructor
+ */ 
+function StateOperator() {
   
   /**
    * Dispatches particular "events", triggered by stage/state change.
    * Must call them in their logical order, so is very sensitive.
    * @return void
-   */
-  function onStateChange(responseObj,prevStage,stage,prevState,state) {
+   */  
+  this.go=function(responseObj,changesMap) {
+    var prevStage=changesMap.currentStage;
+    var stage=changesMap.stage;
+    var prevState=changesMap.currentState;
+    var state=changesMap.state;
+
     if ( responseObj["players"] ) onRegistration(responseObj);
     if ( responseObj["rulesSet"] ) global.importRules( responseObj["rulesSet"] );
     if ( responseObj["activeSide"] ) global.setActive(responseObj["activeSide"]); // duplicated from adoptState() because importRules sets active to firstActive
@@ -160,8 +233,8 @@ function TopManager() {
       onAbort(responseObj);
       return;
     }    
-  }
-      
+  };
+  
   // Handlers for custom events fired by TopManager::pull
   
   function onRegistration(responseObj) {    
@@ -170,15 +243,15 @@ function TopManager() {
     global.dealId=readCookie("dealId");
     global.eSide=global.otherSide(global.pSide);
     //alert("cookies side="+global.pSide+", name="+nglobal.pName+".");
-    if ( responseObj["players"] ) {
+    //if ( responseObj.hasOwnProperty("players") ) {
       var rp=responseObj["players"];
       if ( rp[global.pSide] != global.pName ) throw new Error("My name is "+global.pName+" in the cookie and "+rp[global.pSide]+" in the response!");
-    }
+    //}
     view1.ticks[global.pSide]="v";
     view1.ticks[global.eSide]="x";
     global._theme = view1.applyTheme();
     poller.start();
-    if (global.allowHideControls) { displayElement("ajaxPanel"); } 
+    //if (global.allowHideControls) { displayElement("ajaxPanel"); } 
     //view1.initPicks();// makes problems
     view1.putNote("intro"," connected ");
   }
@@ -187,11 +260,6 @@ function TopManager() {
     //alert("onIntro2Rules");
     view1.clearNote("intro");
     view1.initPicks();
-    if (global.allowHideControls) { 
-      hideElement("intro");
-      displayElement("rules");
-      //hideElement("finish");
-    }
   }
   
   function initPage2() {
@@ -205,14 +273,6 @@ function TopManager() {
     //alert ("theme:"+global._theme);
     view2.setBoards(global._theme);
     view2.putNames();
-
-    if (global.allowHideControls) { 
-      hideElement("intro");
-      hideElement("rules");
-      hideElement("finish");
-    }
-    displayElement("main");
-    view2.drawButtons.display();
 
     view2.eMessage.put(" ");
     if (global.getStage()=="ships") { // as it may be called also to init "fight"
@@ -228,16 +288,11 @@ function TopManager() {
   function onInitFight() {
     var myHist=model.playerShips.makeHistogram();
     view2.pStat.showClearHistogram(myHist);
-    if (global._demandEqualForces) { view2.eStat.showClearHistogram(myHist); }
-    
-    if (global.allowHideControls) { 
-      view2.drawButtons.hide();
-    }    
+    if (global._demandEqualForces) { view2.eStat.showClearHistogram(myHist); }  
   }
 
   function onFinish(r) {
-    displayElement("finish");
-    if ( typeof r["winner"] != "undefined") { global._winner=r["winner"]; }
+    if ( r.hasOwnProperty("winner") ) { global._winner=r["winner"]; }
     return;
   }
   
@@ -245,19 +300,15 @@ function TopManager() {
     global=new Global();
     model=new Model();
     global.allowHideControls=true;
-    if (global.allowHideControls) { 
-      hideElement("main");
-      hideElement("finish");
-    }
-    displayElement("intro");
-    //displayElement("rules");
   }
   
   function onAbort() {
     var nfl=new FinishLocal();
     nfl.go("new");
   }
-}// end TopManager
+  
+}// end StateOperator
+
 
 /**
  * Subcontroller for the Intro stage.

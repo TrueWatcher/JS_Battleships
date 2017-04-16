@@ -213,6 +213,21 @@ function View1() {
       }
     }
   };
+
+  this.panels={
+    page1 : {
+      display : function(){ displayElement("intro"); displayElement("rules"); },
+      hide : function(){ hideElement("intro"); hideElement("rules"); }
+    },
+    intro : {
+      display : function(){ displayElement("intro"); },
+      hide : function(){ hideElement("intro"); }
+    },
+    rules : {
+      display : function(){ displayElement("rules"); },
+      hide : function(){ hideElement("rules"); }
+    }
+  };
   
   // adjust visibility
   if (global.allowHideControls) { hideElement("rules"); }

@@ -345,6 +345,27 @@ function View2(game) {
     return ({ prefix:prefix, row:row, col:col });
   }
   
+  var _this=this;
+  
+  this.panels={
+    page2 : {
+      display : function(){ displayElement("main"); },
+      hide : function(){ hideElement("main"); } 
+    },
+    ships : {
+      display : function(){ _this.drawButtons.display(); },
+      hide : function(){ _this.drawButtons.hide(); }
+    },
+    fight : {
+      display : function(){ },
+      hide : function(){ }
+    },
+    finish : {
+      display : function(){ displayElement("finish"); },
+      hide : function(){ hideElement("finish"); }       
+    }
+  };
+  
   /**
    * Translates server response in onlain playing into View actions.
    * @see TopManager::pull()
