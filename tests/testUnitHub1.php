@@ -218,7 +218,7 @@ class Test_Hub_basic extends PHPUnit_Framework_TestCase {
     $this->assertContains( "Active side is A", $r["note"], "wrong Note" );
     $this->assertNotEmpty( $r["error"], "wrong Error" );
     
-    echo("\nAAA strike, expecting sunk ship statsA=2,2,3,2 B+1,0,2,1\n");
+    echo("\nAAA strike, expecting sunk ship statsA=2,2,3,2 B=1,0,2,1\n");
     $i1=["fight"=>"strike", "thisMove"=>3, "rc"=>"[1,3]" ];
     $r=respond($i1,$c1);
     $this->assertEquals ( "3,A,1,3,w,1,2,1,3", implodePlus($r["move"]), "wrong Move");

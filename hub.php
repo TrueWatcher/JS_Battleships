@@ -8,6 +8,7 @@
 //   2.0.4 add stage Ships
 //   2.1.6 fully functional with some unit tests
 //   2.1.7 added reqId test feature, refactoring
+//   2.1.17 refactored HubManager, removed duplications in subcontrollers
 
 class CommandException extends Exception {}
 class AuthException extends Exception {}
@@ -80,12 +81,12 @@ class HubManager extends DetachableController {
     $stage="zero"; $state="zero";
     $context=["db"=>null,"name"=>"*","side"=>"*","id"=>"*","otherSide"=>"*","gameObj"=>null,"stage"=>"zero","state"=>"zero"];
     $credentials=[];
-    $r="{}";// normally JSON string
+    $r="{}";// JSON string
     $inState=$outState=$inStage=$outStage="*";// in trace reads as "unknown, probably same as prior to this action"
 
     try {
+      $r=$this->returnRequestId($r,$input);
       list($act,$aStage)=$this->readCommandStage($input);// throws excCommand
-
       $credentials=$this->readCredentials($cookie,$input);// does not throw excAuth, just returns error message
       if ( ! is_array($credentials) ) {
         $context=$this->nonRegContext($act,$aStage,$credentials);// throws ExcAuth
@@ -98,8 +99,10 @@ class HubManager extends DetachableController {
       $stageController=$this->getStageController($aStage,$input,$cookie,$hc); // by aStage from input, not by actual stage of gameObj
       $stageController->inState = $inState;
       
-      $r=$stageController->go($act,$context);
+      $rr=$stageController->go($act,$context);
       
+      $r = $hc::appendToJson( $r, $rr);
+      //$r=$rr;
       $inState = $stageController->inState;
       $outStage = $stageController->outStage;
       $r = $hc::appendToJson( $r, '"stage":"'.$outStage.'"' );
@@ -122,6 +125,18 @@ class HubManager extends DetachableController {
     $r=$hc::appendToJson($r,'"trace":"'.$this->trace.'"');
     return($r); 
   }// end go
+  
+  /**
+   * Detects reqId field in the input and appends it to the output.
+   * May be helpful to client if client's AJAX requests collide.
+   * @param string json-encoded response
+   * @param array $input
+   * @return string modified json-encoded response
+   */
+  protected function returnRequestId($r,$input) {
+    if(isset($input["reqId"])) return ( '{"reqId":"'.$input["reqId"].'"}' );
+    return $r;
+  }
   
   /**
    * Finds and parses pair stage=command from an input.
@@ -154,6 +169,10 @@ class HubManager extends DetachableController {
     //return false;
   }
   
+  /**
+   * Reads name,side and dealId from cookie or input.
+   * @return array|string array on success, error message on failure
+   */
   protected function readCredentials($cookie,$input) {
     $hc=$this->helperClass;
     $name=$side=$id='';
@@ -169,6 +188,14 @@ class HubManager extends DetachableController {
     return ([$name,$side,$id]);
   }
   
+  /**
+   * Provides subcontroller context when there are no client credentials and therefore no gameObject can be retrieved.
+   * @param string $command
+   * @param string $aStage
+   * @param string $errorMsg from readCredentials
+   * @return array
+   * @throws AuthException
+   */
   protected function nonregContext($command,$aStage,$errorMsg) {
     $pair=$aStage."=".$command;
     if ( ! in_array($pair,$this->nonRegistered) ) { throw new AuthException($errorMsg); }
@@ -176,6 +203,13 @@ class HubManager extends DetachableController {
     return(["db"=>$db,"name"=>"*","side"=>"*","id"=>"*","otherSide"=>"*","gameObj"=>null,"stage"=>"*","state"=>"*"]);
   }
   
+  /**
+   * Gets gameObject from database by client's credentials.
+   * @param array $sideNameId from readCredentials
+   * @return array
+   * @throws AuthException
+   * @throws Exception
+   */
   protected function getGame($sideNameId) {
     $hc=$this->helperClass;
     if (! is_array($sideNameId)) throw new Exception ("Non-array argument:".$sideNameId);
@@ -192,6 +226,14 @@ class HubManager extends DetachableController {
     return(["db"=>$db,"name"=>$name,"side"=>$side,"id"=>$id, "otherSide"=>$otherSide,"gameObj"=>$gameObj,"stage"=>$gStage,"state"=>$state]);
   }
   
+  /**
+   * Checks game stage from input against database record.
+   * @param string $command
+   * @param string $aStage from input
+   * @param string $gStage from getGame
+   * @return string $aStage if same or allowed different
+   * @throws CommandException
+   */
   protected function checkStage($command,$aStage,$gStage) {
     if ($gStage===$aStage) return ($aStage);
     if ($gStage==="*")  return ($aStage);// authentication was legally bypassed
@@ -200,12 +242,25 @@ class HubManager extends DetachableController {
     throw new CommandException("Out-of-order command/stage:".$command."/".$aStage." while in stage ".$gStage);
   }
   
+  /**
+   * Instatantiates the required subcontroller.
+   * @param string $aStage stage from input
+   * @param array  $input input-output!
+   * @param array  $cookie input-output!
+   * @param string $hc 
+   * @return object
+   */
   protected function getStageController($aStage,&$input,&$cookie,$hc) {
    $Sc = self::$stageClasses [$aStage];
    $stageController = new  $Sc($input,$cookie,$hc);
    return ($stageController);
   }
-      
+  
+  /**
+   * Adds items to the trace.
+   * @param mixed|array $subj
+   * @return void
+   */
   protected function track($subj) {
     $separator=">";
     if (!is_array($subj)) $subj=[$subj];
@@ -221,7 +276,13 @@ class HubManager extends DetachableController {
 require_once("controllers.php");
     
 class HubHelper {
-
+  
+  /**
+   * Sorts out context array into variables.
+   * @param array $c
+   * @params mixed output!
+   * @return void
+   */
   static function importContext(Array $c, &$db,&$name,&$side,&$id,&$otherSide,&$g,&$stage,&$state) {
     $db=$c["db"];
     $name=$c["name"];
@@ -233,6 +294,10 @@ class HubHelper {
     $state=$c["state"];
   }
 
+  /**
+   *
+   * @return false on failure, non-false on success
+   */
   static function readCookie($cookie,&$name,&$side,&$dealId) {
     if (empty($cookie)) return false;
     $name=$letter=$dealId="";
@@ -253,6 +318,10 @@ class HubHelper {
     return $i;
   }
   
+  /**
+   *
+   * @return false on failure, non-false on success
+   */  
   static function readReqId($reqId,&$name,&$side,&$dealId) {
     if ( empty($reqId) ) return false;
     // reqId=John_B_10_77
@@ -264,12 +333,20 @@ class HubHelper {
     return true;
   }
   
+  /**
+   * @param array $cookie output needed for DetachedHubHelper::clearCookies
+   * @return void
+   */
   static function clearCookies(&$cookie) {
     setcookie("name","",time()-1000);
     setcookie("side","",time()-1000);
     setcookie("dealId","",time()-1000);
   }
-  
+
+  /**
+   * @param array $cookie output needed for DetachedHubHelper::setCookie
+   * @return void
+   */  
   static function setCookie(&$cookie,$name,$side,$dealId) {
     setcookie("name",$name);
     setcookie("side",$side);
@@ -278,7 +355,7 @@ class HubHelper {
   
   /**
    *
-   * @return string
+   * @return json string
    */
   static function fail($note,$state=null) {
     $r='{"error":1,"note":"'.$note.'"}';
@@ -288,7 +365,7 @@ class HubHelper {
   
   /**
    *
-   * @return string
+   * @return json string
    */
   static function noteState($note,$state) {
     $r='{"state":"'.$state.'","note":"'.$note.'"}';
@@ -301,7 +378,7 @@ class HubHelper {
    * @param string $note
    * @param object Game $g
    * @param string|array $keys
-   * @return string
+   * @return json string
    */
   static function notePairs($note,Game $g, $keys) {
     $r='{"note":"'.$note.'",'.$g->exportPair($keys).'}';
@@ -315,6 +392,7 @@ class HubHelper {
    * @param string $side A or B
    * @param string $id game Id from HubHelper::readCookie
    * @return {object Game}
+   * @throws Exception
    */
   static function findRecord(RelaySqlt $db,$name,$side,$id) {
     $rec=$db->readGame($id);
@@ -329,7 +407,7 @@ class HubHelper {
   /**
    * Appends a pair key:value to existing JSON string.
    * @param string $json
-   * @param string $pair
+   * @param string $pair key:value or {key1:value1,key2:value2,..}
    * @return string
    */  
   static function appendToJson($json,$pair) {
@@ -337,13 +415,25 @@ class HubHelper {
     if ($l<2) throw new Exception ("Too small JSON argument :".$json."!");
     $last=substr($json,$l-1,1);
     if ( $last!="}" && $last!="]" ) throw new Exception ("Invalid JSON argument termination :".$last."!");
+    
+    $lp=strlen($pair);
+    $pairFirst=substr($pair,0,1);
+    $pairLast=substr($pair,$lp-1,1);
+    if ($pairFirst=="{" || $pairFirst=="[") {
+      // 2nd argument seems to be json, not just a pair
+      if ( ($pairFirst=="{" && $pairLast != "}") || ($pairFirst=="[" && $pairLast != "]") ) throw new Exception ("Invalid 2nd argument delimiters :".$pairFirst.",".$pairLast."!");
+      if ($pairLast!=$last) throw new Exception ("2nd argument delimiters do not match 1st argument delimiters :".$pairLast.",".$last."!");
+      $pair=substr($pair,1,$lp-2);// strip delimiters
+    }
+    if (strlen($pair)==0) return $json;
     if ($l>2) { $r=substr($json,0,$l-1).",".$pair.$last; }
-    else { $r=substr($json,0,1).$pair.$last; };
+    else { $r=substr($json,0,1).$pair.$last; }// just wrap pair in delimiters
     return $r;
   }
   
   /**
    * Collects keys from the upper and next levels of nested JSON array.
+   * While debugging catches the response format errors.
    ^ @param string $json
    * @param string $separator
    * @return string
@@ -353,6 +443,7 @@ class HubHelper {
     //echo("==".$json."==");
     $obj=json_decode($json,true);
     //var_dump($obj);
+    if (!is_array($obj)) { echo("\nFailed to decode:\n".$json."\n"); }
     foreach( $obj as $k1=>$v1 ) {
       $keys[]=$k1;
       if ( is_array($v1) || is_object($v1) ) {

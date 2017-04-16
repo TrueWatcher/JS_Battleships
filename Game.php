@@ -106,15 +106,20 @@ class Game {
     return($m);  
   }
   
+  /**
+   * @param string $next
+   * @return void
+   */
   function addMove($next) {
     $m=$this->moves;
-    $this->moves = HubHelper::appendToJson ( $m, $next );
+    $this->moves = HubHelper::appendToJson ( $m, "[".$next."]" );
+    // "[[move1],[move2],[next]]"
   }
   
   function getRule($key) {
-    $parsed=json_decode($this->rulesSet,true);
-    if (!isset($parsed[$key])) throw new Exception("Invalid key:".$key."!");
-    return($parsed[$key]);
+    $parsedRules=json_decode($this->rulesSet,true);
+    if (!isset($parsedRules[$key])) throw new Exception("Invalid key:".$key."!");
+    return($parsedRules[$key]);
   }
   
   function clearActive() { $this->activeSide=""; }

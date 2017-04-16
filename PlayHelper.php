@@ -193,6 +193,10 @@ class PlayHelper {
     if (!$count) throw new Exception ("No valid keys");
   }
   
+  /**
+   *
+   * @return string json-encoded array of the move params
+   */
   static function encodeMove ($count,$side,$rc,$result,$sunk=null) {
     // move = [ count, r, c, hit ]
     $r=[ $count, $side, $rc[0], $rc[1], $result ];
