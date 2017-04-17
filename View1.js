@@ -229,8 +229,8 @@ function View1() {
     }
   };
   
-  // adjust visibility
-  if (global.allowHideControls) { hideElement("rules"); }
+  // visibility after initialization
+  if (global.hideInactivePanels) { hideElement("rules"); }
        
   //----- event handlers -----
   this.setClickHandlers=function() {
@@ -296,7 +296,7 @@ function View1() {
       }
     }
     message="";
-    if ( r.hasOwnProperty("picks") ) {
+    if ( r["picks"] ) {
       var rpp=r["picks"];
       if ( rpp["A"] ) { this.drawPicks("A",rpp["A"],this.ticks["A"]); }
       //alert( "!"+rpp.hasOwnProperty("B") );
@@ -341,7 +341,7 @@ function AjaxPanel(container) {
   
   this.toggleTech=function() {
     toggleElement(_this.techEl);
-    //global.allowHideControls=false;
+    //global.hideInactivePanels=false;
   }
   
   $("detailsButton").onclick=_this.toggleTech;

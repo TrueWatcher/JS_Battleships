@@ -60,7 +60,7 @@ function RulesLocal() {
     view2.pMessage.put("");
     view2.eMessage.put("");
     
-    if (global.allowHideControls) { 
+    if (global.hideInactivePanels) { 
       hideElement("intro");
       hideElement("rules");
       hideElement("finish");
@@ -155,7 +155,7 @@ function ShipsLocal() {
       model.playerStat.setShips(pHistogram);
       view2.pStat.showStat(model.playerStat.shipsAlive,model.playerStat.biggestShip,model.playerStat.shipsSunk);
       view2.pStat.showClearHistogram(pHistogram);
-      if (global.allowHideControls) { view2.drawButtons.hide(); }
+      if (global.hideInactivePanels) { view2.drawButtons.hide(); }
       initFight();
     }
     return;
@@ -274,12 +274,13 @@ function FinishLocal() {
     case "new":
       global=new Global();
       model=new Model();
-      global.allowHideControls=true;
+      global.hideInactivePanels=true;
       global.setStage("intro");
       global.setState("zero");
-      if (global.allowHideControls) { 
+      if (global.hideInactivePanels) { 
         hideElement("main");
         hideElement("finish");
+        hideElement("intro");
       }
       displayElement("intro");
       break;

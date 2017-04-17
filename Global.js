@@ -20,10 +20,8 @@ function Global() {
   this.namesAB={};// {A:White,B:Black}
   this.picks={};
   this.defaultPicks={"firstMove":0,"forces":0,"strikeRule":0,"level":0};
-  //this.picksStr="";
-  //this.page2loaded=0;
   var _total=0;
-  this.allowHideControls=false;
+  this.hideInactivePanels=false;
   
   var _activeAB="A";// A or B
   this._firstActiveAB="A";
@@ -128,15 +126,18 @@ function Global() {
     }
     else throw new Error("setRules:invalid firstMove="+picks.firstMove);
     
-    if ( picks.forces === 1 ) _forces=this.forces2;
-    else if( picks.forces !== 0 ) throw new Error("setRules:invalid forces="+picks.forces);
+    if ( picks.forces == 0 ) _forces=this.forces1;
+    else if ( picks.forces === 1 ) _forces=this.forces2;
+    else throw new Error("setRules:invalid forces="+picks.forces);
     
-    if ( picks.strikeRule === 1 ) this._strikeRule=_strikes2;
-    else if( picks.strikeRule !== 0 ) throw new Error("setRules:invalid strikeRule="+picks.strikeRule);
+    if ( picks.strikeRule === 0 ) this._strikeRule=_strikes1;
+    else if ( picks.strikeRule === 1 ) this._strikeRule=_strikes2;
+    else throw new Error("setRules:invalid strikeRule="+picks.strikeRule);
     
-    if ( picks.level ===1 ) _level=1;
+    if ( picks.level === 0 ) _level=0;
+    else if ( picks.level ===1 ) _level=1;
     else if ( picks.level ===2 ) _level=2;
-    else if( picks.level !== 0 ) throw new Error("setRules:invalid level="+picks.level);
+    else throw new Error("setRules:invalid level="+picks.level);
     
     switch (_level) {
       case 2:

@@ -185,7 +185,7 @@
   const URLOFFSET="../";
   //alert("l="+window.location+" hn="+window.location.hostname);
   var global=new Global();
-  global.allowHideControls=true;
+  global.hideInactivePanels=true;
   hideElement("main");
   hideElement("finish");
   var view1=new View1();
@@ -219,9 +219,14 @@
   var probe=[], p=[], won="", k=0, s=0, h=0, aliveZero=0, area=20, area2=14;    
   var ship1={};
   
+  deleteAllCookies();
+  if (readCookie("dealId")) alert("Cookie detected!");
+  
+  print(">page");
+  
   var testScript=[
-  'print(">page"); \
-   println("\\nSetup\\n"); \
+  'sendRequest("adm=rmDb");','',// delete the database
+  'println("\\nSetup\\n"); \
    assertEqualsPrim("intro",global.getStage(),"wrong stage","stage==intro");\
    assertEqualsPrim("intro",global.getState(),"wrong state","state==intro");\
    ',

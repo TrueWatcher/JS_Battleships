@@ -454,8 +454,23 @@ class HubHelper {
     }
     return (implode($separator,$keys));
   }
+  
+  static function implodePlus($arg,$separator=",") {
+    if (is_string($arg)) {
+      try { $arr=json_decode($arg,true); } 
+      catch (Exception $e) { throw new Exception("implodePlus: argument1=".$arg." is string but not a valid json"); }
+    }
+    else if (is_array($arg)) { $arr=$arg; }
+    else throw new Exception("implodePlus: argument1=".$arg." is of invalid type");
+    
+    $r="";
+    foreach($arr as $key=>$val) {
+      if (!is_array($val)) $r.=$separator.$val;
+      else $r.=$separator.self::implodePlus($val);
+    }
+    return ltrim($r,$separator);
+  }
 }
-
 /**
  * Overrides some methods for use in unit testing of HubManager and subcontrollers.
  */

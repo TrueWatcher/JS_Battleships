@@ -68,7 +68,7 @@ class Intro extends DetachableController {
             $hc::setCookie($cookie,$pn,"A",$newId);
             //echo ("cookie was set"); print_r ($cookie);
           }
-          $r = '{'.$g->exportPair( [/*"stage",*/"state","players"] ).'}';// stage is always added
+          $r = $hc::notePairs("Please wait for ".$input["enemyName"]." to show up", $g, ["state","players"] );
           break;
         }
       }
@@ -94,7 +94,7 @@ class Intro extends DetachableController {
         if (!isset($input["reqId"])) {
           $hc::setCookie($cookie,$input["playerName"],"B",$g->getId());
         }
-        $r = '{'.$g->exportPair( [/*"stage",*/"state","players"] ).'}';// stage is always added
+        $r = $hc::notePairs("Choose game settings", $g, ["state","players"] );
         break;
       }
 
@@ -115,15 +115,16 @@ class Intro extends DetachableController {
         $r = '{"note":"No state change, only clearing cookie"}';
         break;
       }
-      if ( in_array ( $state, ["picking","converged","confirming"] ) ) {
+      /*if ( in_array ( $state, ["picking","converged","confirming"] ) ) {
         $r = $hc::fail("An active state is not supposed to be aborted");
         break;
-      }
+      }*/
       $g->setState("aborted");
       $g->setStage("aborted");
       $db->saveGame($g,true);
+      //$g->setStage("intro"); do not do this, re-init will be skipped
       $hc::clearCookies($cookie);
-      $r = $hc::noteState("Session aborted by user, you may register again","intro");
+      $r = $hc::noteState("Session aborted, you may register again","intro");
       break;
 
     case "queryAll":
@@ -203,7 +204,9 @@ class Rules extends DetachableController {
         // sending picks with "confirm" is optional
         if ( isset($input["pick"]) ) {
           if ( $input["pick"] !== $g->getPick($side) ) {
-            $r = $hc::fail("Given answers ".$input["pick"]." differ from the recorded ".$g->getPick($side)." !", $state);
+            $keysInput=$hc::implodePlus($input["pick"]);
+            $keysStored=$hc::implodePlus($g->getPick($side));
+            $r = $hc::fail("Given answers ".$keysInput." differ from the recorded ".$keysStored." !", $state);
             break;
           }
         }
@@ -231,7 +234,9 @@ class Rules extends DetachableController {
         }
         else {
           if ( $g->rulesSet !== $input["rulesSet"] ) {
-            $r = $hc::fail('Value of Rules array is different from the already saved:"'.$input["rulesSet"].'"/"'.$g->rulesSet.'"');
+            $keysInput=$hc::implodePlus($input["rulesSet"]);
+            $keysStored=$hc::implodePlus($g->rulesSet);
+            $r = $hc::fail('Values of Rules array '.$keysInput.' is different from the already saved '.$keysStored.' !');
             break;
           } 
           else {
@@ -666,14 +671,18 @@ class Adm extends DetachableController {
     
     case "rmDb":
       $dbfile="game.db";
+      if (defined("URLOFFSET")) $dbfile=URLOFFSET.$dbfile;
       if (!file_exists($dbfile)) {
         $r = $hc::fail("Db not found:".$dbfile."!", $state);
       }
       else {
         try { $db->destroy(); } catch (Exception $err) { echo("No connection found\n"); }
         unlink($dbfile);
-        $r = $hc::noteState($dbfile." deleted", $state);
+        $r = $hc::noteState($dbfile." deleted", "intro");
       }
+      unset($g);
+      $this->outStage="intro";
+      $this->outState="intro";
       break;
     
     default:

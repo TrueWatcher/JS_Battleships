@@ -186,7 +186,7 @@
   const URLOFFSET="../";
   //alert("l="+window.location+" hn="+window.location.hostname);
   var global=new Global();
-  global.allowHideControls=true;
+  global.hideInactivePanels=true;
   hideElement("main");
   hideElement("finish");
   var view1=new View1();
@@ -277,6 +277,7 @@
   var moveCount=0;
   var pollNeeded=0;
   var pko={};
+  var storedDealId=0, newDealId=1;
   var otherId="noNameYet", otherResp="", otherReqActive=0, orp={};
   var picks1='{"firstMove":0,"forces":1,"strikeRule":0,"level":0}';
   var picks2='{"firstMove":0,"forces":0,"strikeRule":1,"level":0}';
@@ -295,11 +296,14 @@
   [[8,1]], [[8,3]], [[9,7]], [[9,5]],
   ];
   
-  print(">page");
-  deleteAllCookies(1);
+  deleteAllCookies();
   if (readCookie("dealId")) alert("Cookie detected!");
   
+  print(">page");
+  
   var testScript1=[
+  // delete the database
+  'sendRequest("adm=rmDb");','',
   // connect as playerA
   'println("\\nConnect\\n"); \
    s=global.getState();\
@@ -360,10 +364,11 @@
    assertEqualsPrim("ships",otherResp["state"],"wrong other state","other state==ships");\
   ',  
   // queryStage expecting ships
-  'onPoll();',
+  'onPoll();',  
   'assertEqualsPrim("ships",global.getStage(),"wrong stage","stage==ships");\
    assertEqualsPrim("ships",global.getState(),"wrong state","state==ships");\
-   assertEqualsPrim("oe",global._strikeRule,"wrong StrikeRule","StrikeRule==oe");',
+   assertEqualsPrim("oe",global._strikeRule,"wrong StrikeRule","StrikeRule==oe");\
+   ',
   'cl("autoShips");',
   // enemyB submit ships expecting > confirmingShips
   'otr("ships=confirmShips&fleet="+JSON.stringify(ships1),otherId)',
@@ -491,6 +496,7 @@
   'ci.noLoop();',
   'println("\\nWinner\\n"); \
    assertEqualsPrim("finish",global.getState(),"wrong state","state==finish");\
+   assertTrue(""===$("finish").style.display,"finish buttons not shown","buttons are visible");\
    won=global._winner; \
    assertEqualsPrim( won, global.getActive(), "winner differs from active","winner==active=="+won);\
    if (won=="A") he=model.playerStat.hits;\
@@ -514,6 +520,7 @@
    assertEqualsPrim("A",global.pSide,"wrong pSide","same side A");\
    assertEqualsPrim("ships",global.getStage(),"wrong stage","stage==ships");\
    assertEqualsPrim("ships",global.getState(),"wrong state","state==ships");\
+   assertEqualsPrim("none",$("finish").style.display,"finish buttons not hidden","no finish buttons");\
    assertEqualsPrim("oe",global._strikeRule,"changed StrikeRule","StrikeRule==oe still");\
   ',
   // get new fleet
@@ -550,15 +557,21 @@
      assertTrue( "h"==p||"m"==p||"w"==p,"wrong result of strike:"+p,"strike"+p ); \
    }\
   ',
+  'storedDealId=global.dealId;',
   // drop that game and take a fresh start
   'println("\\nAbort and new setup\\n"); \
    cl("resetButton2");',
   'assertEqualsPrim("intro",global.getStage(),"wrong stage","stage==intro");\
    s=global.getState();\
    assertTrue("intro"==s||"zero"==s,"wrong state","state=="+s);\
-  ',/*
-  ];
-  var testScript2=[*/
+  ',
+  // it's good to check that global and model are re-initialized
+
+//   ];
+//   var testScript1=[
+//   // delete the database
+//   'sendRequest("adm=rmDb");','',  
+
   // reconnect
   '$("playerName").value="playerA";\
    $("enemyName").value="enemyB";\
@@ -569,7 +582,9 @@
    assertEqualsPrim("A",global.pSide,"wrong player side","player is A");\
    assertEqualsPrim("enemyB",global.eName,"wrong player name","enemyB");\
    poller.stop();\
-   otherId=global.eName+"_"+global.eSide+"_"+global.dealId;\
+   newDealId=global.dealId;\
+   assertEqualsPrim(storedDealId-0+1,newDealId,"wrong newDealId","newDealId=="+newDealId);\
+   otherId=global.eName+"_"+global.eSide+"_"+newDealId;\
    /*console.log("otherId="+otherId);*/\
   ',
   // connect as enemyB
@@ -578,9 +593,12 @@
   ',
   // get new stage=rules
   'onPoll();onPoll();onPoll();onPoll();',
+  'assertEqualsPrim("rules",global.getStage(),"wrong stage","stage==rules");\
+  ',
   // submit new rules
   'cl("strikeRule_1_A");',
   'cl("forces_0_A");',
+  'assertEqualsPrim(picks2,view1.readPicks(global.pSide),"wrong calculated picks","calculated picks Ok");',
   'otr("rules=updPick&pick="+picks2,otherId)',
   'assertEqualsPrim("converged",otherResp["state"],"wrong other state","other state==converged");\
   ',
@@ -591,13 +609,13 @@
   // get new state=confirming
   'onPoll();',
   'cl("confirmButton");',
+  'assertEqualsPrim(rules2,global.exportRules(),"wrong calculated rules","calculated rules Ok");',
   // check the new rules
   'assertEqualsPrim("ships",global.getStage(),"wrong stage","stage==ships");\
    assertEqualsPrim("ships",global.getState(),"wrong state","state==ships");\
    assertEqualsPrim("bs",global._strikeRule,"wrong StrikeRule","StrikeRule==bs");\
    assertEqualsVect(global.forces1,global.getForces(),"wrong forces","forces 1st option");\
   ',
-  
   'putShips(ships2);',
   //'cl("autoShips");',
   'cl("confirmShips");',
