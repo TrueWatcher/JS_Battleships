@@ -337,7 +337,8 @@ class PlayHelper {
       
     case "finish":
     case "aborted":
-      $note="Game is ".$stage."ed !";
+      if ($stage=="aborted") $note="Game is aborted !";
+      else $note="Game is finished, ".$g->getName($g->winner)." has won !";
       $r = $hc::notePairs ( $note, $g, [ "state", "players", "rulesSet", "moves", "stats", "activeSide", "clip"] );
       if ($g->winner) $r = $hc::appendToJson( $r, $g->exportPair(["winner"]) );
       break;

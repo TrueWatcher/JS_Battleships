@@ -239,8 +239,11 @@ function StateOperator() {
       onReIntro();
       return;
     }  
-    //if ( responseObj["moves"] ) onMovesReceived();
-    //if ( responceObj["ships"] ) onShipsReceived();
+    if ( toStage == "finish" && fromStage == "intro" ) {
+      initPage2();
+      onFinish(responseObj);
+      return;
+    }
     if ( toStage == "finish" || toState == "finish" ) {
       onFinish(responseObj);
       return;
@@ -320,8 +323,9 @@ function StateOperator() {
   
   function onAbort() {
     deleteAllCookies();
-    var nfl=new FinishLocal();
-    nfl.go("new");
+    onReIntro();
+    global.setStage("intro");
+    global.setState("zero");
     view1.putNote("intro","Game is aborted, you may register again");
   }
   

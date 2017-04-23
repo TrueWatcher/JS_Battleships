@@ -26,7 +26,7 @@ class Game {
   protected $defaultStats='{"strikes":0,"hits":0,"afloat":0,"largest":0}';// JSON
   protected $clip=0;
   protected $total=0;
-  public $winner="";
+  public $winner="";// A or B
   
   function __construct() {
     $this->picks["A"] = $this->picks["B"] = $this->defaultPicks;
