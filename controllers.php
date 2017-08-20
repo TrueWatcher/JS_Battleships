@@ -15,7 +15,7 @@ class Intro extends DetachableController {
 
     case "register":
 
-      if ( empty($input["playerName"]) || empty($input["playerName"]) ) {
+      if ( empty($input["playerName"]) || empty($input["enemyName"]) ) {
         $r = $hc::fail("Missing name(s)");
         break;
       }
