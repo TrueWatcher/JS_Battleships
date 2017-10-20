@@ -13,7 +13,7 @@ class Game {
   public $timeFinished=0;
   public $agendaFile="agenda.json";
   protected $stages=["zero","intro","rules","ships","fight","finish","aborted"];
-  protected $states=["zero","connecting","picking","converged","confirming","ships","confirmingShips","fight","finish","cyclingReq","cyclingOk","leaving","aborted"];
+  protected $states=["zero","intro","connecting","picking","converged","confirming","ships","confirmingShips","fight","finish","cyclingReq","cyclingOk","leaving","aborted"];
   protected $stage="zero";
   protected $state="zero";
   protected $activeSide="";
@@ -42,7 +42,7 @@ class Game {
   function getId() { return($this->id); }
 
   function setStage($newStage) {
-    if (! in_array($newStage,$this->stages) ) throw new Exception("Invalid target stage:".$newStage."!");
+    if ( ! in_array($newStage,$this->stages) ) throw new Exception("Invalid target stage:".$newStage."!");
     $this->stage = $newStage;
   }
   

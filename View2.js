@@ -36,7 +36,7 @@ function AsciiTheme() {
  */
 function ClassTheme(themedir,stylesheet) {
   var _allowed=[ "u","e","s","m","h","w","c","f" ];// private via closure
-  // "u":unknown,"e":empty,"s":ship,"m":miss,"h":hit,"w":wreck,"c":buoy
+  // "u":unknown,"e":empty,"s":ship,"m":miss,"h":hit,"w":wreck,"c":buoy,"f":explosion
 
   this.put=function(what,row,col,idPrefix) {
     if (what=="n") return;
@@ -426,8 +426,11 @@ function View2(game) {
     }
     
     if ( r["moves"] ) {
-      both=r["moves"];         
-      for (var i=0;i<both.length;i++) { this.putMove(both[i]); } 
+      both=r["moves"];
+      if(both.length == 1) this.putMoveEnemyAnimated(both[0]);
+      else {
+        for (var i=0;i<both.length;i++) { this.putMove(both[i]); } 
+      }
     }    
     
     if ( r["move"] ) {
@@ -469,10 +472,14 @@ function View2(game) {
    * @return void
    */
   this.putMove=function(moveArr){
-    var parsed={};
-    var targetBasin,targetBoard;
-    //alert (">>"+moveArr);
-    parsed = this.parseMove(moveArr);
+    var movedata=parseAndTarget(moveArr);
+    putParsedMove(movedata.parsed,movedata.targetBasin,movedata.targetBoard);
+    global.incTotal();
+  }
+  
+  function parseAndTarget(moveArr) {
+    var parsed={},targetBasin,targetBoard;
+    parsed = _this.parseMove(moveArr);
     if ( parsed.count <= global.getTotal() ) {
       // this move has been already received -- wrong but sometimes happens
       //alert("Received move #"+parsed.count+", but Total="+global.getTotal() );
@@ -481,18 +488,22 @@ function View2(game) {
     }
     if (parsed.side == global.eSide) { // if e strikes, target is p
       targetBasin=model.playerBasin;
-      targetBoard=this.pBoard;
+      targetBoard=_this.pBoard;
     }
     else if (parsed.side == global.pSide) {
       targetBasin=model.enemyBasin;
-      targetBoard=this.eBoard;
+      targetBoard=_this.eBoard;
     } 
     else {
       throw new Error ("Invalid r::moves side:"+parsed.side+"!");  
     }
+    return({parsed:parsed,targetBasin:targetBasin,targetBoard:targetBoard});
+  }
+  
+  function putParsedMove(parsed,targetBasin,targetBoard) {
     if ( parsed.sunk ) {
       // mark a sunk ship
-      if (!isArray(parsed.sunk)) throw new Error ("Not an array "+parsed.sunk+"!");
+      if ( ! isArray(parsed.sunk)) throw new Error ("Not an array "+parsed.sunk+"!");
       targetBasin.markSunk( parsed.sunk );
       targetBasin.markAround ( parsed.sunk );
       targetBoard.fromBasin( targetBasin );
@@ -502,8 +513,28 @@ function View2(game) {
       targetBasin.put( parsed.hit,parsed.row,parsed.col );
       targetBoard.put( parsed.hit,parsed.row,parsed.col );
     }
-    global.incTotal();    
   }
+  
+  function putExplosion(parsed,targetBoard) {
+    if(parsed.row !== "" && parsed.col !== "") targetBoard.put( "f",parsed.row,parsed.col );
+  }
+  
+  this.putMoveEnemyAnimated=function(moveArr){
+    var movedata=parseAndTarget(moveArr);
+    //alert("side="+movedata.parsed.side);
+    if(movedata.parsed.side == global.pSide) {
+      putParsedMove(movedata.parsed,movedata.targetBasin,movedata.targetBoard);
+    }
+    else {
+      //alert("boom");
+      putExplosion(movedata.parsed,movedata.targetBoard);
+      global.incTotal();
+      setTimeout(function(){    putParsedMove(movedata.parsed,movedata.targetBasin,movedata.targetBoard);
+      }, 250);
+      // breaks the twoFold test if delay is longer than in testUtils/commandRun
+    }
+  }  
+
 }
 
 
