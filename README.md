@@ -13,7 +13,7 @@ as of v.2.1.23 20 Oct 2017:
 Manual :)  
 
 to install on the server:
-That's so simple. Just copy all the files to your destination folder (may not be the site root). Check if it opens in browser and gives you index.html with Connect form.
+- That's so simple. Just copy all the files to your destination folder (may not be the site root). Check if it opens in browser and gives you index.html with Connect form.
 
 to have a nice time with it:
 - Enter your name after "Your name" and your opponent's name after "Your opponent's name", make sure you have typed them right, then press "Connect"
